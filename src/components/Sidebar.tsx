@@ -36,7 +36,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
     requester: ["overview", "cases", "pr", "inventory"],
     procurement: ["overview", "cases", "pr", "rfq", "suppliers"],
     manager: ["overview", "cases", "rfq", "suppliers", "inventory"],
-    warehouse: ["inventory", "cases", "rfq"],
+    warehouse: ["overview", "inventory", "cases", "rfq"],
     admin: ["overview", "cases", "pr", "rfq", "suppliers", "inventory"]
   };
 
