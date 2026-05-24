@@ -1,0 +1,6 @@
+{
+  "name": "Stally",
+  "description": "B2B SaaS Procurement and Basic Stock Automation powered by AI Agents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
