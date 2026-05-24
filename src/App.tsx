@@ -9,6 +9,14 @@ import SupplierManagement from "./components/SupplierManagement";
 import LoginScreen from "./components/LoginScreen";
 import OnboardingTutorial from "./components/OnboardingTutorial";
 
+// Import new cases pipeline components
+import ProcurementDashboard from "./components/ProcurementDashboard";
+import CaseDetailTimeline from "./components/CaseDetailTimeline";
+import RequesterDashboard from "./components/RequesterDashboard";
+import WarehouseDashboard from "./components/WarehouseDashboard";
+import ManagerDashboard from "./components/ManagerDashboard";
+import FloatingChatbot from "./components/FloatingChatbot";
+
 import { 
   PurchaseRequest, 
   RfqCase, 
@@ -40,6 +48,9 @@ export default function App() {
 
   // Multi-tenant logical isolation state
   const orgId = "org-1"; // Simulated logical multi-tenant organization
+
+  // Cases dashboard state
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
   // Sourced states
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
@@ -111,14 +122,13 @@ export default function App() {
 
   // Handler: Auto-PR trigger from Inventory vơi (EPIC I)
   const handleCreatePrFromStock = async (stockItem: InventoryItem) => {
-    // Fill the exact quantity needed to reach minStockLevel
     const targetQty = Math.max(1, stockItem.minStockLevel - stockItem.quantityAvailable);
     const notes = `Tự động phát hiện vơi thâm hụt (Tồn: ${stockItem.quantityAvailable} / Ngưỡng: ${stockItem.minStockLevel} ${stockItem.unit})`;
     
     await handleCreatePr({
       title: `Bổ sung tồn kho khẩn cấp: ${stockItem.name}`,
       priority: "high",
-      status: "draft", // Ensure the PR status is 'draft' as requested
+      status: "draft",
       requiredDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       items: [
         { name: stockItem.name, quantity: targetQty, unit: stockItem.unit, notes }
@@ -158,7 +168,6 @@ export default function App() {
       }
 
       await syncStateFromServer();
-      // Keep active selection linked
       const updatedPr = purchaseRequests.find(p => p.id === prId);
       if (updatedPr) {
         setSelectedPr({ ...updatedPr, status: "submitted" });
@@ -280,6 +289,7 @@ export default function App() {
     setCurrentRole(role);
     setIsLoggedIn(true);
     setShowTutorial(withTutorial);
+    setSelectedCaseId(null);
     if (role === "warehouse") {
       setActiveTab("inventory");
     } else {
@@ -290,6 +300,7 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setShowTutorial(false);
+    setSelectedCaseId(null);
   };
 
   if (!isLoggedIn) {
@@ -363,14 +374,61 @@ export default function App() {
         ) : (
           <div className="transition-all duration-300">
             {activeTab === "overview" && (
-              <StatsDashboard 
-                purchaseRequests={purchaseRequests}
-                rfqs={rfqs}
-                quotes={quotes}
-                inventory={inventory}
-                onCreatePrFromStock={handleCreatePrFromStock}
-                setActiveTab={setActiveTab}
-              />
+              currentRole === "requester" ? (
+                <RequesterDashboard
+                  inventory={inventory}
+                  purchaseRequests={purchaseRequests}
+                  onCreatePr={handleCreatePr}
+                  currentRole={currentRole}
+                  setActiveTab={setActiveTab}
+                />
+              ) : currentRole === "warehouse" ? (
+                <WarehouseDashboard
+                  inventory={inventory}
+                  stockMovements={stockMovements}
+                  currentRole={currentRole}
+                  onReceiveGoods={handleReceiveGoods}
+                  onAdjustStock={handleAdjustStock}
+                  onCreatePrFromStock={handleCreatePrFromStock}
+                  setActiveTab={setActiveTab}
+                />
+              ) : currentRole === "manager" ? (
+                <ManagerDashboard
+                  purchaseRequests={purchaseRequests}
+                  rfqs={rfqs}
+                  quotes={quotes}
+                  suppliers={suppliers}
+                  onApproveQuote={handleApproveQuote}
+                  setActiveTab={setActiveTab}
+                />
+              ) : (
+                <StatsDashboard 
+                  purchaseRequests={purchaseRequests}
+                  rfqs={rfqs}
+                  quotes={quotes}
+                  inventory={inventory}
+                  onCreatePrFromStock={handleCreatePrFromStock}
+                  setActiveTab={setActiveTab}
+                />
+              )
+            )}
+
+            {activeTab === "cases" && (
+              selectedCaseId ? (
+                <CaseDetailTimeline
+                  caseId={selectedCaseId}
+                  onBackToList={() => setSelectedCaseId(null)}
+                  currentRole={currentRole}
+                  orgId={orgId}
+                  onStateChanged={syncStateFromServer}
+                />
+              ) : (
+                <ProcurementDashboard
+                  currentRole={currentRole}
+                  orgId={orgId}
+                  onSelectCase={(caseId) => setSelectedCaseId(caseId)}
+                />
+              )
             )}
 
             {activeTab === "pr" && (
@@ -426,6 +484,14 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Floating AI Chatbot Bubble */}
+      <FloatingChatbot
+        currentRole={currentRole}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onCreatePr={handleCreatePr}
+      />
     </div>
   );
 }

@@ -9,7 +9,8 @@ import {
   ChevronRight,
   LogOut,
   FolderKey,
-  ChevronLeft
+  ChevronLeft,
+  GitMerge
 } from "lucide-react";
 import { UserRole } from "../types";
 
@@ -23,20 +24,20 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout }: SidebarProps) {
   const allMenuItems = [
     { id: "overview", label: "Tổng quan Dashboard", icon: LayoutDashboard },
+    { id: "cases", label: "Quy trình mua sắm (Cases)", icon: GitMerge },
     { id: "pr", label: "Yêu cầu mua (PR)", icon: FileSpreadsheet },
     { id: "rfq", label: "Đấu thầu & Giá (RFQ)", icon: SendToBack },
     { id: "suppliers", label: "Hồ sơ đối tác NCC", icon: Building2 },
     { id: "inventory", label: "Quản lý tồn kho", icon: Boxes },
-    { id: "chatbot", label: "Trợ lý ảo AI Sourcing", icon: Bot },
   ];
 
   // Role dynamic tabs definition
   const roleAllowedTabs: Record<UserRole, string[]> = {
-    requester: ["overview", "pr", "inventory", "chatbot"],
-    procurement: ["overview", "pr", "rfq", "suppliers", "chatbot"],
-    manager: ["overview", "rfq", "suppliers", "inventory"],
-    warehouse: ["inventory", "rfq"],
-    admin: ["overview", "pr", "rfq", "suppliers", "inventory", "chatbot"]
+    requester: ["overview", "cases", "pr", "inventory"],
+    procurement: ["overview", "cases", "pr", "rfq", "suppliers"],
+    manager: ["overview", "cases", "rfq", "suppliers", "inventory"],
+    warehouse: ["inventory", "cases", "rfq"],
+    admin: ["overview", "cases", "pr", "rfq", "suppliers", "inventory"]
   };
 
   const allowedTabIds = roleAllowedTabs[currentRole] || ["overview"];
@@ -125,4 +126,3 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
     </aside>
   );
 }
-
