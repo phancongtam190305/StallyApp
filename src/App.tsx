@@ -147,16 +147,33 @@ export default function App() {
         })
       });
 
-      if (res.ok) {
-        await syncStateFromServer();
-        // Keep active selection linked
-        const updatedPr = purchaseRequests.find(p => p.id === prId);
-        if (updatedPr) {
-          setSelectedPr({ ...updatedPr, status: "submitted" });
-        }
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        return {
+          ok: false,
+          message: payload?.error?.message || payload?.error || "Không gửi được email RFQ.",
+          details: payload?.error?.details,
+        };
       }
+
+      await syncStateFromServer();
+      // Keep active selection linked
+      const updatedPr = purchaseRequests.find(p => p.id === prId);
+      if (updatedPr) {
+        setSelectedPr({ ...updatedPr, status: "submitted" });
+      }
+
+      return {
+        ok: true,
+        message: `Đã gửi email RFQ thật tới ${payload?.email?.sentCount || selectedSupplierDetails.length} nhà cung cấp.`,
+      };
     } catch (e) {
       console.error("Create RFQ failed", e);
+      return {
+        ok: false,
+        message: "Không kết nối được backend để gửi RFQ.",
+      };
     }
   };
 

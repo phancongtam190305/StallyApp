@@ -20,7 +20,7 @@ interface RfqComparisonProps {
   quotes: Quote[];
   suppliers: Supplier[];
   currentRole: UserRole;
-  onCreateRfq: (prId: string, supplierIds: string[]) => void;
+  onCreateRfq: (prId: string, supplierIds: string[]) => Promise<{ ok: boolean; message: string; details?: string }>;
   onApproveQuote: (rfqId: string, quoteId: string) => void;
   onSimulateInboundEmail: (rfqCaseId: string, supplierId: string, bodyText: string, filename: string) => void;
 }
@@ -46,6 +46,8 @@ export default function RfqComparison({
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [rfqCreatedMessage, setRfqCreatedMessage] = useState("");
+  const [rfqMessageType, setRfqMessageType] = useState<"success" | "error" | "info">("success");
+  const [sendingRfq, setSendingRfq] = useState(false);
   
   const [generatingAdvice, setGeneratingAdvice] = useState(false);
   const [aiAdvice, setAiAdvice] = useState("");
@@ -121,15 +123,24 @@ Dựa trên dữ liệu tài chính bóc tách tự động bới AI đối chi�
     }
   };
 
-  const handleCreateRfqClick = () => {
+  const handleCreateRfqClick = async () => {
     if (!selectedPr) return;
     if (selectedSuppliers.length === 0) {
       alert("Vui lòng chọn ít nhất 1 nhà cung cấp để phát hành yêu cầu báo giá.");
       return;
     }
-    onCreateRfq(selectedPr.id, selectedSuppliers);
-    setRfqCreatedMessage("Đã phân bổ RFQ tự động! Hệ thống đã gửi email chào thầu đến các đối tác.");
-    setTimeout(() => setRfqCreatedMessage(""), 4000);
+    setSendingRfq(true);
+    setRfqMessageType("info");
+    setRfqCreatedMessage("Đang gửi email RFQ thật tới nhà cung cấp...");
+
+    const result = await onCreateRfq(selectedPr.id, selectedSuppliers);
+    setSendingRfq(false);
+    setRfqMessageType(result.ok ? "success" : "error");
+    setRfqCreatedMessage(result.details ? `${result.message} (${result.details})` : result.message);
+
+    if (result.ok) {
+      setTimeout(() => setRfqCreatedMessage(""), 5000);
+    }
   };
 
   const handleTriggerMockEmail = (supplierId: string) => {
@@ -182,7 +193,13 @@ Vận chuyển 80k. Giao hàng trong ngày.
               </div>
 
               {rfqCreatedMessage && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl text-[11px] font-medium animate-fade-slide-up">
+                <div className={`p-3 rounded-xl text-[11px] font-medium animate-fade-slide-up ${
+                  rfqMessageType === "error"
+                    ? "bg-rose-50 border border-rose-200 text-rose-800"
+                    : rfqMessageType === "info"
+                      ? "bg-sky-50 border border-sky-200 text-sky-800"
+                      : "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                }`}>
                   {rfqCreatedMessage}
                 </div>
               )}
@@ -238,9 +255,13 @@ Vận chuyển 80k. Giao hàng trong ngày.
                 <button
                   id="btn-send-rfq"
                   onClick={handleCreateRfqClick}
-                  className="w-full bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs p-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  disabled={sendingRfq}
+                  className={`w-full text-white font-bold text-xs p-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                    sendingRfq ? "bg-slate-400 cursor-not-allowed" : "bg-[#00535b] hover:bg-[#003d44] cursor-pointer"
+                  }`}
                 >
-                  <Send className="w-3.5 h-3.5" /> Gửi Yêu cầu Báo giá (RFQ)
+                  {sendingRfq ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {sendingRfq ? "Đang gửi RFQ..." : "Gửi Yêu cầu Báo giá (RFQ)"}
                 </button>
               )}
             </div>
@@ -492,4 +513,3 @@ Vận chuyển 80k. Giao hàng trong ngày.
     </div>
   );
 }
-

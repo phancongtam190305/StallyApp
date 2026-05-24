@@ -4,17 +4,25 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { apiV1Router } from "./src/backend/api_v1.ts";
+import { sendRealEmail } from "./src/backend/mailer.ts";
+import { startImapPolling } from "./src/backend/imap_poller.ts";
+import { 
+  Organization, User, Supplier, InventoryItem, ProcurementCase, CaseTransition,
+  PurchaseRequest, RfqCase, Quote, QuoteVersion, PurchaseOrder, EmailMessage,
+  AiNegotiationLog, StockMovement
+} from "./src/types.ts";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // Initialize Google GenAI
 const geminiApiKey = process.env.GEMINI_API_KEY;
-let ai: GoogleGenAI | null = null;
+export let ai: GoogleGenAI | null = null;
 if (geminiApiKey && geminiApiKey !== "MY_GEMINI_API_KEY") {
   try {
     ai = new GoogleGenAI({
@@ -33,136 +41,31 @@ if (geminiApiKey && geminiApiKey !== "MY_GEMINI_API_KEY") {
   console.log("No valid GEMINI_API_KEY found. Running in high-fidelity simulator mode.");
 }
 
-// ----------------------------------------------------
-// IN-MEMORY TENANT DATABASE (Logical Multi-Tenancy)
-// ----------------------------------------------------
-let dbState = {
-  organizations: [
-    { id: "org-1", name: "Stally Food & Beverage Group", industry: "Nhà hàng & Thực phẩm", createdAt: new Date().toISOString() }
-  ],
-  users: [
-    { id: "u-1", organizationId: "org-1", email: "phancongtam190305@gmail.com", name: "Phan Công Tâm", role: "procurement", status: "active" },
-    { id: "u-2", organizationId: "org-1", email: "bep_truong@stally.com", name: "Trần Văn Bình", role: "requester", status: "active" },
-    { id: "u-3", organizationId: "org-1", email: "manager@stally.com", name: "Nguyễn Thị Mai", role: "manager", status: "active" },
-    { id: "u-4", organizationId: "org-1", email: "kho@stally.com", name: "Lý Văn Khoa", role: "warehouse", status: "active" }
-  ],
-  suppliers: [
-    { 
-      id: "sup-1", 
-      organizationId: "org-1",
-      name: "NCC Thực Phẩm Sạch Cầu Đất", 
-      contactPerson: "Lâm Đình Huy",
-      email: "caudat.fresh@gmail.com", 
-      phone: "0901234567", 
-      address: "12 Lạc Long Quân, Trạm Hành, Đà Lạt",
-      rating: 4.8, 
-      tags: ["Rau củ", "Trái cây", "Thực phẩm tươi"],
-      historicalPricing: "Rau củ Mỹ/Organic: 32.000đ - 35.000đ/kg; Xà lách: 30.000đ/kg. Giá cập nhật ngày 15/05/2026."
-    },
-    { 
-      id: "sup-2", 
-      organizationId: "org-1",
-      name: "NCC Gạo Vàng Việt Nam", 
-      contactPerson: "Nguyễn Văn Hùng",
-      email: "gaovangvietnam@gmail.com", 
-      phone: "0987654321", 
-      address: "Vinh Đông, Sa Đéc, Đồng Tháp",
-      rating: 4.6, 
-      tags: ["Thực phẩm khô", "Gạo", "Gia vị"],
-      historicalPricing: "Gạo ST25 Cao Cấp: 27.500đ - 29.000đ/kg. Ổn định quanh năm."
-    },
-    { 
-      id: "sup-3", 
-      organizationId: "org-1",
-      name: "NCC Hải Sản & Thịt Biển Đông", 
-      contactPerson: "Phạm Hải Đăng",
-      email: "biendongseafood@gmail.com", 
-      phone: "0909998887", 
-      address: "Cảng cá Thọ Quang, Sơn Trà, Đà Nẵng",
-      rating: 4.7, 
-      tags: ["Hài sản", "Thịt tươi", "Thực phẩm tươi"],
-      historicalPricing: "Thịt Bò Mỹ Slicing: 235.000đ - 240.000đ/kg. Cơm/Thịt gà: 85.000đ/kg."
-    },
-    { 
-      id: "sup-4", 
-      organizationId: "org-1",
-      name: "Nhà Cung Cấp Thiết Bị Tổng Hợp An Phát", 
-      contactPerson: "Trần Thị Lan",
-      email: "anphat.general@gmail.com", 
-      phone: "0912348765", 
-      address: "32 Tô Hiến Thành, Quận 10, TP. Hồ Chí Minh",
-      rating: 4.2, 
-      tags: ["Dụng cụ bếp", "Tẩy rửa", "Kitchenware"],
-      historicalPricing: "Chén Dĩa Sứ Minh Long: 42.000đ - 45.000đ/cái. Chiết khấu 5% cho đơn > 100 cái."
-    }
-  ],
-  inventory_items: [
-    { id: "inv-1", organizationId: "org-1", sku: "SKU-ST25", name: "Gạo ST25 Cao Cấp", category: "Thực phẩm khô", unit: "kg", minStockLevel: 100, quantityAvailable: 45, quantityOnOrder: 0, lastPurchasePrice: 28000, updatedAt: new Date().toISOString() },
-    { id: "inv-2", organizationId: "org-1", sku: "SKU-XL01", name: "Xà Lách Mỹ Organic", category: "Thực phẩm tươi", unit: "kg", minStockLevel: 15, quantityAvailable: 12, quantityOnOrder: 0, lastPurchasePrice: 35000, updatedAt: new Date().toISOString() },
-    { id: "inv-3", organizationId: "org-1", sku: "SKU-TB02", name: "Thịt Bò Mỹ Slicing", category: "Thực phẩm tươi", unit: "kg", minStockLevel: 30, quantityAvailable: 40, quantityOnOrder: 0, lastPurchasePrice: 240000, updatedAt: new Date().toISOString() },
-    { id: "inv-4", organizationId: "org-1", sku: "SKU-DA03", name: "Dầu Ăn Tường An 5L", category: "Gia vị", unit: "chai", minStockLevel: 20, quantityAvailable: 8, quantityOnOrder: 0, lastPurchasePrice: 195000, updatedAt: new Date().toISOString() },
-    { id: "inv-5", organizationId: "org-1", sku: "SKU-ML04", name: "Chén Dĩa Sứ Minh Long", category: "Dụng cụ bếp", unit: "cái", minStockLevel: 100, quantityAvailable: 120, quantityOnOrder: 0, lastPurchasePrice: 45000, updatedAt: new Date().toISOString() }
-  ],
-  purchase_requests: [
-    {
-      id: "pr-1",
-      organizationId: "org-1",
-      requesterId: "u-2",
-      requesterName: "Trần Văn Bình (Bếp Trưởng)",
-      departmentName: "Bộ phận Bếp",
-      title: "Yêu cầu mua gạo ST25 và dầu ăn khẩn cấp dọn kho",
-      status: "submitted",
-      priority: "high",
-      requiredDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      items: [
-        { name: "Gạo ST25 Cao Cấp", quantity: 150, unit: "kg", notes: "Kho đã cạn dưới mức tối thiểu" },
-        { name: "Dầu Ăn Tường An 5L", quantity: 30, unit: "chai", notes: "Dùng cho tiệc cuối tháng" }
-      ],
-      source: "web",
-      createdAt: new Date().toISOString()
-    }
-  ],
-  rfq_cases: [
-    {
-      id: "rfq-1",
-      organizationId: "org-1",
-      purchaseRequestId: "pr-1",
-      status: "sent",
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      suppliers: [
-        { supplierId: "sup-2", name: "NCC Gạo Vàng Việt Nam", email: "gaovangvietnam@gmail.com", status: "sent" },
-        { supplierId: "sup-4", name: "Nhà Cung Cấp Thiết Bị Tổng Hợp An Phát", email: "anphat.general@gmail.com", status: "replied", quoteId: "q-1" }
-      ],
-      createdAt: new Date().toISOString()
-    }
-  ],
-  quotes: [
-    {
-      id: "q-1",
-      organizationId: "org-1",
-      rfqCaseId: "rfq-1",
-      supplierId: "sup-4",
-      supplierName: "Nhà Cung Cấp Thiết Bị Tổng Hợp An Phát",
-      items: [
-        { name: "Gạo ST25 Cao Cấp", quantity: 150, unit: "kg", unitPrice: 30000, totalPrice: 4500000 },
-        { name: "Dầu Ăn Tường An 5L", quantity: 30, unit: "chai", unitPrice: 210000, totalPrice: 6300000 }
-      ],
-      subtotal: 10800000,
-      taxAmount: 1080000,
-      shippingFee: 200000,
-      totalAmount: 12080000,
-      deliveryDays: 2,
-      paymentTerms: "Thanh toán khi nhận hàng (COD)",
-      validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      aiConfidenceScore: 98,
-      status: "extracted",
-      originalFileUrl: "quote_anphat_scan_1029.pdf",
-      createdAt: new Date().toISOString()
-    }
-  ],
-  stock_movements: [
-    { id: "mov-1", organizationId: "org-1", itemId: "inv-1", movementType: "adjustment", quantity: 45, referenceType: "manual", referenceId: "Mở kho ban đầu", createdBy: "Lý Văn Khoa", createdAt: new Date().toISOString() }
-  ]
+import { 
+  initDb, db, parseSupplier, parseProcurementCase, parsePurchaseRequest, 
+  parseRfqCase, parseQuote, parseQuoteVersion, parsePurchaseOrder, 
+  parseEmailMessage, persistDbState 
+} from "./src/backend/db.ts";
+
+initDb();
+
+export let dbState: any = {
+  organizations: db.prepare("SELECT * FROM organizations").all(),
+  users: db.prepare("SELECT * FROM users").all(),
+  suppliers: db.prepare("SELECT * FROM suppliers").all().map(parseSupplier),
+  inventory_items: db.prepare("SELECT * FROM inventory_items").all(),
+  procurement_cases: db.prepare("SELECT * FROM procurement_cases").all().map(parseProcurementCase),
+  case_transitions: db.prepare("SELECT * FROM case_transitions").all(),
+  purchase_requests: db.prepare("SELECT * FROM purchase_requests").all().map(parsePurchaseRequest),
+  rfq_cases: db.prepare("SELECT * FROM rfq_cases").all().map(parseRfqCase),
+  quotes: db.prepare("SELECT * FROM quotes").all().map(parseQuote),
+  quote_versions: db.prepare("SELECT * FROM quote_versions").all().map(parseQuoteVersion),
+  purchase_orders: db.prepare("SELECT * FROM purchase_orders").all().map(parsePurchaseOrder),
+  email_accounts: db.prepare("SELECT * FROM email_accounts").all(),
+  email_messages: db.prepare("SELECT * FROM email_messages").all().map(parseEmailMessage),
+  ai_negotiation_logs: db.prepare("SELECT * FROM ai_negotiation_logs").all(),
+  rfq_email_drafts: db.prepare("SELECT * FROM rfq_email_drafts").all(),
+  stock_movements: db.prepare("SELECT * FROM stock_movements").all()
 };
 
 // ----------------------------------------------------
@@ -176,6 +79,20 @@ const organizationChecker = (req: express.Request, res: express.Response, next: 
 };
 
 app.use(organizationChecker);
+
+// Auto-persist in-memory changes back to SQLite database at the end of every request
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  res.on("finish", () => {
+    try {
+      persistDbState(dbState);
+    } catch (err) {
+      console.error("Failed to persist database state:", err);
+    }
+  });
+  next();
+});
+
+app.use("/api/v1", apiV1Router);
 
 // Extend Express Request type
 declare global {
@@ -223,7 +140,8 @@ app.post("/api/suppliers", (req, res) => {
     address: address || "",
     rating: Number(rating) || 5,
     tags: tags || [],
-    historicalPricing: historicalPricing || ""
+    historicalPricing: historicalPricing || "",
+    source: "crm" as "crm" | "crawled"
   };
   dbState.suppliers.push(newSupplier);
   res.status(201).json(newSupplier);
@@ -334,18 +252,124 @@ app.get("/api/purchase-requests/:id/match-suppliers", (req, res) => {
 });
 
 // CREATE RFQ CASE (EPIC C)
-app.post("/api/rfq", (req, res) => {
+app.post("/api/rfq", async (req, res) => {
   const { purchaseRequestId, suppliers, dueDate } = req.body;
   if (!purchaseRequestId || !suppliers || suppliers.length === 0) {
     return res.status(400).json({ error: "Cần chọn Purchase Request và ít nhất một nhà cung cấp." });
   }
 
+  const rfqId = `rfq-${Date.now()}`;
+  const resolvedDueDate = dueDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  // Update PR state to show it is now in RFQ phase
+  const prIndex = dbState.purchase_requests.findIndex(p => p.id === purchaseRequestId);
+  let prItemsText = "Không có thông tin sản phẩm.";
+  let prTitle = "Yêu cầu báo giá nguyên liệu";
+  if (prIndex !== -1) {
+    dbState.purchase_requests[prIndex].status = "submitted"; 
+    const prObj = dbState.purchase_requests[prIndex];
+    prTitle = prObj.title || prTitle;
+    prItemsText = prObj.items.map((it: any) => `• <strong>${it.name}</strong>: ${it.quantity} ${it.unit} ${it.notes ? `(${it.notes})` : ""}`).join("<br/>");
+  }
+
+  const pendingEmailLogs: EmailMessage[] = [];
+  const sentEmails: Array<{ supplierId: string; email: string; messageId: string }> = [];
+
+  // Generate and send actual emails to suppliers. This endpoint must fail if SMTP cannot send.
+  for (const sup of suppliers) {
+    const emailSubject = `[STALLY RFQ-${rfqId.toUpperCase()}] Thư mời chào giá cung cấp nguyên liệu - ${prTitle}`;
+    const emailBody = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 650px; margin: auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #334155; line-height: 1.6;">
+        <div style="text-align: center; border-bottom: 2px solid #00535b; padding-bottom: 15px; margin-bottom: 20px;">
+          <h2 style="color: #00535b; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">STALLY B2B SOURCING</h2>
+          <p style="color: #64748b; font-size: 12px; margin: 5px 0 0 0; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Hệ Thống Quản Lý Thu Mua Tự Động</p>
+        </div>
+        
+        <p>Kính chào Quý đối tác <strong>${sup.name}</strong>,</p>
+        <p>Ban mua sắm <strong>Stally Food & Beverage Group</strong> trân trọng kính mời quý đơn vị tham gia chào giá cung cấp các hạng mục nguyên vật liệu chi tiết dưới đây:</p>
+        
+        <div style="background-color: #f8fafc; border-left: 4px solid #00535b; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+          <h3 style="color: #0f172a; margin: 0 0 10px 0; font-size: 15px; font-weight: 700;">Danh sách yêu cầu chào giá:</h3>
+          <div style="font-size: 14px; color: #334155; font-family: monospace; white-space: pre-line;">
+            ${prItemsText}
+          </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; width: 40%;"><strong>Mã yêu cầu RFQ:</strong></td>
+            <td style="padding: 8px 0; color: #0f172a; font-weight: bold;">${rfqId.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b;"><strong>Hạn chót gửi báo giá:</strong></td>
+            <td style="padding: 8px 0; color: #e11d48; font-weight: bold;">${resolvedDueDate}</td>
+          </tr>
+        </table>
+        
+        <p><strong>Hướng dẫn nộp báo giá:</strong></p>
+        <p style="font-size: 13.5px; margin-left: 10px;">
+          👉 Quý đối tác vui lòng phản hồi (Reply) trực tiếp email này và đính kèm file báo giá (định dạng PDF hoặc Excel) hoặc nhập trực tiếp bảng báo giá trong nội dung thư phản hồi.<br/>
+          Hệ thống AI của chúng tôi sẽ tự động xử lý và trích xuất thông tin để đối chiếu phương án mua sắm.
+        </p>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">
+          <p style="margin: 0;">Trân trọng,</p>
+          <p style="margin: 5px 0 0 0; color: #0f172a; font-weight: bold;">Phan Công Tâm</p>
+          <p style="margin: 2px 0 0 0;">Phòng Thu mua & Chuỗi cung ứng - Stally F&B</p>
+        </div>
+      </div>
+    `;
+
+    const sendResult = await sendRealEmail({
+      to: sup.email,
+      subject: emailSubject,
+      html: emailBody
+    });
+
+    if (!sendResult.success) {
+      return res.status(502).json({
+        error: {
+          code: "EMAIL_SEND_FAILED",
+          message: `Không gửi được RFQ tới ${sup.email}.`,
+          details: sendResult.error,
+        },
+        sentEmails,
+      });
+    }
+
+    sentEmails.push({
+      supplierId: sup.supplierId,
+      email: sup.email,
+      messageId: sendResult.messageId || "",
+    });
+
+    const emailMsg: EmailMessage = {
+      id: `email-out-${Date.now()}-${sup.supplierId}`,
+      organizationId: req.organizationId,
+      gmailAccountId: "smtp-1",
+      gmailMessageId: sendResult.messageId || `smtp-out-${Date.now()}-${sup.supplierId}`,
+      gmailThreadId: `thread-${Date.now()}`,
+      internetMessageId: `<out-${Date.now()}@stally.com>`,
+      direction: "outbound",
+      from: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || "procurement@stally.com",
+      to: [sup.email],
+      subject: emailSubject,
+      bodyHtml: emailBody,
+      linkedCaseId: purchaseRequestId, // Link to purchaseRequestId in legacy mode
+      linkedSupplierId: sup.supplierId,
+      classification: "rfq",
+      attachments: [],
+      createdAt: new Date().toISOString()
+    };
+    pendingEmailLogs.push(emailMsg);
+  }
+
   const newRfq = {
-    id: `rfq-${Date.now()}`,
+    id: rfqId,
     organizationId: req.organizationId,
     purchaseRequestId,
     status: "sent" as const,
-    dueDate: dueDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dueDate: resolvedDueDate,
     suppliers: suppliers.map((sup: any) => ({
       supplierId: sup.supplierId,
       name: sup.name,
@@ -356,14 +380,15 @@ app.post("/api/rfq", (req, res) => {
   };
 
   dbState.rfq_cases.push(newRfq);
+  dbState.email_messages.push(...pendingEmailLogs);
 
-  // Update PR state to show it is now in RFQ phase
-  const prIndex = dbState.purchase_requests.findIndex(p => p.id === purchaseRequestId);
-  if (prIndex !== -1) {
-    dbState.purchase_requests[prIndex].status = "submitted"; 
-  }
-
-  res.status(201).json(newRfq);
+  res.status(201).json({
+    data: newRfq,
+    email: {
+      sentCount: sentEmails.length,
+      sent: sentEmails,
+    },
+  });
 });
 
 // SIMULATE INBOUND EMAIL FROM SUPPLIER (EPIC D & E)
@@ -811,7 +836,12 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     console.log("Starting server in DEVELOPMENT MODE with live Vite middleware integration...");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.VITE_HMR_PORT
+          ? { port: Number(process.env.VITE_HMR_PORT) }
+          : undefined,
+      },
       appType: "spa",
     });
     
@@ -838,6 +868,7 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Stally B2B Server running securely on http://localhost:${PORT}`);
+    startImapPolling();
   });
 }
 

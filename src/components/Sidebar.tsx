@@ -35,7 +35,8 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
     requester: ["overview", "pr", "inventory", "chatbot"],
     procurement: ["overview", "pr", "rfq", "suppliers", "chatbot"],
     manager: ["overview", "rfq", "suppliers", "inventory"],
-    warehouse: ["inventory", "rfq"]
+    warehouse: ["inventory", "rfq"],
+    admin: ["overview", "pr", "rfq", "suppliers", "inventory", "chatbot"]
   };
 
   const allowedTabIds = roleAllowedTabs[currentRole] || ["overview"];
@@ -45,7 +46,8 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
     requester: "Bếp Trưởng",
     procurement: "Ban Mua Sắm",
     manager: "Giám Đốc (CEO)",
-    warehouse: "Thủ Kho"
+    warehouse: "Thủ Kho",
+    admin: "Quản Trị Viên (Admin)"
   };
 
   return (
