@@ -205,6 +205,23 @@ app.post("/api/purchase-requests", (req, res) => {
   };
 
   dbState.purchase_requests.push(newPR);
+  dbState.procurement_cases.push({
+    id: `case-${Date.now()}`,
+    organizationId: req.organizationId,
+    title: newPR.title,
+    status: newPR.status === "draft" ? "draft_request" : "request_submitted",
+    priority: newPR.priority,
+    createdFrom: newPR.source === "email" ? "gmail" : newPR.source,
+    requesterId: newPR.requesterId,
+    requesterName: newPR.requesterName,
+    requesterDepartmentId: "dept_kitchen",
+    departmentName: newPR.departmentName,
+    requiredDate: newPR.requiredDate,
+    requestId: newPR.id,
+    items: newPR.items,
+    createdAt: newPR.createdAt,
+    updatedAt: new Date().toISOString()
+  });
   res.status(201).json(newPR);
 });
 
@@ -380,6 +397,40 @@ app.post("/api/rfq", async (req, res) => {
   };
 
   dbState.rfq_cases.push(newRfq);
+
+  let linkedCase = dbState.procurement_cases.find(c => c.requestId === purchaseRequestId && c.organizationId === req.organizationId);
+  if (!linkedCase && prIndex !== -1) {
+    const prObj = dbState.purchase_requests[prIndex];
+    linkedCase = {
+      id: `case-${Date.now()}`,
+      organizationId: req.organizationId,
+      title: prObj.title,
+      status: "collecting_quotes",
+      priority: prObj.priority,
+      createdFrom: prObj.source === "email" ? "gmail" : prObj.source,
+      requesterId: prObj.requesterId,
+      requesterName: prObj.requesterName,
+      requesterDepartmentId: "dept_kitchen",
+      departmentName: prObj.departmentName,
+      requiredDate: prObj.requiredDate,
+      requestId: prObj.id,
+      currentRfqId: rfqId,
+      items: prObj.items,
+      createdAt: prObj.createdAt,
+      updatedAt: new Date().toISOString()
+    };
+    dbState.procurement_cases.push(linkedCase);
+  }
+
+  if (linkedCase) {
+    linkedCase.currentRfqId = rfqId;
+    linkedCase.status = "collecting_quotes";
+    linkedCase.updatedAt = new Date().toISOString();
+    pendingEmailLogs.forEach(log => {
+      log.linkedCaseId = linkedCase.id;
+    });
+  }
+
   dbState.email_messages.push(...pendingEmailLogs);
 
   res.status(201).json({
@@ -564,9 +615,9 @@ function simulateExtraction(pr: any, supplier: any) {
   });
 
   const subtotal = items.reduce((sum: number, it: any) => sum + it.totalPrice, 0);
-  const taxAmount = Math.round(subtotal * 0.1);
-  const shippingFee = multiplier > 1 ? 50000 : 150000;
-  const totalAmount = subtotal + taxAmount + shippingFee;
+  const taxAmount = 0; // Không tự ý bịa thuế VAT khi giả lập
+  const shippingFee = 0; // Không tự ý bịa phí vận chuyển khi giả lập
+  const totalAmount = subtotal;
 
   return {
     items,

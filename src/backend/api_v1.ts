@@ -867,6 +867,52 @@ interface InboundEmailPayload {
   receivedAt?: string;
 }
 
+function createLegacyCaseFromRfq(rfqObj: any, orgId: string) {
+  const prObj = dbState.purchase_requests.find(p => p.id === rfqObj.purchaseRequestId && p.organizationId === orgId);
+  if (!prObj) return null;
+
+  const existing = dbState.procurement_cases.find(c => c.requestId === prObj.id && c.organizationId === orgId);
+  if (existing) {
+    existing.currentRfqId = rfqObj.id;
+    existing.status = "collecting_quotes";
+    existing.updatedAt = new Date().toISOString();
+    return existing;
+  }
+
+  const newCase: ProcurementCase = {
+    id: `case-${Date.now()}`,
+    organizationId: orgId,
+    title: prObj.title,
+    status: "collecting_quotes",
+    priority: prObj.priority,
+    createdFrom: prObj.source === "email" ? "gmail" : prObj.source,
+    requesterId: prObj.requesterId,
+    requesterName: prObj.requesterName,
+    requesterDepartmentId: "dept_kitchen",
+    departmentName: prObj.departmentName,
+    requiredDate: prObj.requiredDate,
+    requestId: prObj.id,
+    currentRfqId: rfqObj.id,
+    items: prObj.items,
+    createdAt: prObj.createdAt,
+    updatedAt: new Date().toISOString()
+  };
+
+  dbState.procurement_cases.push(newCase);
+  dbState.case_transitions.push({
+    id: `trans-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    caseId: newCase.id,
+    fromStatus: "rfq_sent",
+    toStatus: "collecting_quotes",
+    actorId: "system",
+    actorRole: "procurement",
+    reason: "Backfill case từ RFQ legacy để xử lý email IMAP trả về.",
+    createdAt: new Date().toISOString()
+  });
+
+  return newCase;
+}
+
 export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "org-1") {
   const { fromEmail, fromName, subject, bodyText, bodyHtml, rfqCaseId, supplierId, fileName, fileContentBase64 } = payload;
 
@@ -888,7 +934,8 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
         const rfqObj = dbState.rfq_cases.find(r => r.id === code && r.organizationId === orgId);
         if (rfqObj) {
           const legacyCase = dbState.procurement_cases.find(c => c.requestId === rfqObj.purchaseRequestId && c.organizationId === orgId);
-          if (legacyCase) resolvedCaseId = legacyCase.id;
+          const linkedCase = legacyCase || createLegacyCaseFromRfq(rfqObj, orgId);
+          if (linkedCase) resolvedCaseId = linkedCase.id;
         }
       }
     }
@@ -962,8 +1009,7 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
   dbState.email_messages.push(emailMsg);
   broadcastRealtimeEvent("email.received", resolvedCaseId, emailMsg);
   
-  // Trigger quote extraction pipeline in the background
-  triggerQuoteExtractionPipeline(resolvedCaseId, resolvedSupplierId, emailMsg, fileName, fileContentBase64, orgId);
+  await triggerQuoteExtractionPipeline(resolvedCaseId, resolvedSupplierId, emailMsg, fileName, fileContentBase64, orgId);
 
   return { linkedCaseId: resolvedCaseId, linkedSupplierId: resolvedSupplierId, emailMessageId: emailMsg.id };
 }
@@ -1011,19 +1057,31 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
   const multiplier = supplierId === "sup-1" ? 0.95 : supplierId === "sup-2" ? 0.9 : supplierId === "sup-3" ? 1.05 : 1.1;
   const rawTextForGemini = email.bodyText + " " + (fileName ? `Scan file: ${fileName}` : "");
   
+  let isFallback = !ai;
   if (ai) {
     try {
       // Real Gemini API Extraction
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Hãy đóng vai trò là một AI bóc tách báo giá B2B. Đọc nội dung sau và danh sách mặt hàng gốc để trích xuất JSON.
+        contents: `Hãy đóng vai trò là một AI chuyên gia bóc tách báo giá B2B cực kỳ nghiêm ngặt và chính xác. Đọc nội dung email/file đính kèm dưới đây và đối chiếu với danh sách Mặt Hàng Gốc để trích xuất JSON.
+
+QUY TẮC CỰC KỲ QUAN TRỌNG:
+1. KHÔNG ĐƯỢC TỰ Ý BỊA ĐẶT (hallucinate) thông tin. Chỉ trích xuất các sản phẩm thật sự xuất hiện trong nội dung email phản hồi.
+2. ĐỐI CHIẾU MẶT HÀNG GỐC: So khớp tên sản phẩm trong báo giá với danh sách "MẶT HÀNG GỐC" để lấy tên chính xác nhất. Nếu không khớp, giữ nguyên tên trong email.
+3. GIỮ NGUYÊN GIÁ TRỊ: Trích xuất đúng đơn giá (unitPrice) và thành tiền (totalPrice) mà đối tác báo qua email. Tuyệt đối không tự ý áp dụng chiết khấu hay tính toán toán học khác trừ khi email có ghi rõ tỷ lệ phần trăm cụ thể.
+4. XỬ LÝ KHI THIẾU THÔNG TIN:
+   - Phí vận chuyển (shippingFee): Nếu email KHÔNG đề cập phí vận chuyển, bắt buộc điền 0. TUYỆT ĐỐI NGHIÊM CẤM TỰ BỊA RA PHÍ VẬN CHUYỂN.
+   - Thuế VAT (taxAmount): Nếu email không nhắc tới VAT, mặc định điền 0.
+   - Số ngày giao hàng (deliveryDays): Nếu không có thông tin, mặc định điền 3.
+   - Điều khoản thanh toán (paymentTerms): Nếu không có, mặc định điền "Không đề cập".
+
 NỘI DUNG EMAIL & FILE:
 ${rawTextForGemini}
+
 MẶT HÀNG GỐC:
 ${caseObj ? JSON.stringify(caseObj.items) : "Không"}
-Mức chiết khấu tính toán theo nhân tử: ${multiplier}
 
-Hãy trả về mã JSON hợp lệ:
+Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lời giải thích nào khác ngoài JSON:
 {
   "items": [
     { "name": "tên sản phẩm", "quantity": số lượng, "unit": "đơn vị", "unitPrice": đơn giá (VND), "totalPrice": thành tiền }
@@ -1038,14 +1096,37 @@ Hãy trả về mã JSON hợp lệ:
 }`
       });
       if (response.text) {
-        extractedQuote = JSON.parse(response.text.replace(/```json/g, "").replace(/```/g, "").trim());
+        const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          extractedQuote = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("Không tìm thấy khối JSON hợp lệ trong phản hồi của Gemini.");
+        }
       }
     } catch (e) {
+      console.error("❌ Lỗi AI trích xuất báo giá thực tế:", e);
+      isFallback = true;
       extractedQuote = simulateQuoteExtraction(caseObj, supplierObj, multiplier);
     }
   } else {
     extractedQuote = simulateQuoteExtraction(caseObj, supplierObj, multiplier);
   }
+
+  const normalizedItems = (extractedQuote.items && extractedQuote.items.length > 0 ? extractedQuote.items : caseObj?.items || []).map((it: any) => {
+    const quantity = Number(it.quantity) || 0;
+    const unitPrice = Number(it.unitPrice) || 0;
+    return {
+      name: it.name || "Mặt hàng chưa xác định",
+      quantity,
+      unit: it.unit || "đv",
+      unitPrice,
+      totalPrice: Number(it.totalPrice) || quantity * unitPrice
+    };
+  });
+  const normalizedSubtotal = Number(extractedQuote.subtotal) || normalizedItems.reduce((sum: number, it: any) => sum + it.totalPrice, 0);
+  const normalizedTaxAmount = Number(extractedQuote.taxAmount) || Math.round(normalizedSubtotal * 0.1);
+  const normalizedShippingFee = Number(extractedQuote.shippingFee) || 0;
+  const normalizedTotalAmount = Number(extractedQuote.totalAmount) || normalizedSubtotal + normalizedTaxAmount + normalizedShippingFee;
   
   // Save quote and quote version
   const quoteId = `q-${Date.now()}`;
@@ -1055,17 +1136,17 @@ Hãy trả về mã JSON hợp lệ:
     rfqCaseId: caseObj?.currentRfqId || "rfq-1",
     supplierId,
     supplierName: supplierObj ? supplierObj.name : email.from,
-    items: extractedQuote.items,
-    subtotal: extractedQuote.subtotal || extractedQuote.items.reduce((sum, it) => sum + it.totalPrice, 0),
-    taxAmount: extractedQuote.taxAmount || 0,
-    shippingFee: extractedQuote.shippingFee || 0,
-    totalAmount: extractedQuote.totalAmount,
-    deliveryDays: extractedQuote.deliveryDays,
-    paymentTerms: extractedQuote.paymentTerms,
+    items: normalizedItems,
+    subtotal: normalizedSubtotal,
+    taxAmount: normalizedTaxAmount,
+    shippingFee: normalizedShippingFee,
+    totalAmount: normalizedTotalAmount,
+    deliveryDays: Number(extractedQuote.deliveryDays) || 3,
+    paymentTerms: isFallback ? "GIẢ LẬP (Lỗi kết nối Gemini API)" : (extractedQuote.paymentTerms || "COD / Chuyển khoản"),
     validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    aiConfidenceScore: extractedQuote.aiConfidenceScore,
+    aiConfidenceScore: isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70),
     status: "extracted",
-    originalFileUrl: fileName || "quote_unstructured.txt",
+    originalFileUrl: isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt"),
     createdAt: new Date().toISOString()
   };
   
@@ -1102,26 +1183,33 @@ Hãy trả về mã JSON hợp lệ:
       rfqObj.status = "quotes_received";
     }
     
-    // Auto shift case to quote_review
-    transitionCaseStatus({
-      caseId,
-      toStatus: "quote_review",
-      actorId: "system",
-      actorRole: "procurement",
-      reason: `Báo giá thầu của NCC ${newQuote.supplierName} đã được AI trích xuất xong.`,
-      orgId
-    });
-    
-    setTimeout(() => {
+    if (["collecting_quotes"].includes(caseObj.status)) {
       transitionCaseStatus({
         caseId,
-        toStatus: "comparison_ready",
+        toStatus: "quote_review",
         actorId: "system",
         actorRole: "procurement",
-        reason: "Ma trận so sánh báo giá đã sẵn sàng đối chiếu.",
+        reason: `Báo giá thầu của NCC ${newQuote.supplierName} đã được AI trích xuất xong.`,
         orgId
       });
-    }, 400);
+    }
+
+    if (["quote_review", "collecting_quotes"].includes(caseObj.status)) {
+      setTimeout(() => {
+        try {
+          transitionCaseStatus({
+            caseId,
+            toStatus: "comparison_ready",
+            actorId: "system",
+            actorRole: "procurement",
+            reason: "Ma trận so sánh báo giá đã sẵn sàng đối chiếu.",
+            orgId
+          });
+        } catch (err) {
+          console.error("Case comparison transition skipped:", err);
+        }
+      }, 400);
+    }
   }
   
   broadcastRealtimeEvent("quote.extracted", caseId, newQuote);
@@ -1155,9 +1243,9 @@ function simulateQuoteExtraction(caseObj: any, supplierObj: any, multiplier: num
   });
   
   const subtotal = items.reduce((sum: number, it: any) => sum + it.totalPrice, 0);
-  const taxAmount = Math.round(subtotal * 0.1);
-  const shippingFee = multiplier > 1 ? 50000 : 120000;
-  const totalAmount = subtotal + taxAmount + shippingFee;
+  const taxAmount = 0; // Không tự ý bịa thuế VAT khi giả lập
+  const shippingFee = 0; // Không tự ý bịa phí vận chuyển khi giả lập
+  const totalAmount = subtotal;
   const deliveryDays = multiplier < 1 ? 3 : 1;
   const paymentTerms = multiplier < 1.0 ? "COD - Nhận hàng trả tiền" : "Công nợ giãn nợ Net 15 ngày";
   
