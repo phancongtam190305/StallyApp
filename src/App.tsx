@@ -83,6 +83,41 @@ export default function App() {
     syncStateFromServer();
   }, [orgId]);
 
+  // Realtime Event Stream listener (SSE Client)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    console.log("🔌 Connecting to Realtime SSE Stream...");
+    const eventSource = new EventSource("/api/v1/events/stream");
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Realtime event received:", data);
+        
+        if (
+          data.type === "email.received" || 
+          data.type === "quote.extracted" || 
+          data.type === "case.updated"
+        ) {
+          console.log("🔄 Background update detected, sync state from server...");
+          syncStateFromServer();
+        }
+      } catch (err) {
+        console.error("Failed to parse realtime event:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("SSE Connection error:", err);
+    };
+
+    return () => {
+      console.log("🔌 Disconnecting from SSE Stream...");
+      eventSource.close();
+    };
+  }, [isLoggedIn, orgId]);
+
   // Handler: Create PR (EPIC A)
   const handleCreatePr = async (prData: { title: string; priority: PriorityLevel; requiredDate: string; items: PurchaseRequestItem[]; status?: string }) => {
     try {
