@@ -9,3 +9,6 @@ coverage/
 *.db
 *.db-shm
 *.db-wal
+chrome-profile/
+chrome_log.txt
+chrome_error.log

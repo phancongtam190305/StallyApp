@@ -70,21 +70,21 @@ Tôi có thể giúp bạn kiểm tra các sản phẩm sắp cạn trong kho ho
       case "procurement":
         return `Chào **Staff Thu Mua Tâm**! 💼 Tôi là trợ lý **Stally Sourcing AI Agent**.
         
-Tôi sẵn sàng hỗ trợ bạn ghép nối nhà cung ứng CRM tiềm năng, lập dự thảo RFQ gửi Gmail, tự động bóc tách hóa đơn chào thầu qua OCR và đàm phán chiết khấu giá thầu thợ.
+Tôi sẵn sàng hỗ trợ bạn ghép nối nhà cung ứng CRM tiềm năng, lập dự thảo RFQ gửi Gmail, tự động bóc tách hóa đơn chào thầu qua OCR và đàm phán chiết khấu giá thầu.
         
 👉 Hỏi tôi: *"Có báo giá mới nào chưa?"* hoặc *"Làm cách nào đàm phán giá?"*`;
       
       case "manager":
         return `Kính chào **Giám Đốc Mai**! 🏢 Tôi là trợ lý đặc quyền **Stally Executive AI**.
         
-Tôi sẽ giúp Giám Đốc rà soát báo cáo tài chính giải ngân chuỗi cung ứng, đối chiếu ngân sách các nhóm hàng thực phẩm tháng này, và phân tích ma trận 3 Gold Metrics tối ưu thầu thầu thợ để Giám đốc an tâm ký duyệt PO thầu.
+Tôi sẽ giúp Giám Đốc rà soát báo cáo tài chính giải ngân chuỗi cung ứng, đối chiếu ngân sách các nhóm hàng thực phẩm tháng này, và phân tích ma trận 3 Gold Metrics tối ưu thầu thầu để Giám đốc an tâm ký duyệt PO thầu.
         
 👉 Hãy hỏi tôi: *"Tổng chi tiêu tháng này bao nhiêu?"* hoặc *"Hồ sơ nào cần duyệt?"*`;
       
       case "warehouse":
         return `Chào **Thủ Kho Khoa**! 📦 Tôi là trợ lý **Stally Warehouse AI**.
         
-Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa thầu thợ giao về, hoặc điều chỉnh tồn kho tay, lập báo cáo lệch hỏng hao hụt nguyên liệu để gửi cho phòng thu mua xử lý.
+Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa giao về kho, hoặc điều chỉnh tồn kho tay, lập báo cáo lệch hỏng hao hụt nguyên liệu để gửi cho phòng thu mua xử lý.
         
 👉 Hỏi tôi: *"Làm thế nào nhận hàng PO?"* hoặc *"Cách báo cáo hỏng hóc?"*`;
 
@@ -116,7 +116,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
   const faqs: FAQItem[] = [
     {
       q: "Làm cách nào để thêm một nhà cung cấp mới?",
-      a: "Để thêm nhà cung cấp mới vào hệ thống CRM:\n1. Bấm vào tab **Nhà Cung Cấp (Suppliers)** từ Sidebar bên trái.\n2. Chọn nút **Thêm Nhà Cung Cấp** ở trên cùng.\n3. Nhập đầy đủ thông tin bao gồm tên đối tác, đại diện liên hệ, địa chỉ email, số điện thoại, đánh giá sao (1-5), và các thẻ phân loại ngành hàng thầu thợ (ví dụ: gạo, rau củ, hải sản).\n4. Bấm **Lưu** để hoàn tất. AI sẽ ngay lập tức ghi nhận nhà cung ứng này vào cơ sở dữ liệu để tự động ghép cặp thầu thầu thợ về sau!",
+      a: "Để thêm nhà cung cấp mới vào hệ thống CRM:\n1. Bấm vào tab **Nhà Cung Cấp (Suppliers)** từ Sidebar bên trái.\n2. Chọn nút **Thêm Nhà Cung Cấp** ở trên cùng.\n3. Nhập đầy đủ thông tin bao gồm tên đối tác, đại diện liên hệ, địa chỉ email, số điện thoại, đánh giá sao (1-5), và các thẻ phân loại ngành hàng thầu (ví dụ: gạo, rau củ, hải sản).\n4. Bấm **Lưu** để hoàn tất. AI sẽ ngay lập tức ghi nhận nhà cung ứng này vào cơ sở dữ liệu để tự động ghép cặp thầu về sau!",
       tags: ["crm", "nhà cung cấp", "supplier", "thêm ncc"]
     },
     {
@@ -126,12 +126,12 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
     },
     {
       q: "Làm sao để Mark nhận đủ hàng hóa giao về kho?",
-      a: "Đối với Thủ kho thực hiện check-in nhận hàng:\n1. Truy cập workspace của **Thủ Kho (Warehouse)** và chọn tab **Quản Lý Kho**.\n2. Trong mục **Incoming Deliveries (Hàng sắp về)**, chọn lô hàng PO thầu thợ đang giao tới.\n3. Kiểm tra chất lượng và số lượng thực tế giao. Nếu khớp 100%, chỉ cần bấm nút lớn màu xanh **Nhận Đủ Toàn Bộ (Mark All Received)** để hệ thống tự tăng lượng tồn khả dụng trong kho và hạ lượng hàng đang order.\n4. Nếu có hỏng hóc hoặc thiếu hụt, nhấp vào dòng mặt hàng đó để chỉnh tay số lượng nhận và tích chọn **Hao hụt/Hỏng**. Hệ thống sẽ tự tạo Exception gửi cho phòng thu mua đối soát!",
+      a: "Đối với Thủ kho thực hiện check-in nhận hàng:\n1. Truy cập workspace của **Thủ Kho (Warehouse)** và chọn tab **Quản Lý Kho**.\n2. Trong mục **Incoming Deliveries (Hàng sắp về)**, chọn lô hàng PO thầu đang giao tới.\n3. Kiểm tra chất lượng và số lượng thực tế giao. Nếu khớp 100%, chỉ cần bấm nút lớn màu xanh **Nhận Đủ Toàn Bộ (Mark All Received)** để hệ thống tự tăng lượng tồn khả dụng trong kho và hạ lượng hàng đang order.\n4. Nếu có hỏng hóc hoặc thiếu hụt, nhấp vào dòng mặt hàng đó để chỉnh tay số lượng nhận và tích chọn **Hao hụt/Hỏng**. Hệ thống sẽ tự tạo Exception gửi cho phòng thu mua đối soát!",
       tags: ["thủ kho", "nhận hàng", "nhập kho", "hao hụt", "warehouse"]
     },
     {
       q: "AI đàm phán giá thầu tự động hoạt động như thế nào?",
-      a: "Sau khi gửi email RFQ đến các nhà thầu và nhận phản hồi, AI đàm phán của Stally sẽ tự bóc tách file chao_gia.pdf qua OCR. Nếu đơn giá sản phẩm cao hơn giá lịch sử hoặc mức kỳ vọng, AI sẽ tự soạn thảo một email đàm phán thương lượng giảm giá (Round 2, Round 3) dựa trên các luận điểm thuyết phục (cam kết số lượng đặt hàng định kỳ hàng tuần, đối chiếu giá thầu đối thủ). Nhân viên thu mua chỉ cần duyệt nội dung thư do AI soạn và bấm gửi để hoàn tất đàm phán giảm chi phí thầu thợ nhanh chóng!",
+      a: "Sau khi gửi email RFQ đến các nhà thầu và nhận phản hồi, AI đàm phán của Stally sẽ tự bóc tách file chao_gia.pdf qua OCR. Nếu đơn giá sản phẩm cao hơn giá lịch sử hoặc mức kỳ vọng, AI sẽ tự soạn thảo một email đàm phán thương lượng giảm giá (Round 2, Round 3) dựa trên các luận điểm thuyết phục (cam kết số lượng đặt hàng định kỳ hàng tuần, đối chiếu giá thầu đối thủ). Nhân viên thu mua chỉ cần duyệt nội dung thư do AI soạn và bấm gửi để hoàn tất đàm phán giảm chi phí nhanh chóng!",
       tags: ["ai", "đàm phán", "thương lượng", "giảm giá", "sourcing", "rfq"]
     },
     {
@@ -239,7 +239,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
       setMessages(prev => [...prev, {
         id: `sys-${Date.now()}`,
         role: "assistant",
-        content: `🎉 Chúc mừng! Phiếu mua sắm nháp **"${draftData.title}"** đã được phê duyệt nộp thầu thành công ở trạng thái **Submitted**!\nBan mua sắm có thể ngay lập tức tiến hành so khớp thầu thầu thợ và gửi email RFQ tại tab **Thầu & Giá (RFQ)**.`
+        content: `🎉 Chúc mừng! Phiếu mua sắm nháp **"${draftData.title}"** đã được phê duyệt nộp thầu thành công ở trạng thái **Submitted**!\nBan mua sắm có thể ngay lập tức tiến hành so khớp thầu thợ và gửi email RFQ tại tab **Thầu & Giá (RFQ)**.`
       }]);
     }, 450);
   };
@@ -261,50 +261,50 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
 
       return (
         <div className="space-y-3">
-          {cleanText && <p className="whitespace-pre-line text-slate-200 font-medium text-xs leading-relaxed">{cleanText}</p>}
+          {cleanText && <p className="whitespace-pre-line text-primary-dark font-bold text-xs leading-relaxed">{cleanText}</p>}
           {draftData && (
-            <div className={`border rounded-xl p-3.5 transition-all duration-300 text-xs ${
+            <div className={`border-2 rounded-[16px] p-3.5 transition-all duration-300 text-xs ${
               msg.isDraftConfirmed 
-                ? "bg-slate-800/40 border-slate-700/50 text-slate-400" 
-                : "bg-teal-950/30 border-teal-500/30 shadow-lg text-slate-100"
+                ? "bg-slate-100/50 border-slate-300 text-slate-400" 
+                : "bg-[#FFF8E7] border-primary-dark shadow-sm text-primary-dark"
             }`}>
-              <div className="flex items-center justify-between border-b border-slate-750 pb-1.5 mb-2.5">
+              <div className="flex items-center justify-between border-b border-dashed border-primary-dark/20 pb-1.5 mb-2.5">
                 <div className="flex items-center gap-1.5">
-                  <FilePlus2 className={`w-3.5 h-3.5 ${msg.isDraftConfirmed ? "text-slate-500" : "text-teal-400 animate-pulse"}`} />
-                  <span className="text-[9px] font-mono uppercase tracking-wider font-extrabold text-teal-400">DỰ THẢO PHIẾU PR MUA SẮM</span>
+                  <FilePlus2 className={`w-3.5 h-3.5 ${msg.isDraftConfirmed ? "text-slate-400" : "text-primary animate-pulse"}`} />
+                  <span className="text-[9px] font-mono uppercase tracking-wider font-extrabold text-primary-dark">DỰ THẢO PHIẾU PR MUA SẮM</span>
                 </div>
                 <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
-                  msg.isDraftConfirmed ? "bg-slate-700 text-slate-400" : "bg-teal-900 text-teal-350 border border-teal-500/20"
+                  msg.isDraftConfirmed ? "bg-slate-200 text-slate-400" : "bg-accent-gold text-primary-dark border border-primary-dark"
                 }`}>
                   {draftData.priority || "Medium"}
                 </span>
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-extrabold text-teal-300 leading-snug">{draftData.title}</h4>
-                <div className="space-y-1 pl-2 border-l border-slate-700 text-[10.5px]">
+                <h4 className="font-black text-primary-dark leading-snug">{draftData.title}</h4>
+                <div className="space-y-1 pl-2 border-l-2 border-primary-dark/30 text-[10.5px]">
                   {draftData.items?.map((it: any, i: number) => (
                     <div key={i} className="flex justify-between items-center py-0.5">
                       <div className="flex items-center gap-1">
-                        <ItemIcon name={it.name} size="sm" className="scale-75 opacity-80" />
-                        <span className="truncate max-w-[120px]">{it.name}</span>
+                        <ItemIcon name={it.name} size="sm" className="scale-75 opacity-80 border border-primary-dark/25" />
+                        <span className="truncate max-w-[120px] font-bold">{it.name}</span>
                       </div>
-                      <span className="font-mono font-bold text-slate-200">{it.quantity} {it.unit}</span>
+                      <span className="font-mono font-black text-primary-dark">{it.quantity} {it.unit}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="pt-2 flex justify-between items-center text-[10px]">
-                  <span className="text-[8px] font-mono text-slate-500">Draft-and-Confirm</span>
+                  <span className="text-[8px] font-mono text-slate-400">Draft-and-Confirm</span>
                   {msg.isDraftConfirmed ? (
-                    <span className="text-emerald-450 font-bold flex items-center gap-0.5">
+                    <span className="text-success font-bold flex items-center gap-0.5">
                       <Check className="w-3.5 h-3.5" /> Đã duyệt tạo PR
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleConfirmDraft(draftData, msg.id)}
-                      className="bg-teal-650 hover:bg-teal-700 text-white font-bold p-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-sm text-[10px]"
+                      className="bg-[#2BA8A2] hover:bg-[#1E8C86] text-white border border-primary-dark font-black p-1.5 px-3 rounded-full flex items-center gap-1 transition-all hover:scale-[1.03] active:scale-[0.95] cursor-pointer shadow-teal-glow text-[10px]"
                     >
                       <span>✓ Phát Hành PR Nháp</span>
                     </button>
@@ -317,7 +317,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
       );
     }
 
-    return <p className="whitespace-pre-line text-slate-205 text-xs leading-relaxed">{raw}</p>;
+    return <p className="whitespace-pre-line text-primary-dark font-bold text-xs leading-relaxed">{raw}</p>;
   };
 
   // --- CONTEXT CLICK TRIGGER ---
@@ -328,94 +328,94 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
 
   return (
     <>
-      {/* Floating Glassmorphic Bubble Button */}
+      {/* Floating Glassmorphic Mint Orb Bubble Button with active pulse */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 backdrop-blur-xl bg-gradient-to-r from-teal-900/80 to-[#00535b]/90 border border-teal-500/40 text-white shadow-2xl rounded-full p-4 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-50 bg-[#2BA8A2] hover:bg-[#3CC4BD] border-3 border-primary-dark text-white shadow-teal-glow rounded-full p-4 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center group animate-pulse"
         title="Trợ lý Stally Procurement AI"
       >
         <div className="relative">
-          <Bot className="w-6 h-6 text-teal-300 group-hover:rotate-12 transition-transform duration-300" />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-teal-950 animate-pulse" />
+          <Bot className="w-6 h-6 text-[#FFF8E7] group-hover:rotate-12 transition-transform duration-300" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#FFD23F] border-2 border-primary-dark" />
         </div>
-        <div className="absolute right-16 bg-slate-900/90 text-teal-300 border border-teal-500/20 text-[10px] font-bold py-1.5 px-3 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-md">
+        <div className="absolute right-16 bg-primary-dark text-white border-2 border-primary-dark text-[10px] font-black py-1.5 px-3 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-teal-glow">
           Chat với Trợ Lý Stally AI ⚡
         </div>
       </div>
 
-      {/* Sleek Floating Chatbot Window */}
+      {/* Playful Floating Chatbot Window in Cream */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[340px] sm:w-[380px] h-[550px] bg-slate-900/95 backdrop-blur-2xl border border-slate-750/70 shadow-2xl rounded-3xl flex flex-col overflow-hidden animate-fade-slide-up text-white font-sans">
+        <div className="fixed bottom-24 right-6 z-50 w-[340px] sm:w-[380px] h-[550px] bg-cream border-3 border-primary-dark shadow-teal-glow rounded-[32px] flex flex-col overflow-hidden animate-fade-slide-up text-primary-dark font-sans">
           
-          {/* Header */}
-          <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          {/* Header in Gold Light */}
+          <div className="p-4 border-b-3 border-primary-dark bg-[#FFE47A] flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8.5 h-8.5 rounded-xl bg-teal-950/80 border border-teal-500/30 flex items-center justify-center text-teal-400 font-bold relative shadow-sm">
-                <Bot className="w-4 h-4 animate-pulse" />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-slate-900" />
+              <div className="w-8.5 h-8.5 rounded-xl bg-white border-2 border-primary-dark flex items-center justify-center text-primary-dark font-bold relative shadow-sm">
+                <Bot className="w-4 h-4 text-primary animate-bounce" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#FFD23F] border border-primary-dark" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-slate-200 flex items-center gap-1">
-                  Stally Sourcing AI <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <h3 className="text-xs font-black text-primary-dark flex items-center gap-1">
+                  Stally Sourcing AI <Sparkles className="w-3.5 h-3.5 text-coral animate-pulse" />
                 </h3>
-                <span className="text-[8px] font-mono text-slate-450 uppercase font-bold tracking-wider">Hệ thống Trợ lý số hóa kho &amp; thầu</span>
+                <span className="text-[8px] font-mono text-primary-dark/70 uppercase font-bold tracking-wider block">Hệ thống Trợ lý số hóa kho &amp; thầu</span>
               </div>
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+              className="p-1.5 hover:bg-[#FFF8E7] rounded-xl text-primary-dark/70 hover:text-primary-dark transition-all cursor-pointer border-2 border-transparent hover:border-primary-dark/20"
             >
               <X className="w-4.5 h-4.5" />
             </button>
           </div>
 
-          {/* Contextual Action Quick Links Section */}
-          <div className="p-2 border-b border-slate-800/80 bg-slate-950/20 flex gap-2 overflow-x-auto select-none no-scrollbar">
+          {/* Contextual Action Links (Pill-shaped) */}
+          <div className="p-2 border-b-2 border-primary-dark/15 bg-white/40 flex gap-2 overflow-x-auto select-none no-scrollbar">
             {contextualActions.map((act, i) => {
               const Icon = act.icon;
               return (
                 <button
                   key={i}
                   onClick={() => handleContextActionClick(act)}
-                  className="text-[9px] bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-teal-500/30 px-2.5 py-1.5 rounded-xl text-slate-300 hover:text-teal-350 transition-all flex items-center gap-1 cursor-pointer shrink-0 font-bold"
+                  className="text-[9px] bg-white hover:bg-[#FFF8E7] border-2 border-primary-dark px-3 py-1.5 rounded-full text-primary-dark font-black transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <Icon className="w-3 h-3 text-teal-400" />
+                  <Icon className="w-3 h-3 text-[#2BA8A2]" />
                   <span>{act.title}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Navigation Panel Tabs */}
-          <div className="flex border-b border-slate-800/50 bg-slate-950/40 p-1">
+          {/* Navigation Panel Tabs (Pills) */}
+          <div className="flex border-b-2 border-primary-dark/15 bg-white/20 p-1.5 gap-1.5">
             <button
               onClick={() => setActiveTabPanel("chat")}
-              className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all border-2 ${
                 activeTabPanel === "chat" 
-                  ? "bg-slate-800 text-teal-300 font-extrabold border border-slate-700/50" 
-                  : "text-slate-450 hover:text-slate-200"
+                  ? "bg-[#FFE47A] text-primary-dark border-primary-dark shadow-sm" 
+                  : "text-slate-500 hover:text-slate-800 border-transparent hover:bg-white/30"
               }`}
             >
-              <Compass className="w-3.5 h-3.5" /> Trò Chuyện AI
+              <Compass className="w-3.5 h-3.5 text-[#2BA8A2]" /> Trò Chuyện AI
             </button>
             <button
               onClick={() => setActiveTabPanel("faq")}
-              className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all border-2 ${
                 activeTabPanel === "faq" 
-                  ? "bg-slate-800 text-teal-300 font-extrabold border border-slate-700/50" 
-                  : "text-slate-450 hover:text-slate-200"
+                  ? "bg-[#FFE47A] text-primary-dark border-primary-dark shadow-sm" 
+                  : "text-slate-500 hover:text-slate-800 border-transparent hover:bg-white/30"
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5" /> Thẩm Định &amp; FAQ
+              <BookOpen className="w-3.5 h-3.5 text-[#2BA8A2]" /> Thẩm Định &amp; FAQ
             </button>
           </div>
 
           {/* Body Content Panels */}
-          <div className="flex-1 overflow-y-auto p-4 bg-slate-900/40 flex flex-col relative">
+          <div className="flex-1 overflow-y-auto p-4 bg-white/20 flex flex-col relative">
             
             {/* PANEL 1: AI CHAT FEED */}
             {activeTabPanel === "chat" && (
-              <div className="flex-1 flex flex-col justify-between">
+              <div className="flex-1 flex flex-col justify-between h-full">
                 <div className="flex-1 space-y-3.5 overflow-y-auto pr-1">
                   {messages.map((msg) => {
                     const isBot = msg.role === "assistant";
@@ -425,19 +425,19 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
                         className={`flex items-start space-x-2.5 max-w-[90%] ${isBot ? "" : "ml-auto flex-row-reverse space-x-reverse"}`}
                       >
                         {/* Avatar */}
-                        <div className={`w-7.5 h-7.5 rounded-xl border flex items-center justify-center shrink-0 ${
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm ${
                           isBot 
-                            ? "bg-teal-950 border-teal-800 text-teal-400" 
-                            : "bg-teal-700 border-teal-600 text-white"
+                            ? "bg-white border-primary-dark text-[#2BA8A2]" 
+                            : "bg-[#2BA8A2] border-primary-dark text-white"
                         }`}>
-                          {isBot ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                          {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
 
                         {/* Bubble */}
-                        <div className={`p-3 rounded-2xl text-[11px] border leading-relaxed ${
+                        <div className={`p-3 rounded-[20px] text-[11px] border-2 leading-relaxed shadow-card ${
                           isBot 
-                            ? "bg-slate-850/90 border-slate-800 text-slate-100 rounded-tl-none shadow-sm" 
-                            : "bg-teal-950/50 border-teal-800/80 text-teal-100 rounded-tr-none shadow-sm"
+                            ? "bg-white border-primary-dark text-primary-dark rounded-tl-none" 
+                            : "bg-[#E8F6F5] border-primary-dark text-primary-dark rounded-tr-none shadow-teal-glow"
                         }`}>
                           {renderMessageContent(msg)}
                         </div>
@@ -447,12 +447,12 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
 
                   {sending && (
                     <div className="flex items-start space-x-2.5 max-w-[85%]">
-                      <div className="w-7.5 h-7.5 rounded-xl bg-teal-950 border border-teal-850 text-teal-400 flex items-center justify-center shrink-0">
-                        <Bot className="w-3.5 h-3.5" />
+                      <div className="w-8 h-8 rounded-full bg-white border-2 border-primary-dark text-[#2BA8A2] flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4" />
                       </div>
-                      <div className="p-3 rounded-2xl text-[10.5px] bg-slate-850 border border-slate-800 text-slate-400 rounded-tl-none flex items-center gap-1.5 shadow-sm">
-                        <RefreshCw className="w-3 h-3 animate-spin text-teal-450" />
-                        <span className="font-medium">AI Agent đang rà soát tồn kho...</span>
+                      <div className="p-3 rounded-[20px] text-[10.5px] bg-white border-2 border-primary-dark text-slate-500 rounded-tl-none flex items-center gap-1.5 shadow-sm font-bold">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#2BA8A2]" />
+                        <span>AI Agent đang rà soát tồn kho...</span>
                       </div>
                     </div>
                   )}
@@ -465,22 +465,22 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
                     e.preventDefault();
                     handleSendMessage(inputValue);
                   }}
-                  className="mt-3 flex gap-2 border-t border-slate-800/60 pt-3"
+                  className="mt-3 flex gap-2 border-t-2 border-dashed border-primary-dark/20 pt-3 shrink-0"
                 >
                   <input
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Hỏi kho, thầu, hoặc yêu cầu mua hàng..."
-                    className="flex-1 bg-slate-850 border border-slate-750 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-150 placeholder-slate-500 font-medium"
+                    className="flex-1 bg-white border-2 border-primary-dark focus:outline-none focus:border-[#2BA8A2] rounded-full p-2.5 px-4 text-xs text-primary-dark placeholder-slate-400 font-bold shadow-inner"
                   />
                   <button
                     type="submit"
                     disabled={!inputValue.trim() || sending}
-                    className={`p-2.5 px-3.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                    className={`p-2.5 px-4 rounded-full border-2 border-primary-dark font-black text-xs flex items-center gap-1 transition-all cursor-pointer shadow-teal-glow ${
                       !inputValue.trim() || sending
-                        ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                        : "bg-teal-650 hover:bg-teal-700 text-white"
+                        ? "bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed shadow-none"
+                        : "bg-[#2BA8A2] hover:bg-[#1E8C86] text-white hover:scale-[1.03] active:scale-[0.95]"
                     }`}
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -491,10 +491,10 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
 
             {/* PANEL 2: INTERACTIVE FAQ KNOWLEDGE BASE */}
             {activeTabPanel === "faq" && (
-              <div className="space-y-3.5 flex-1 flex flex-col">
+              <div className="space-y-3.5 flex-1 flex flex-col h-full">
                 
                 {/* Search box */}
-                <div className="relative">
+                <div className="relative shrink-0">
                   <input
                     type="text"
                     value={searchQuery}
@@ -503,18 +503,18 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
                       setExpandedFaqIndex(null);
                     }}
                     placeholder="Tìm kiếm tài liệu HD vận hành..."
-                    className="w-full bg-slate-850 border border-slate-750 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 pl-9 text-xs text-slate-100 placeholder-slate-500 font-medium"
+                    className="w-full bg-white border-2 border-primary-dark focus:outline-none focus:border-[#2BA8A2] rounded-full p-2.5 pl-10 text-xs text-primary-dark placeholder-slate-400 font-bold shadow-inner"
                   />
-                  <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                  <Search className="absolute left-4 top-3 w-4 h-4 text-primary" />
                 </div>
 
                 {/* FAQ List */}
-                <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[360px] pr-1">
+                <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[330px] pr-1">
                   {filteredFaqs.length === 0 ? (
                     <div className="py-12 text-center text-slate-500 flex flex-col items-center gap-2">
-                      <ShieldAlert className="w-8 h-8 text-slate-655" />
-                      <p className="text-xs font-bold">Không tìm thấy tài liệu liên quan</p>
-                      <p className="text-[10px] max-w-[180px] mx-auto text-slate-500">Thử gõ các từ khóa đơn giản: kho, ncc, duyệt, đàm phán, po.</p>
+                      <ShieldAlert className="w-8 h-8 text-coral animate-bounce" />
+                      <p className="text-xs font-black text-primary-dark">Không tìm thấy tài liệu liên quan</p>
+                      <p className="text-[10px] max-w-[180px] mx-auto text-slate-400 font-bold">Thử gõ các từ khóa đơn giản: kho, ncc, duyệt, đàm phán, po.</p>
                     </div>
                   ) : (
                     filteredFaqs.map((faq, idx) => {
@@ -522,22 +522,22 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
                       return (
                         <div 
                           key={idx}
-                          className={`border rounded-xl transition-all duration-200 overflow-hidden ${
+                          className={`border-2 rounded-[16px] transition-all duration-200 overflow-hidden ${
                             isExpanded 
-                              ? "bg-slate-800/80 border-slate-700" 
-                              : "bg-slate-850/40 border-slate-800 hover:bg-slate-800/30"
+                              ? "bg-[#FFF8E7] border-primary-dark shadow-sm" 
+                              : "bg-white border-primary-dark/10 hover:border-primary-dark hover:bg-[#FFF8E7]/30"
                           }`}
                         >
                           <div 
                             onClick={() => setExpandedFaqIndex(isExpanded ? null : idx)}
-                            className="p-3 flex justify-between items-center cursor-pointer select-none text-xs font-bold text-slate-200"
+                            className="p-3 flex justify-between items-center cursor-pointer select-none text-xs font-extrabold text-primary-dark"
                           >
                             <span className="leading-snug pr-2">{faq.q}</span>
-                            {isExpanded ? <ChevronUp className="w-4 h-4 text-teal-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />}
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-[#2BA8A2] shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
                           </div>
 
                           {isExpanded && (
-                            <div className="p-3 pt-0 border-t border-slate-750 text-[10.5px] text-slate-350 leading-relaxed whitespace-pre-line bg-slate-900/30 font-medium font-sans">
+                            <div className="p-3 pt-0 border-t-2 border-dashed border-primary-dark/20 text-[10.5px] text-slate-600 leading-relaxed whitespace-pre-line bg-white/20 font-bold font-sans">
                               {faq.a}
                             </div>
                           )}
@@ -548,9 +548,9 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa th
                 </div>
 
                 {/* Bottom Guide info */}
-                <div className="bg-slate-850/30 border border-slate-800 p-2.5 rounded-xl text-[9px] text-slate-500 flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-teal-650 shrink-0" />
-                  <span>Mẹo: Chuyển đổi giữa các Vai trò bên dưới Sidebar để kiểm nghiệm toàn bộ quy trình workspace isolated.</span>
+                <div className="bg-[#E8F6F5] border-2 border-primary-dark p-2.5 rounded-[16px] text-[9.5px] text-primary-dark flex items-center gap-2 shadow-inner shrink-0 font-bold">
+                  <Compass className="w-4 h-4 text-[#2BA8A2] shrink-0" />
+                  <span>Mẹo: Chuyển đổi giữa các Vai trò bên dưới Sidebar để kiểm nghiệm toàn bộ quy trình isolated.</span>
                 </div>
 
               </div>

@@ -1,52 +1,124 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;750&family=Geist:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=JetBrains+Mono:wght@450;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Colors */
+  --color-primary: #2BA8A2;
+  --color-primary-light: #3CC4BD;
+  --color-primary-dark: #1E8C86;
+  --color-primary-bg: #E8F6F5;
+  --color-accent-gold: #FFD23F;
+  --color-accent-light: #FFE47A;
+  --color-accent-dark: #E6B800;
+  --color-coral: #EF6C4A;
+  --color-coral-light: #FF8A6A;
+  --color-coral-dark: #D45233;
+  --color-cream: #FFF8E7;
+  --color-sky-blue: #5DADE2;
+  --color-surface-base: #EFF8F7;
+  --color-surface-card: #FFFFFF;
+  --color-success: #27AE60;
+  --color-error: #E74C3C;
   
-  --color-primary: #00535b;
-  --color-primary-light: #006d77;
-  --color-brand-teal: #00535b;
+  /* Border Radii */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  
+  /* Elevation - Colored Glows */
+  --shadow-card: 0 4px 20px rgba(43, 168, 162, 0.1);
+  --shadow-coral-glow: 0 4px 20px rgba(239, 108, 74, 0.35);
+  --shadow-teal-glow: 0 4px 20px rgba(43, 168, 162, 0.3);
+  --shadow-accent-glow: 0 4px 20px rgba(255, 210, 63, 0.40);
+  --shadow-sky-glow: 0 4px 16px rgba(93, 173, 226, 0.30);
+  
+  /* Animations */
+  --animate-crown-bounce: crown-bounce 1.5s infinite ease-in-out;
+  --animate-glow-pulse: glow-pulse 2s infinite ease-in-out;
+  --animate-boom-pulse: boom-pulse 2s infinite ease-in-out;
+
+  @keyframes crown-bounce {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-6px) rotate(-2deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(-3px) rotate(2deg); }
+  }
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1.0); }
+    50% { opacity: 1.0; transform: scale(1.015); }
+  }
+  @keyframes boom-pulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(239, 108, 74, 0.35); border-color: rgba(239, 108, 74, 0.4); }
+    50% { box-shadow: 0 4px 28px rgba(239, 108, 74, 0.6); border-color: rgba(239, 108, 74, 0.8); }
+  }
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #f6f8fb; /* Sleek Pale Grey */
-  color: #1e293b;
+  background-color: #EFF8F7; /* Surface Base */
+  color: #1E8C86; /* Primary Dark text */
+  margin: 0;
+  padding: 0;
 }
 
-/* Elegant executive drop shadow */
-.executive-shadow {
-  box-shadow: 0px 4px 14px rgba(0, 83, 91, 0.04), 0px 1px 3px rgba(15, 23, 42, 0.02);
+/* Elegant Retro 3D Ribbon Banner Component */
+.retro-ribbon {
+  position: relative;
+  background: #FFF8E7; /* Cream background */
+  border: 3px solid #1E8C86; /* Primary Dark border */
+  border-radius: 6px;
+  padding: 8px 16px;
+  box-shadow: 0 4px 0px #1E8C86;
+  text-align: center;
+  font-weight: 800;
+  color: #1E8C86;
+  text-transform: uppercase;
+  letter-spacing: 4px;
 }
 
-.executive-shadow-hover {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.retro-ribbon::before,
+.retro-ribbon::after {
+  content: "";
+  position: absolute;
+  border-style: solid;
 }
 
-.executive-shadow-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0px 10px 24px rgba(0, 83, 91, 0.07), 0px 2px 6px rgba(15, 23, 42, 0.03);
-}
-
-/* Scrollbars to maintain professional layout */
+/* Scrollbars - Fun Teal Style */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #E8F6F5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #3CC4BD;
+  border-radius: 8px;
+  border: 2px solid #E8F6F5;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #006d77;
+  background: #2BA8A2;
 }
 
+/* Confetti animation utility */
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #FFD23F;
+  border-radius: 2px;
+  animation: fall 4s infinite linear;
+}
+
+@keyframes fall {
+  0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(800px) rotate(360deg); opacity: 0; }
+}

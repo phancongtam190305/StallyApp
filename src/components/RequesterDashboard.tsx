@@ -87,7 +87,6 @@ export default function RequesterDashboard({
     };
   }, []);
 
-  // Keyboard navigation focus handlers
   const focusInput = (id: string) => {
     setTimeout(() => {
       const el = document.getElementById(id);
@@ -138,8 +137,6 @@ export default function RequesterDashboard({
       filteredSuggestions: []
     };
     setFormRows(updated);
-    
-    // Focus quantity cell
     focusInput(`quantity-input-${index}`);
   };
 
@@ -155,12 +152,10 @@ export default function RequesterDashboard({
   const handleNameKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      // If suggestions are visible, select the first suggestion
       const row = formRows[index];
       if (row.showSuggestions && row.filteredSuggestions.length > 0) {
         selectSuggestion(index, row.filteredSuggestions[0]);
       } else {
-        // Otherwise, shift focus to quantity input
         focusInput(`quantity-input-${index}`);
       }
     }
@@ -169,12 +164,10 @@ export default function RequesterDashboard({
   const handleQtyKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      // If it is the last row, add a new row and focus it
       if (index === formRows.length - 1) {
         handleAddItemRow();
         focusInput(`name-input-${index + 1}`);
       } else {
-        // Otherwise focus next row name
         focusInput(`name-input-${index + 1}`);
       }
     }
@@ -218,7 +211,6 @@ export default function RequesterDashboard({
         { name: "", quantity: 1, unit: "cái", notes: "", showSuggestions: false, filteredSuggestions: [] }
       ]);
       
-      // Auto switch to history to view progress after a short delay
       setTimeout(() => {
         setActiveSubTab("history");
         setSuccessText("");
@@ -232,16 +224,13 @@ export default function RequesterDashboard({
     }
   };
 
-  // Filter requests that belong to this requester
-  // As u-2 is mapped in App.tsx to "Trần Văn Bình (Bếp Trưởng)"
   const filteredPrs = purchaseRequests.filter(pr => pr.requesterId === "u-2" || pr.requesterName.includes("Bình"));
 
-  // Stepper calculations
   const steps = [
-    { label: "Đã nhận yêu cầu", desc: "Đang chuyển giao" },
-    { label: "Đang xử lý thầu", desc: "So sánh & đàm phán" },
-    { label: "Đang giao hàng", desc: "PO đã được duyệt gửi" },
-    { label: "Đã hoàn thành", desc: "Đã kiểm thực tồn" }
+    { label: "Đã nhận", desc: "PR đã lưu" },
+    { label: "Đang RFQ", desc: "So sánh thầu" },
+    { label: "Đã gửi thầu", desc: "PO đã gửi đi" },
+    { label: "Hoàn tất", desc: "Đã cân đối kho" }
   ];
 
   const getStepProgress = (status: string) => {
@@ -261,115 +250,144 @@ export default function RequesterDashboard({
     }
   };
 
+  // Safe checks for low stock items
+  const lowStockCount = inventory.filter(item => item.quantityAvailable < item.minStockLevel).length;
+
   return (
     <div className="space-y-6 animate-fade-slide-up">
-      {/* Premium Executive Top Bar */}
-      <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
-              <ChefHat className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold font-display text-[#00535b] tracking-tight">
-                Không Gian Bếp Trưởng &amp; Phòng Ban
-              </h2>
-              <p className="text-slate-500 text-xs mt-0.5">
-                Khởi tạo yêu cầu vật tư tốc độ cao, quản lý tiến trình cung ứng minh bạch.
-              </p>
-            </div>
+      {/* Top Banner (Flipped Gold/Teal theme) */}
+      <div className="bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-primary-bg text-primary border-2 border-primary-dark shadow-teal-glow shrink-0">
+            <ChefHat className="w-6 h-6 text-primary-dark" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black font-display text-primary-dark uppercase tracking-tight">
+              Không Gian Bếp Trưởng &amp; Cung Ứng
+            </h2>
+            <p className="text-primary-dark/80 text-xs mt-0.5 font-bold">
+              Phác thảo nhanh các phiếu đặt hàng thực phẩm, quản lý tồn bếp thực tế.
+            </p>
           </div>
         </div>
         
-        {/* Toggle subtab switches */}
-        <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 shrink-0">
+        {/* Playful Pill Toggle Switch */}
+        <div className="flex bg-primary-bg p-1.5 rounded-full border-2 border-primary-dark shrink-0 shadow-sm">
           <button
             onClick={() => setActiveSubTab("create")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all border-2 ${
               activeSubTab === "create"
-                ? "bg-white text-[#00535b] shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow"
+                : "text-primary border-transparent hover:text-primary-dark"
             }`}
           >
             <FileEdit className="w-3.5 h-3.5" />
-            Tạo yêu cầu mới
+            Tạo phiếu mới
           </button>
           <button
             onClick={() => setActiveSubTab("history")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all border-2 ${
               activeSubTab === "history"
-                ? "bg-white text-[#00535b] shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow"
+                : "text-primary border-transparent hover:text-primary-dark"
             }`}
           >
             <History className="w-3.5 h-3.5" />
-            Lịch sử yêu cầu ({filteredPrs.length})
+            Tiến độ ({filteredPrs.length})
           </button>
         </div>
       </div>
 
+      {/* Low stock alerts render with Flip7 Coral BOOM style */}
+      {lowStockCount > 0 && activeSubTab === "create" && (
+        <div className="bg-white border-3 border-coral p-5 rounded-3xl shadow-coral-glow flex items-center justify-between gap-4 animate-boom-pulse">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-coral-light/25 border-2 border-coral flex items-center justify-center text-coral shrink-0">
+              <AlertCircle className="w-5 h-5 text-coral-dark" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-coral-dark uppercase tracking-wider">CẢNH BÁO: PHÁT HIỆN THÂM HỤT TỒN KHO</h4>
+              <p className="text-xs text-primary-dark font-bold mt-0.5">
+                Hiện có <span className="text-coral-dark font-extrabold">{lowStockCount} mặt hàng</span> trong kho nhà bếp đang vơi dưới ngưỡng an toàn tối thiểu.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (setActiveTab) setActiveTab("inventory");
+            }}
+            className="px-4 py-2 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white text-xs font-black uppercase tracking-wider rounded-full shadow-coral-glow transition-all transform active:scale-95 cursor-pointer shrink-0"
+          >
+            Kiểm kho ngay
+          </button>
+        </div>
+      )}
+
       {activeSubTab === "create" ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Autocomplete Form Table */}
-          <div className="lg:col-span-8 bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div className="lg:col-span-8 bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card space-y-5">
+            <div className="pb-3 border-b-3 border-dashed border-primary/30 flex justify-between items-center">
               <div>
-                <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5 font-display">
-                  <Sparkles className="w-4 h-4 text-teal-600 animate-pulse" /> Autocomplete Danh Sách Nguyên Liệu
+                <h3 className="text-sm font-black text-primary-dark flex items-center gap-1.5 uppercase tracking-wider font-display">
+                  <span>🧑‍🍳</span> Autocomplete Yêu Cầu Vật Tư
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Nhập tên sản phẩm để nhận gợi ý tức thì, ấn Enter để chuyển ô nhanh.</p>
+                <p className="text-[11px] text-primary-dark/70 font-bold mt-0.5">Điền nguyên liệu để nhận gợi ý tức thì. Nhấn phím Enter để thêm hàng loạt.</p>
               </div>
               <button
                 type="button"
                 onClick={handleAddItemRow}
-                className="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-xs font-extrabold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                className="bg-primary-bg hover:bg-primary-light hover:text-white text-primary border-2 border-primary-dark text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Thêm dòng
+                <Plus className="w-4 h-4 text-primary-dark hover:text-white" /> Thêm hàng
               </button>
             </div>
 
             {errorText && (
-              <div className="bg-rose-50 border border-rose-100 text-rose-800 p-3.5 rounded-xl text-xs flex items-center gap-2">
-                <AlertCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
-                <span className="font-semibold">{errorText}</span>
+              <div className="bg-white border-3 border-error p-3.5 rounded-2xl text-xs flex items-center gap-2.5 text-error font-black shadow-md">
+                <AlertCircle className="w-5 h-5 text-error shrink-0" />
+                <span>{errorText}</span>
               </div>
             )}
 
             {successText && (
-              <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-3.5 rounded-xl text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0 animate-bounce" />
-                <span className="font-semibold">{successText}</span>
+              <div className="bg-white border-3 border-success p-3.5 rounded-2xl text-xs flex items-center gap-2.5 text-success font-black shadow-md">
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                <span>{successText}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Form title */}
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest font-display block">
                   Tiêu đề phiếu mua sắm
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ví dụ: Bổ sung nguyên liệu Bếp Trưởng cuối tuần"
-                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-3 text-xs text-slate-800 font-medium placeholder-slate-400 shadow-inner"
+                  placeholder="Ví dụ: Bổ sung rau củ tươi cho ca tối cuối tuần"
+                  className="w-full bg-cream border-2 border-primary-dark/40 focus:border-primary-dark rounded-xl p-3 text-xs text-primary-dark font-bold placeholder-primary-dark/40 shadow-inner focus:outline-none"
                 />
               </div>
 
               {/* Rows List */}
-              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+              <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1">
                 {formRows.map((row, index) => (
                   <div 
                     key={index} 
-                    className="relative group bg-slate-50 hover:bg-teal-50/20 border border-slate-200 rounded-2xl p-4 transition-all"
+                    className="relative group bg-surface-base border-2 border-primary-dark/20 hover:border-primary-dark rounded-2xl p-4 transition-all shadow-sm"
                   >
-                    <div className="grid grid-cols-12 gap-3 items-center">
+                    {/* Visual left bar decoration */}
+                    <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-primary-light rounded-l-xl" />
+                    
+                    <div className="grid grid-cols-12 gap-3 items-center pl-2">
                       {/* Autocomplete Input */}
                       <div className="col-span-12 md:col-span-6 relative" ref={el => suggestionContainerRefs.current[index] = el}>
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Tên sản phẩm</label>
-                        <div className="flex items-center gap-1.5">
-                          <ItemIcon name={row.name} size="sm" className="scale-90 border-slate-300 shadow-sm shrink-0" />
+                        <label className="text-[9px] text-primary-dark/70 font-black uppercase tracking-widest block mb-1">Tên nguyên liệu</label>
+                        <div className="flex items-center gap-2">
+                          <ItemIcon name={row.name} size="sm" className="scale-90 border-2 border-primary-dark shrink-0" />
                           <div className="relative w-full">
                             <input
                               type="text"
@@ -377,28 +395,28 @@ export default function RequesterDashboard({
                               value={row.name}
                               onChange={(e) => handleItemNameChange(index, e.target.value)}
                               onKeyDown={(e) => handleNameKeyDown(e, index)}
-                              placeholder="Gõ tên hoặc SKU để tìm..."
-                              className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-200 rounded-xl p-2 text-xs text-slate-800"
+                              placeholder="Nhập nguyên liệu cần bổ sung..."
+                              className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 px-3 text-xs text-primary-dark font-bold focus:outline-none"
                             />
                             
                             {/* Suggestions Dropdown */}
                             {row.showSuggestions && row.filteredSuggestions.length > 0 && (
-                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto divide-y divide-slate-100 overflow-hidden">
+                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-primary-dark rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto divide-y divide-primary-dark/15 overflow-hidden">
                                 {row.filteredSuggestions.map((item) => (
                                   <button
                                     key={item.id}
                                     type="button"
                                     onClick={() => selectSuggestion(index, item)}
-                                    className="w-full px-3 py-2 text-left text-xs hover:bg-teal-50/50 flex items-center justify-between group transition-colors"
+                                    className="w-full px-3 py-2 text-left text-xs hover:bg-primary-bg flex items-center justify-between group transition-colors cursor-pointer"
                                   >
                                     <div className="flex items-center gap-2">
                                       <ItemIcon name={item.name} size="sm" className="scale-75 border-none" />
                                       <div>
-                                        <p className="font-bold text-slate-800 group-hover:text-teal-900">{item.name}</p>
-                                        <p className="text-[9px] text-slate-400 font-mono mt-0.5">SKU: {item.sku} | Tồn: {item.quantityAvailable} {item.unit}</p>
+                                        <p className="font-black text-primary-dark group-hover:text-primary">{item.name}</p>
+                                        <p className="text-[9px] text-primary-dark/60 font-black font-mono mt-0.5">Tồn: {item.quantityAvailable} {item.unit} (Safety: {item.minStockLevel})</p>
                                       </div>
                                     </div>
-                                    <span className="text-[10px] bg-slate-100 text-slate-500 group-hover:bg-teal-100 group-hover:text-teal-700 px-2 py-0.5 rounded font-mono font-bold">
+                                    <span className="text-[10px] bg-cream text-primary-dark border border-primary-dark/30 group-hover:border-primary-dark px-2 py-0.5 rounded font-mono font-black">
                                       {item.unit}
                                     </span>
                                   </button>
@@ -411,7 +429,7 @@ export default function RequesterDashboard({
 
                       {/* Quantity Input */}
                       <div className="col-span-6 md:col-span-3">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Số lượng</label>
+                        <label className="text-[9px] text-primary-dark/70 font-black uppercase tracking-widest block mb-1">Số lượng</label>
                         <input
                           type="number"
                           id={`quantity-input-${index}`}
@@ -420,32 +438,32 @@ export default function RequesterDashboard({
                           onKeyDown={(e) => handleQtyKeyDown(e, index)}
                           min="1"
                           placeholder="Số lượng"
-                          className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-200 rounded-xl p-2 text-xs text-slate-800 font-mono font-bold text-center"
+                          className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 text-xs text-primary-dark font-mono font-black text-center focus:outline-none"
                         />
                       </div>
 
                       {/* Unit Input */}
                       <div className="col-span-6 md:col-span-3">
-                        <label className="text-[9px] text-slate-400 font-bold uppercase tracking-widest block mb-1">Đơn vị</label>
+                        <label className="text-[9px] text-primary-dark/70 font-black uppercase tracking-widest block mb-1">Đơn vị</label>
                         <input
                           type="text"
                           value={row.unit}
                           onChange={(e) => handleItemFieldChange(index, "unit", e.target.value)}
-                          placeholder="Đơn vị (kg, chi,...)"
-                          className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2 text-xs text-slate-850"
+                          placeholder="kg, gói,..."
+                          className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 text-xs text-primary-dark font-bold focus:outline-none"
                         />
                       </div>
                     </div>
 
                     {/* Note row */}
-                    <div className="mt-2.5 grid grid-cols-12 gap-3 items-center">
+                    <div className="mt-3 grid grid-cols-12 gap-3 items-center pl-2">
                       <div className="col-span-11">
                         <input
                           type="text"
                           value={row.notes}
                           onChange={(e) => handleItemFieldChange(index, "notes", e.target.value)}
-                          placeholder="Nhập ghi chú yêu cầu bổ sung cho mặt hàng này..."
-                          className="w-full bg-white border border-slate-150 focus:outline-none focus:border-teal-400 rounded-lg p-1.5 px-2.5 text-[11px] text-slate-500"
+                          placeholder="Ghi chú thêm: Yêu cầu hạn sử dụng xa, cắt lát sẵn, v.v."
+                          className="w-full bg-white border border-primary-dark/20 focus:border-primary-dark rounded-lg p-2 px-3 text-[11px] text-primary-dark font-medium focus:outline-none placeholder-primary-dark/45"
                         />
                       </div>
                       
@@ -455,10 +473,10 @@ export default function RequesterDashboard({
                           <button
                             type="button"
                             onClick={() => handleRemoveItemRow(index)}
-                            className="p-1.5 text-slate-350 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-150 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-primary-dark/40 hover:text-coral hover:bg-coral-light/10 border-2 border-transparent hover:border-coral rounded-xl transition-all cursor-pointer"
                             title="Xóa dòng này"
                           >
-                            <Trash2 className="w-4.5 h-4.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -469,38 +487,37 @@ export default function RequesterDashboard({
             </form>
           </div>
 
-          {/* Setup Sidebar Controls (glassmorphic sidebar inside form) */}
-          <div className="lg:col-span-4 bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 h-fit">
-            <div>
-              <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-teal-600" /> Thiết Lập Lịch Nhận
+          {/* Setup Sidebar Controls */}
+          <div className="lg:col-span-4 bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card space-y-5 h-fit">
+            <div className="pb-2 border-b-2 border-dashed border-primary/20">
+              <h3 className="text-sm font-black text-primary-dark flex items-center gap-1.5 uppercase tracking-wider">
+                <span>📅</span> Hạn Nhận & Độ Khẩn
               </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Thời hạn mong muốn nhận nguyên liệu thực phẩm.</p>
             </div>
 
             {/* Date select */}
             <div className="space-y-1.5">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-teal-600" /> Ngày mong muốn nhận hàng
+              <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest font-display flex items-center gap-1">
+                Ngày mong muốn nhận
               </label>
               <input
                 type="date"
                 value={requiredDate}
                 onChange={(e) => setRequiredDate(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2.5 text-xs text-primary-dark font-bold focus:outline-none"
               />
             </div>
 
             {/* Priority Select */}
             <div className="space-y-1.5">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">
-                Mức độ khẩn cấp (Độ ưu tiên)
+              <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest font-display block">
+                Mức độ khẩn cấp
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: "low", label: "Thường", style: "border-slate-200 text-slate-600 hover:border-slate-300" },
-                  { value: "medium", label: "Trung", style: "border-slate-200 text-slate-600 hover:border-slate-300" },
-                  { value: "high", label: "Khẩn cấp", style: "border-rose-200 text-rose-700 bg-rose-50/20 hover:border-rose-350" }
+                  { value: "low", label: "Thường", style: "border-primary-dark/30 text-primary-dark hover:bg-primary-bg" },
+                  { value: "medium", label: "Trung bình", style: "border-primary-dark/30 text-primary-dark hover:bg-primary-bg" },
+                  { value: "high", label: "Khẩn cấp", style: "border-coral text-coral-dark bg-coral-light/10 hover:bg-coral-light/20" }
                 ].map((p) => {
                   const isSelected = priority === p.value;
                   return (
@@ -508,11 +525,11 @@ export default function RequesterDashboard({
                       key={p.value}
                       type="button"
                       onClick={() => setPriority(p.value as PriorityLevel)}
-                      className={`py-2 px-1 text-center text-[11px] font-bold border rounded-lg transition-all ${
+                      className={`py-2 px-1 text-center text-[10px] font-black uppercase tracking-wide border-2 rounded-xl transition-all cursor-pointer ${
                         isSelected 
                           ? p.value === "high" 
-                            ? "bg-rose-600 text-white border-rose-600" 
-                            : "bg-[#00535b] text-white border-[#00535b]" 
+                            ? "bg-coral text-white border-primary-dark shadow-coral-glow transform scale-[1.03]" 
+                            : "bg-primary text-white border-primary-dark shadow-teal-glow transform scale-[1.03]" 
                           : p.style
                       }`}
                     >
@@ -523,21 +540,21 @@ export default function RequesterDashboard({
               </div>
             </div>
 
-            <div className="h-[1px] bg-slate-100 my-2" />
+            <div className="h-[1px] bg-primary-dark/15 my-2" />
 
-            {/* Form Actions */}
+            {/* Form Actions (Gold Pill Button) */}
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
               id="btn-submit-requester-pr"
-              className="w-full bg-[#00535b] hover:bg-[#003d44] disabled:bg-teal-900/50 text-white font-extrabold text-xs py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+              className="w-full bg-accent-gold hover:bg-accent-dark disabled:bg-accent-light/40 text-primary-dark font-black text-xs py-3.5 rounded-full flex items-center justify-center gap-1.5 transition-all border-2 border-primary-dark shadow-accent-glow transform active:scale-95 cursor-pointer uppercase tracking-wider"
             >
               {isSubmitting ? (
-                <span>Đang xử lý thầu...</span>
+                <span>Đang gửi thầu...</span>
               ) : (
                 <>
-                  <Send className="w-3.5 h-3.5 animate-pulse" />
-                  <span>Gửi Ban Mua Sắm Xét Thầu (PR)</span>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Gửi Xét Duyệt (PR)</span>
                 </>
               )}
             </button>
@@ -546,22 +563,21 @@ export default function RequesterDashboard({
       ) : (
         /* History View Tab */
         <div className="space-y-4">
-          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
-              <History className="w-4 h-4 text-teal-600 animate-spin-slow" />
-              <span>Tiến Độ Bếp Thực Phẩm Giao Nhận ({filteredPrs.length})</span>
+          <div className="bg-white border-3 border-primary-dark p-4 rounded-3xl shadow-card flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-black text-primary-dark uppercase tracking-wider">
+              <span>📋</span> Lịch Sử Giao Nhận & Đặt Thầu ({filteredPrs.length})
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">Dữ liệu cách ly an toàn</span>
+            <span className="text-[9px] bg-cream border border-primary-dark/30 text-primary-dark/70 font-mono font-black px-2 py-0.5 rounded-md">Cách ly: org-1</span>
           </div>
 
           {filteredPrs.length === 0 ? (
-            <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <Clock className="w-12 h-12 text-slate-300 mx-auto animate-pulse" />
-              <p className="text-slate-500 font-bold text-sm mt-4">Chưa có yêu cầu mua hàng nào được ghi nhận</p>
-              <p className="text-slate-400 text-xs mt-1">Các phiếu của bạn sẽ được hiển thị và cập nhật tiến trình thầu tại đây.</p>
+            <div className="text-center py-20 bg-white border-3 border-primary-dark rounded-3xl shadow-card">
+              <Clock className="w-12 h-12 text-primary-light mx-auto animate-pulse" />
+              <p className="text-primary-dark font-black text-sm mt-4 uppercase tracking-wider">Chưa có yêu cầu mua sắm nào</p>
+              <p className="text-primary-dark/75 text-xs mt-1 font-bold">Các phiếu thầu bạn lập sẽ hiển thị tiến trình nhận hàng tại đây.</p>
               <button 
                 onClick={() => setActiveSubTab("create")} 
-                className="mt-4 bg-[#00535b] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                className="mt-5 bg-accent-gold hover:bg-accent-dark text-primary-dark px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider border-2 border-primary-dark shadow-accent-glow transition-all transform active:scale-95 cursor-pointer"
               >
                 Tạo yêu cầu mới ngay
               </button>
@@ -577,70 +593,72 @@ export default function RequesterDashboard({
                 return (
                   <div 
                     key={pr.id} 
-                    className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl shadow-sm overflow-hidden transition-all"
+                    className={`bg-white border-3 border-primary-dark rounded-3xl shadow-card overflow-hidden transition-all relative border-l-8 ${
+                      isCancelled ? "border-l-coral" : pr.status === "completed" ? "border-l-success" : "border-l-primary"
+                    }`}
                   >
                     {/* Header Summary */}
                     <div 
                       onClick={() => setExpandedPrId(isExpanded ? null : pr.id)}
-                      className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer hover:bg-slate-50/50"
+                      className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer hover:bg-primary-bg/10"
                     >
-                      <div className="space-y-1.5 flex-1">
+                      <div className="space-y-1.5 flex-1 pl-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-mono font-black">
+                          <span className="text-[9px] bg-cream border-2 border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-black shadow-sm">
                             {pr.id.toUpperCase()}
                           </span>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
-                            isHigh ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-slate-50 border border-slate-200 text-slate-600"
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase font-mono border ${
+                            isHigh ? "bg-coral-light/10 border-coral text-coral-dark" : "bg-primary-bg border-primary/20 text-primary-dark"
                           }`}>
-                            Khẩn cấp: {pr.priority}
+                            {pr.priority === "high" ? "🚨 KHẨN CẤP" : "THƯỜNG"}
                           </span>
-                          <span className="text-[9px] bg-slate-50 border border-slate-200/80 px-2 py-0.5 text-slate-500 font-mono rounded">
-                            {new Date(pr.createdAt).toLocaleDateString("vi-VN")}
+                          <span className="text-[9px] text-primary-dark/60 font-black font-mono">
+                            Khởi tạo: {new Date(pr.createdAt).toLocaleDateString("vi-VN")}
                           </span>
                         </div>
-                        <h4 className="text-sm font-bold text-slate-800">{pr.title}</h4>
-                        <p className="text-xs text-slate-400 font-medium">
-                          Tổng số: <span className="text-slate-700 font-extrabold">{pr.items.length} dòng mặt hàng</span> | Hạn giao: <span className="text-[#00535b] font-bold font-mono">{pr.requiredDate}</span>
+                        <h4 className="text-sm font-black text-primary-dark uppercase tracking-wider">{pr.title}</h4>
+                        <p className="text-xs text-primary-dark/80 font-bold">
+                          Danh mục: <span className="text-primary font-black">{pr.items.length} mặt hàng</span> | Hạn nhận thầu: <span className="text-coral font-black font-mono">{pr.requiredDate}</span>
                         </p>
                       </div>
 
                       {/* Right Stepper State badge */}
                       <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
                         <div className="text-right">
-                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black ${
+                          <span className={`text-[10px] px-3 py-1 rounded-full font-black border-2 ${
                             isCancelled 
-                              ? "bg-rose-50 border border-rose-100 text-rose-700"
+                              ? "bg-coral-light/10 border-coral text-coral-dark"
                               : pr.status === "completed" 
-                                ? "bg-emerald-50 border border-emerald-100 text-emerald-800"
-                                : "bg-teal-50 border border-teal-100 text-teal-800"
+                                ? "bg-emerald-50 border-success text-success"
+                                : "bg-primary-bg border-primary text-primary-dark"
                           }`}>
                             {isCancelled 
-                              ? "Đã hủy" 
+                              ? "Đã hủy bỏ" 
                               : pr.status === "completed" 
-                                ? "Hoàn thành nhận" 
+                                ? "Đã nhập kho" 
                                 : pr.status === "approved"
-                                  ? "Đang giao hàng"
-                                  : "Đang xử lý thầu"
+                                  ? "Đang vận chuyển"
+                                  : "Chờ duyệt thầu"
                             }
                           </span>
                         </div>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        {isExpanded ? <ChevronUp className="w-5 h-5 text-primary-dark" /> : <ChevronDown className="w-5 h-5 text-primary-dark" />}
                       </div>
                     </div>
 
-                    {/* Progress Stepper Visual Trail */}
+                    {/* Progress Stepper Visual Trail (Game board visual styling) */}
                     {!isCancelled ? (
-                      <div className="px-6 pb-5 pt-1 border-t border-slate-50 bg-slate-50/20">
+                      <div className="px-6 pb-6 pt-2 border-t-2 border-dashed border-primary/10 bg-primary-bg/5">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
                           
-                          {/* Background Connector Bar (Desktop) */}
-                          <div className="absolute hidden sm:block top-4 left-6 right-6 h-[2px] bg-slate-200 z-0" />
+                          {/* Playful Thick Connector Bar */}
+                          <div className="absolute hidden sm:block top-4.5 left-8 right-8 h-1 bg-primary-dark/15 z-0 rounded-full" />
                           
                           {/* Active filled connector bar */}
                           {currentStep > 0 && (
                             <div 
-                              className="absolute hidden sm:block top-4 left-6 h-[2px] bg-teal-650 z-0 transition-all duration-500"
-                              style={{ width: `${(currentStep / 3) * 92}%` }}
+                              className="absolute hidden sm:block top-4.5 left-8 h-1 bg-primary z-0 transition-all duration-500 rounded-full"
+                              style={{ width: `${(currentStep / 3) * 88}%` }}
                             />
                           )}
 
@@ -649,24 +667,24 @@ export default function RequesterDashboard({
                             const isCurrent = idx === currentStep;
                             
                             return (
-                              <div key={idx} className="flex sm:flex-col items-center gap-2.5 sm:gap-1.5 z-10 flex-1 relative">
+                              <div key={idx} className="flex sm:flex-col items-center gap-2.5 sm:gap-2 z-10 flex-1 relative">
                                 {/* Dot indicator */}
-                                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center font-bold text-xs border-2 shadow-sm transition-all duration-300 ${
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs border-2 shadow-sm transition-all duration-300 ${
                                   isPast 
-                                    ? "bg-teal-650 border-teal-650 text-white"
+                                    ? "bg-primary border-primary-dark text-white"
                                     : isCurrent 
-                                      ? "bg-white border-teal-650 text-teal-700 font-black ring-4 ring-teal-50"
-                                      : "bg-white border-slate-200 text-slate-400"
+                                      ? "bg-accent-gold border-primary-dark text-primary-dark font-black ring-4 ring-accent-light/35 shadow-accent-glow transform scale-[1.1]"
+                                      : "bg-white border-primary-dark/30 text-primary-dark/45"
                                 }`}>
-                                  {isPast ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                                  {isPast ? <CheckCircle2 className="w-4.5 h-4.5 text-white" /> : idx + 1}
                                 </div>
                                 
                                 {/* Label details */}
                                 <div className="text-left sm:text-center">
-                                  <p className={`text-[11px] font-black leading-none ${isCurrent ? "text-teal-750 font-extrabold" : isPast ? "text-slate-650" : "text-slate-400"}`}>
+                                  <p className={`text-[10px] font-black uppercase tracking-wider leading-none ${isCurrent ? "text-primary-dark font-black" : isPast ? "text-primary-dark/80" : "text-primary-dark/40"}`}>
                                     {step.label}
                                   </p>
-                                  <p className="text-[9px] text-slate-400 font-medium mt-0.5">{step.desc}</p>
+                                  <p className="text-[8px] font-bold text-primary-dark/50 uppercase tracking-widest mt-0.5">{step.desc}</p>
                                 </div>
                               </div>
                             );
@@ -674,37 +692,37 @@ export default function RequesterDashboard({
                         </div>
                       </div>
                     ) : (
-                      <div className="px-6 py-3 border-t border-slate-50 bg-rose-50/20 text-rose-800 text-[11px] font-bold">
-                        Đơn yêu cầu mua hàng này đã được Ban Thu Mua / Quản Lý hủy và đóng hồ sơ thầu.
+                      <div className="px-6 py-3 border-t-2 border-dashed border-coral/30 bg-coral-light/5 text-coral-dark text-[10px] font-black uppercase tracking-wider">
+                        Phiếu PR này đã bị hủy bỏ và không thể tiếp tục thực hiện quy trình thầu.
                       </div>
                     )}
 
-                    {/* Expandable Items Checklist Details (Zero Pricing Exposure) */}
+                    {/* Expandable Items Table */}
                     {isExpanded && (
-                      <div className="p-5 border-t border-slate-100 bg-slate-50/40 space-y-3">
-                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">
-                          Bảng kê kiểm kê vật tư yêu cầu ({pr.items.length} nhóm)
+                      <div className="p-5 border-t-2 border-primary-dark/15 bg-cream/10 space-y-3">
+                        <div className="text-[9px] text-primary-dark/60 font-black uppercase tracking-wider font-mono">
+                          Bảng chi tiết nguyên liệu yêu cầu ({pr.items.length} mặt hàng)
                         </div>
-                        <div className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-sm">
+                        <div className="bg-white border-2 border-primary-dark rounded-2xl overflow-hidden shadow-sm">
                           <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                                <th className="p-3 pl-4">Mặt hàng</th>
+                              <tr className="bg-primary-bg border-b-2 border-primary-dark text-[9px] font-black text-primary-dark uppercase tracking-wider">
+                                <th className="p-3 pl-4">Tên sản phẩm</th>
                                 <th className="p-3 text-center">Số lượng</th>
                                 <th className="p-3">Đơn vị</th>
                                 <th className="p-3">Ghi chú bếp trưởng</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                            <tbody className="divide-y divide-primary-dark/10 text-primary-dark font-bold">
                               {pr.items.map((it, idx) => (
-                                <tr key={idx} className="hover:bg-slate-50/40">
+                                <tr key={idx} className="hover:bg-primary-bg/5">
                                   <td className="p-3 pl-4 flex items-center gap-2">
-                                    <ItemIcon name={it.name} size="sm" className="scale-75" />
-                                    <span className="font-bold text-slate-800">{it.name}</span>
+                                    <ItemIcon name={it.name} size="sm" className="scale-75 border" />
+                                    <span className="font-black text-primary-dark">{it.name}</span>
                                   </td>
-                                  <td className="p-3 text-center font-mono font-black text-slate-900">{it.quantity}</td>
-                                  <td className="p-3 font-mono text-slate-500">{it.unit}</td>
-                                  <td className="p-3 text-slate-400 text-[11px] font-normal italic">{it.notes || "---"}</td>
+                                  <td className="p-3 text-center font-mono font-black text-primary-dark">{it.quantity}</td>
+                                  <td className="p-3 font-mono text-primary-dark/60 uppercase">{it.unit}</td>
+                                  <td className="p-3 text-primary-dark/50 text-[10px] font-medium italic">{it.notes || "---"}</td>
                                 </tr>
                               ))}
                             </tbody>

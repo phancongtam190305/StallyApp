@@ -63,7 +63,6 @@ export default function WarehouseDashboard({
   const incomingItems = inventory.filter(item => item.quantityOnOrder > 0);
   
   const shipments: IncomingShipment[] = incomingItems.map((item, idx) => {
-    // Determine a mock status and expected date for visual richness
     let status: "delayed" | "today" | "future" = "today";
     let dateStr = "";
     
@@ -103,13 +102,11 @@ export default function WarehouseDashboard({
     }
   };
 
-  // Default Action: One-Tap Receive All
   const handleQuickReceiveAll = async (shipment: IncomingShipment) => {
     try {
       setSuccessAnimation(true);
       await onReceiveGoods(shipment.item.id, shipment.expectedQty, shipment.poCode);
       
-      // Delay modal closing for success animation
       setTimeout(() => {
         setSuccessAnimation(false);
         setSelectedShipment(null);
@@ -121,7 +118,6 @@ export default function WarehouseDashboard({
     }
   };
 
-  // Discrepancy Action: Detailed Receipt Submit
   const handleDetailedReceiptSubmit = async () => {
     if (!selectedShipment) return;
     
@@ -132,10 +128,8 @@ export default function WarehouseDashboard({
       const notes = clerkNotes || (isMismatch ? "Sai lệch số lượng thực tế" : "") + (isDamaged ? " - Phát hiện hàng hỏng" : "");
       
       if (isMismatch || isDamaged) {
-        // Record receipt of the actual quantity
         await onReceiveGoods(selectedShipment.item.id, receivedQty, selectedShipment.poCode);
         
-        // If there's damaged items or shortage, log an adjustment/exception note
         if (isDamaged || receivedQty < selectedShipment.expectedQty) {
           const shortage = selectedShipment.expectedQty - receivedQty;
           await onAdjustStock(
@@ -146,7 +140,6 @@ export default function WarehouseDashboard({
           );
         }
       } else {
-        // Perfect match
         await onReceiveGoods(selectedShipment.item.id, selectedShipment.expectedQty, selectedShipment.poCode);
       }
       
@@ -161,31 +154,30 @@ export default function WarehouseDashboard({
     }
   };
 
-  // Filter receipt logs from stock movements (Inward logs)
   const incomingMovements = stockMovements.filter(mov => mov.movementType === "in" || mov.referenceId?.includes("PO"));
 
   return (
     <div className="space-y-6 animate-fade-slide-up">
       {/* Mobile-Optimized Executive Top Bar */}
-      <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl">
-            <Boxes className="w-5 h-5" />
+      <div className="bg-white border-3 border-primary-dark p-5 rounded-3xl shadow-card flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-primary-bg text-primary border-2 border-primary-dark shadow-teal-glow rounded-2xl shrink-0">
+            <Boxes className="w-6 h-6 text-primary-dark" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-[#00535b] tracking-tight">Khu Vực Nhập Kho Thực Tế</h2>
-            <p className="text-[11px] text-slate-500 font-medium">Đối soát chứng từ hàng về, thẩm định hư hao nguyên liệu bếp ăn.</p>
+            <h2 className="text-lg font-black text-primary-dark uppercase tracking-tight font-display">Khu Vực Tiếp Nhận Hàng</h2>
+            <p className="text-xs text-primary-dark/80 font-bold">Đối soát PO thực phẩm cập bến, cân đối chênh lệch và lỗi hỏng.</p>
           </div>
         </div>
 
-        {/* Dynamic sub-navigation */}
-        <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 w-full sm:w-auto">
+        {/* Playful Pill Toggle Switch */}
+        <div className="flex bg-primary-bg p-1.5 rounded-full border-2 border-primary-dark w-full sm:w-auto shadow-sm">
           <button
             onClick={() => setActiveTabSub("incoming")}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all border-2 ${
               activeTabSub === "incoming"
-                ? "bg-white text-[#00535b] shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow"
+                : "text-primary border-transparent hover:text-primary-dark"
             }`}
           >
             <Truck className="w-3.5 h-3.5" />
@@ -193,35 +185,35 @@ export default function WarehouseDashboard({
           </button>
           <button
             onClick={() => setActiveTabSub("history")}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all border-2 ${
               activeTabSub === "history"
-                ? "bg-white text-[#00535b] shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow"
+                : "text-primary border-transparent hover:text-primary-dark"
             }`}
           >
             <History className="w-3.5 h-3.5" />
-            Nhật ký đã nhận ({incomingMovements.length})
+            Nhật ký ({incomingMovements.length})
           </button>
         </div>
       </div>
 
       {activeTabSub === "incoming" ? (
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-teal-500/5 to-transparent border border-teal-100/50 p-4 rounded-xl flex items-center justify-between shadow-sm">
-            <span className="text-xs font-extrabold text-teal-800 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-teal-600 animate-pulse" /> Danh sách lô hàng thầu sắp cập bến
+          <div className="pb-2 border-b-3 border-dashed border-primary/30 flex items-center justify-between">
+            <span className="text-xs font-black text-primary-dark flex items-center gap-1.5 uppercase tracking-wider">
+              <span>📦</span> Danh sách lô hàng thầu chuẩn bị cập bến
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">Mobile Friendly View</span>
+            <span className="text-[9px] bg-cream border border-primary-dark/30 text-primary-dark/70 font-mono font-black px-2 py-0.5 rounded-md">Mobile Friendly</span>
           </div>
 
           {shipments.length === 0 ? (
-            <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <Package className="w-12 h-12 text-slate-350 mx-auto animate-pulse" />
-              <p className="text-slate-500 font-bold text-sm mt-4">Chưa có chuyến hàng PO nào sắp về</p>
-              <p className="text-slate-400 text-xs mt-1">Khi các nhà cung cấp được duyệt thầu, thông tin giao hàng sẽ xuất hiện tại đây.</p>
+            <div className="text-center py-20 bg-white border-3 border-primary-dark rounded-3xl shadow-card">
+              <Package className="w-12 h-12 text-primary-light mx-auto animate-pulse" />
+              <p className="text-primary-dark font-black text-sm mt-4 uppercase tracking-wider">Chưa có chuyến hàng thầu nào sắp về</p>
+              <p className="text-primary-dark/80 text-xs mt-1 font-bold">Khi Ban mua sắm ký duyệt PO thầu, dữ liệu sẽ xuất hiện tự động tại đây.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {shipments.map((ship) => {
                 const isDelayed = ship.status === "delayed";
                 const isToday = ship.status === "today";
@@ -229,48 +221,48 @@ export default function WarehouseDashboard({
                 return (
                   <div 
                     key={ship.id}
-                    className={`bg-white border-2 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
+                    className={`bg-white border-3 border-primary-dark rounded-3xl overflow-hidden transition-all flex flex-col justify-between border-l-8 ${
                       isDelayed 
-                        ? "border-rose-100 hover:border-rose-250 bg-rose-50/5" 
+                        ? "border-l-coral shadow-coral-glow animate-boom-pulse" 
                         : isToday 
-                          ? "border-amber-100 hover:border-amber-250 bg-amber-50/5" 
-                          : "border-slate-200 hover:border-slate-300"
+                          ? "border-l-primary shadow-teal-glow" 
+                          : "border-l-sky-blue shadow-sky-glow"
                     }`}
                   >
                     {/* Top Section */}
-                    <div className="p-4 space-y-3">
+                    <div className="p-5 space-y-4">
                       <div className="flex justify-between items-start">
-                        <div className="space-y-0.5">
-                          <span className="text-[9px] bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded text-slate-650 font-mono font-bold">
+                        <div className="space-y-1">
+                          <span className="text-[9px] bg-cream border-2 border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-black shadow-sm">
                             {ship.poCode}
                           </span>
-                          <h4 className="text-sm font-extrabold text-slate-800 mt-1">{ship.item.name}</h4>
-                          <p className="text-[10px] font-mono text-slate-400">SKU: {ship.item.sku}</p>
+                          <h4 className="text-sm font-black text-primary-dark uppercase tracking-wider mt-2">{ship.item.name}</h4>
+                          <p className="text-[9px] font-mono text-primary-dark/50 font-bold">SKU: {ship.item.sku}</p>
                         </div>
                         
                         {/* Status Badge */}
-                        <span className={`text-[9.5px] px-2 py-0.5 rounded-full font-bold uppercase font-mono ${
+                        <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase font-mono border-2 ${
                           isDelayed 
-                            ? "bg-rose-100 text-rose-700 border border-rose-200 animate-pulse" 
+                            ? "bg-coral-light/10 text-coral-dark border-coral" 
                             : isToday 
-                              ? "bg-amber-100 text-amber-800 border border-amber-250 animate-pulse" 
-                              : "bg-slate-100 text-slate-650"
+                              ? "bg-primary-bg text-primary-dark border-primary" 
+                              : "bg-cream text-primary-dark/75 border-primary-dark/30"
                         }`}>
-                          {isDelayed ? "Trễ Hạn" : isToday ? "Hôm Nay" : "Sắp Tới"}
+                          {isDelayed ? "🚨 Trễ Hạn" : isToday ? "⚡ Hôm Nay" : "⏳ Sắp Tới"}
                         </span>
                       </div>
 
                       {/* Shipment specs */}
-                      <div className="bg-slate-100/50 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-cream border-2 border-primary-dark/30 rounded-2xl p-3 grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <p className="text-[9px] text-slate-455 font-bold uppercase">Expected Qty</p>
-                          <p className="text-sm font-extrabold text-slate-800 font-mono mt-0.5">
+                          <p className="text-[9px] text-primary-dark/60 font-black uppercase tracking-wider">Số lượng đặt thầu</p>
+                          <p className="text-sm font-black text-primary-dark font-mono mt-0.5">
                             {ship.expectedQty} {ship.item.unit}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-slate-455 font-bold uppercase">Dự Kiến</p>
-                          <p className="text-[11px] font-bold text-slate-650 mt-0.5 truncate">
+                          <p className="text-[9px] text-primary-dark/60 font-black uppercase tracking-wider">Lịch cập bến</p>
+                          <p className="text-[10px] font-black text-primary-dark mt-0.5 truncate">
                             {ship.expectedDate}
                           </p>
                         </div>
@@ -278,23 +270,23 @@ export default function WarehouseDashboard({
                     </div>
 
                     {/* Bottom Action Section */}
-                    <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
+                    <div className="p-3.5 bg-primary-bg/20 border-t-2 border-primary-dark flex items-center gap-2">
                       {/* Detailed Checkin trigger */}
                       <button
                         onClick={() => openReceiptModal(ship)}
-                        className="flex-1 bg-white hover:bg-slate-150 border border-slate-200 hover:border-slate-350 text-slate-700 font-extrabold text-xs py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                        className="flex-1 bg-white hover:bg-cream border-2 border-primary-dark text-primary-dark font-black text-xs py-2.5 rounded-full transition-all transform active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                       >
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Kiểm lệch &amp; hỏng</span>
+                        <AlertTriangle className="w-4 h-4 text-coral" />
+                        <span>Kiểm lệch &amp; Hỏng</span>
                       </button>
 
                       {/* One-Tap Mark Received Default Button */}
                       <button
                         onClick={() => handleQuickReceiveAll(ship)}
-                        className="flex-1 bg-[#00535b] hover:bg-[#003d44] text-white font-extrabold text-xs py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                        className="flex-1 bg-accent-gold hover:bg-accent-dark text-primary-dark font-black text-xs py-2.5 rounded-full transition-all border-2 border-primary-dark shadow-accent-glow transform active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-450" />
-                        <span>Nhận đủ toàn bộ</span>
+                        <CheckCircle className="w-4 h-4 text-primary-dark" />
+                        <span>Khớp đủ 100%</span>
                       </button>
                     </div>
                   </div>
@@ -305,42 +297,41 @@ export default function WarehouseDashboard({
         </div>
       ) : (
         /* Receipt History view tab */
-        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-4">
-          <div>
-            <h3 className="text-sm font-extrabold text-[#00535b] flex items-center gap-1.5">
-              <History className="w-4 h-4 text-teal-600" /> Biên bản nhập kho gần nhất
+        <div className="bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card space-y-4">
+          <div className="pb-2 border-b-2 border-dashed border-primary/20">
+            <h3 className="text-sm font-black text-primary-dark flex items-center gap-1.5 uppercase tracking-wider">
+              <span>📋</span> Nhật Ký Biên Bản Nhập Kho Gần Nhất
             </h3>
-            <p className="text-[11px] text-slate-500">Đối chiếu dữ liệu xuất/nhập chứng thực vật tư bếp.</p>
           </div>
 
-          <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-1">
+          <div className="divide-y divide-primary-dark/10 max-h-[500px] overflow-y-auto pr-1">
             {incomingMovements.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-xs">
-                Chưa có dữ liệu nhập kho nào được ghi nhận.
+              <div className="text-center py-12 text-primary-dark/60 font-bold text-xs">
+                Chưa có nhật ký nhập kho nào được ghi nhận.
               </div>
             ) : (
               incomingMovements.map((mov) => {
                 const itemObj = inventory.find(i => i.id === mov.itemId);
                 return (
-                  <div key={mov.id} className="py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                  <div key={mov.id} className="py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs border-b border-primary-dark/10 last:border-b-0">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-250 font-bold px-1.5 py-0.5 rounded text-[10px] font-mono">
+                        <span className="bg-primary-bg text-primary-dark border-2 border-primary-dark font-black px-2 py-0.5 rounded-md text-[9px] font-mono shadow-sm">
                           ĐÃ NHẬP KHO
                         </span>
-                        {itemObj && <ItemIcon name={itemObj.name} size="sm" className="scale-75 shadow-sm" />}
-                        <span className="font-bold text-slate-800 text-sm">{itemObj ? itemObj.name : "Nguyên liệu ẩn"}</span>
+                        {itemObj && <ItemIcon name={itemObj.name} size="sm" className="scale-75 border" />}
+                        <span className="font-black text-primary-dark text-sm">{itemObj ? itemObj.name : "Nguyên vật liệu ẩn"}</span>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-semibold">
-                        Số hóa thầu: <span className="text-slate-500 font-mono font-bold">{mov.referenceId}</span> | Kiểm soát viên: {mov.createdBy}
+                      <p className="text-[9.5px] text-primary-dark/60 font-bold">
+                        Đơn thầu gốc: <span className="text-primary font-black font-mono">{mov.referenceId}</span> | Thủ kho kiểm tra: {mov.createdBy}
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <p className="font-mono text-emerald-700 font-extrabold text-sm">
+                      <p className="font-mono text-primary font-black text-sm">
                         + {mov.quantity} {itemObj?.unit}
                       </p>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleString("vi-VN")}</p>
+                      <p className="text-[9px] text-primary-dark/50 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleString("vi-VN")}</p>
                     </div>
                   </div>
                 );
@@ -353,129 +344,125 @@ export default function WarehouseDashboard({
       {/* Interactive Goods Receipt One-Tap Checkin Dialog/Modal */}
       {selectedShipment && (
         <div className="fixed inset-0 bg-[#091e22]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative animate-scale-up">
+          <div className="bg-white border-3 border-primary-dark w-full max-w-md rounded-3xl shadow-coral-glow overflow-hidden relative animate-scale-up">
             
             {successAnimation ? (
-              /* Success micro-animation loader view */
               <div className="p-8 py-16 flex flex-col items-center justify-center space-y-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-50 border-4 border-emerald-500/20 text-emerald-600 flex items-center justify-center animate-bounce shadow-md">
-                  <ShieldCheck className="w-9 h-9" />
+                <div className="w-16 h-16 rounded-2xl bg-primary-bg border-2 border-primary-dark text-primary-dark flex items-center justify-center animate-bounce shadow-teal-glow">
+                  <ShieldCheck className="w-10 h-10" />
                 </div>
-                <h3 className="text-base font-extrabold text-slate-800">Hoàn Tất Ghi Nhận Thành Công!</h3>
-                <p className="text-xs text-slate-500 font-semibold">Số liệu kho đã tự động hiệu chỉnh tăng thực tồn tương ứng.</p>
+                <h3 className="text-base font-black text-primary-dark uppercase tracking-wider">Ghi Nhận Thành Công!</h3>
+                <p className="text-xs text-primary-dark/85 font-bold">Dữ liệu thực tồn kho bếp ăn đã được điều chỉnh cộng bù.</p>
               </div>
             ) : (
-              /* Core Receipt Modal content details */
               <>
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#00535b] to-[#003d44] text-white p-4 flex justify-between items-center">
+                <div className="bg-primary-dark text-white p-4.5 flex justify-between items-center border-b-2 border-primary-dark">
                   <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-teal-350" />
-                    <h3 className="text-xs font-black uppercase tracking-wider">Phiếu Nhận &amp; Thẩm Định Thực Tế</h3>
+                    <Truck className="w-4.5 h-4.5 text-accent-gold" />
+                    <h3 className="text-xs font-black uppercase tracking-widest">Biên Bản Nhập &amp; Thẩm Định</h3>
                   </div>
                   <button 
                     onClick={closeReceiptModal}
-                    className="p-1 hover:bg-white/10 rounded-lg transition"
+                    className="p-1 hover:bg-white/10 rounded-lg transition border-2 border-transparent hover:border-white/10"
                   >
-                    <X className="w-4 h-4 text-slate-200 hover:text-white" />
+                    <X className="w-4.5 h-4.5 text-slate-200 hover:text-white" />
                   </button>
                 </div>
 
                 {/* Body details info */}
                 <div className="p-5 space-y-4 text-slate-800">
-                  <div className="flex items-start gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-150">
-                    <ItemIcon name={selectedShipment.item.name} size="md" className="shrink-0" />
+                  <div className="flex items-start gap-3 bg-cream p-3.5 rounded-2xl border-2 border-primary-dark shadow-sm">
+                    <ItemIcon name={selectedShipment.item.name} size="md" className="shrink-0 border-2 border-primary-dark shadow-sm" />
                     <div>
-                      <h4 className="text-xs font-black text-slate-800">{selectedShipment.item.name}</h4>
-                      <p className="text-[9.5px] text-slate-455 font-mono">SKU: {selectedShipment.item.sku}</p>
-                      <p className="text-[11px] text-[#00535b] font-bold mt-1.5 flex items-center gap-1.5">
-                        <Package className="w-3.5 h-3.5" /> Thầu gốc: {selectedShipment.expectedQty} {selectedShipment.item.unit}
+                      <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">{selectedShipment.item.name}</h4>
+                      <p className="text-[9px] text-primary-dark/60 font-mono font-bold">SKU: {selectedShipment.item.sku}</p>
+                      <p className="text-[10px] text-primary-dark font-black mt-2.5 flex items-center gap-1.5">
+                        <Package className="w-4 h-4 text-primary" /> Lượng đặt thầu PO: {selectedShipment.expectedQty} {selectedShipment.item.unit}
                       </p>
                     </div>
                   </div>
 
                   {modalMode === "standard" ? (
-                    /* Standard fast check view option */
                     <div className="space-y-4">
-                      <div className="p-3.5 bg-emerald-50/20 border border-emerald-100 rounded-xl text-center space-y-1">
-                        <p className="text-xs text-slate-500 font-medium">Mọi thông số kiểm hàng khớp 100%?</p>
-                        <p className="text-sm font-black text-emerald-800 font-mono">{selectedShipment.expectedQty} {selectedShipment.item.unit} sạch đẹp</p>
+                      <div className="p-4 bg-primary-bg/25 border-2 border-primary rounded-2xl text-center space-y-1">
+                        <p className="text-xs text-primary-dark/75 font-bold uppercase tracking-wider">Mọi hàng hóa khớp 100%?</p>
+                        <p className="text-sm font-black text-primary-dark font-mono">{selectedShipment.expectedQty} {selectedShipment.item.unit} hoàn hảo</p>
                       </div>
                       
                       <div className="flex gap-2">
-                        {/* Open discrepancy button */}
                         <button
                           onClick={() => setModalMode("discrepancy")}
-                          className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-650 text-xs font-black py-3 rounded-xl transition"
+                          className="flex-1 bg-cream hover:bg-[#fff0cb] border-2 border-primary-dark text-primary-dark text-xs font-black uppercase py-3 rounded-full shadow-sm transition transform active:scale-95 cursor-pointer"
                         >
-                          Phát hiện sai lệch
+                          Sai lệch thực tế
                         </button>
-                        {/* Receive Perfect Match trigger */}
                         <button
                           onClick={() => handleQuickReceiveAll(selectedShipment)}
-                          className="flex-1 bg-emerald-650 hover:bg-emerald-700 text-white text-xs font-black py-3 rounded-xl transition shadow-sm"
+                          className="flex-1 bg-accent-gold hover:bg-accent-dark border-2 border-primary-dark text-primary-dark text-xs font-black uppercase py-3 rounded-full shadow-accent-glow transition transform active:scale-95 cursor-pointer"
                         >
                           Nhận đủ 100%
                         </button>
                       </div>
                     </div>
                   ) : (
-                    /* Detailed discrepancy adjustment inputs view */
-                    <div className="space-y-4 animate-fade-slide-up">
-                      {/* Numeric Adjust Stepper */}
+                    <div className="space-y-4 animate-scale-up">
+                      {/* Numeric Adjust Stepper (Flip7 Custom Rounded Square Design) */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest block">
                           Số lượng thực nhận tại kho
                         </label>
-                        <div className="flex items-center justify-between border border-slate-200 rounded-xl p-1 bg-slate-50">
+                        <div className="flex items-center justify-between border-2 border-primary-dark rounded-2xl p-1 bg-cream shadow-inner">
+                          {/* Minus Button (Coral Themed) */}
                           <button
                             onClick={() => setReceivedQty(prev => Math.max(0, prev - 1))}
-                            className="w-10 h-10 rounded-lg hover:bg-white border border-transparent hover:border-slate-200 flex items-center justify-center font-bold text-slate-500 transition cursor-pointer"
+                            className="w-12 h-12 rounded-xl bg-coral-light/25 hover:bg-coral-light/45 border-2 border-coral flex items-center justify-center font-black text-coral-dark transition transform active:scale-90 cursor-pointer"
                           >
-                            <Minus className="w-4 h-4" />
+                            <Minus className="w-5 h-5" />
                           </button>
                           
                           <div className="text-center">
-                            <span className="text-base font-black font-mono text-slate-800">
+                            <span className="text-lg font-black font-mono text-primary-dark">
                               {receivedQty}
                             </span>
-                            <span className="text-xs text-slate-455 ml-1">{selectedShipment.item.unit}</span>
+                            <span className="text-xs text-primary-dark/70 font-black ml-1 uppercase">{selectedShipment.item.unit}</span>
                           </div>
 
+                          {/* Plus Button (Teal Themed) */}
                           <button
                             onClick={() => setReceivedQty(prev => prev + 1)}
-                            className="w-10 h-10 rounded-lg hover:bg-white border border-transparent hover:border-slate-200 flex items-center justify-center font-bold text-slate-500 transition cursor-pointer"
+                            className="w-12 h-12 rounded-xl bg-primary-bg hover:bg-primary-light/20 border-2 border-primary flex items-center justify-center font-black text-primary-dark transition transform active:scale-90 cursor-pointer"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-5 h-5" />
                           </button>
                         </div>
                       </div>
 
                       {/* Damaged checkbox */}
-                      <div className="flex items-center gap-2 px-3 py-2 bg-rose-50/30 border border-rose-100 rounded-xl">
+                      <div className="flex items-center gap-2 px-3.5 py-2.5 bg-coral-light/10 border-2 border-coral rounded-2xl shadow-sm">
                         <input
                           type="checkbox"
                           id="damaged-check"
                           checked={isDamaged}
                           onChange={(e) => setIsDamaged(e.target.checked)}
-                          className="w-4 h-4 accent-rose-650 cursor-pointer"
+                          className="w-4.5 h-4.5 accent-coral cursor-pointer border-2 border-primary-dark"
                         />
-                        <label htmlFor="damaged-check" className="text-xs font-bold text-rose-800 cursor-pointer select-none">
-                          Hàng bị dập hỏng / Lỗi thẩm thực (Damaged)
+                        <label htmlFor="damaged-check" className="text-xs font-black text-coral-dark cursor-pointer select-none">
+                          Hàng bị dập nát / Lỗi hỏng (Damaged)
                         </label>
                       </div>
 
                       {/* Notes input */}
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                          Lý do chênh lệch / Tình trạng
+                        <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest">
+                          Ghi chú sự cố / Hao hụt
                         </label>
                         <input
                           type="text"
                           value={clerkNotes}
                           onChange={(e) => setClerkNotes(e.target.value)}
-                          placeholder="Ví dụ: Giao thiếu 2 kg, 1 kg dập nát..."
-                          className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                          placeholder="Ví dụ: Giao thiếu 2 kg rau héo úa..."
+                          className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2.5 text-xs text-primary-dark font-bold focus:outline-none"
                         />
                       </div>
 
@@ -483,15 +470,15 @@ export default function WarehouseDashboard({
                       <div className="flex gap-2 pt-2">
                         <button
                           onClick={() => setModalMode("standard")}
-                          className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-650 text-xs font-black py-3 rounded-xl transition"
+                          className="flex-1 bg-white hover:bg-cream border-2 border-primary-dark text-primary-dark text-xs font-black uppercase py-3 rounded-full shadow-sm transition transform active:scale-95 cursor-pointer"
                         >
                           Quay lại
                         </button>
                         <button
                           onClick={handleDetailedReceiptSubmit}
-                          className="flex-1 bg-[#00535b] hover:bg-[#003d44] text-white text-xs font-black py-3 rounded-xl transition shadow-md"
+                          className="flex-1 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white text-xs font-black uppercase py-3 rounded-full shadow-coral-glow transition transform active:scale-95 cursor-pointer"
                         >
-                          Ghi nhận sai lệch
+                          Lập biên bản
                         </button>
                       </div>
                     </div>
