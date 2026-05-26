@@ -41,6 +41,7 @@ export default function RfqComparison({
   onApproveQuote,
   onSimulateInboundEmail
 }: RfqComparisonProps) {
+  const showDevTools = import.meta.env.VITE_ENABLE_DEV_TOOLS === "true";
 
   const [matches, setMatches] = useState<MatchedSupplier[]>([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
@@ -266,8 +267,8 @@ Vận chuyển 80k. Giao hàng trong ngày.
               )}
             </div>
 
-            {/* SIMULATED WEBHOOK CONTROLLER */}
-            {currentRfq && (
+            {/* SIMULATED WEBHOOK CONTROLLER - internal debugging only */}
+            {showDevTools && currentRfq && (
               <div className="bg-white border border-slate-200 p-5 rounded-2xl executive-shadow space-y-4">
                 <div className="border-b border-slate-150 pb-3">
                   <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-700 font-mono font-bold uppercase tracking-wider">Hộp Thử nghiệm</span>
@@ -321,7 +322,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   <Mail className="w-10 h-10 text-slate-300 mx-auto animate-pulse" />
                   <p className="text-slate-400 text-xs mt-3 font-semibold">Đang trông đợi phản hồi báo giá từ NCC thầu thợ...</p>
                   <p className="text-[11px] text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
-                    Kích hoạt hộp giả lập bên trái để gửi mẫu phản hồi của các bên. Hệ thống sẽ tự bóc tách dữ liệu phi cấu trúc bằng AI.
+                    Hệ thống đang lắng nghe email phản hồi thật qua Gmail/IMAP và sẽ tự bóc tách dữ liệu phi cấu trúc bằng AI.
                   </p>
                 </div>
               ) : (

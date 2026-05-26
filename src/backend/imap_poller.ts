@@ -55,14 +55,20 @@ async function pollImapInbox() {
     const lock = await client.getMailboxLock(config.mailbox);
 
     try {
-      const candidateUids = await client.search(
+      const rfqUids = await client.search(
         { seen: false, header: { subject: "STALLY RFQ" } },
         { uid: true }
       );
-      const candidateCount = candidateUids ? candidateUids.length : 0;
-      console.log(`IMAP unread STALLY RFQ candidates: ${candidateCount}.`);
+      const negUids = await client.search(
+        { seen: false, header: { subject: "STALLY NEGOTIATION" } },
+        { uid: true }
+      );
+      
+      const candidateUids = Array.from(new Set([...(rfqUids || []), ...(negUids || [])]));
+      const candidateCount = candidateUids.length;
+      console.log(`IMAP unread STALLY candidates count: ${candidateCount}.`);
 
-      if (!candidateUids || candidateUids.length === 0) {
+      if (candidateCount === 0) {
         return;
       }
 
@@ -74,11 +80,16 @@ async function pollImapInbox() {
 
         const messageUid = message.uid || uid;
         const subject = message.envelope?.subject || "";
-        console.log(`IMAP processing candidate uid=${messageUid} subject=${subject}`);
+        
+        const subjectUpper = subject.toUpperCase();
+        const isRfq = subjectUpper.includes("STALLY RFQ");
+        const isNeg = subjectUpper.includes("STALLY NEGOTIATION");
 
-        if (!subject.toLowerCase().includes("stally rfq")) {
+        if (!isRfq && !isNeg) {
           continue;
         }
+
+        console.log(`IMAP processing candidate uid=${messageUid} subject=${subject}`);
 
         if (!message.source) {
           continue;
@@ -118,7 +129,7 @@ async function pollImapInbox() {
         });
 
         await client.messageFlagsAdd(messageUid, ["\\Seen"], { uid: true });
-        console.log(`IMAP inbound RFQ email processed: ${subject} -> case ${result.linkedCaseId}`);
+        console.log(`IMAP inbound email processed: ${subject} -> case ${result.linkedCaseId}`);
       }
     } finally {
       lock.release();

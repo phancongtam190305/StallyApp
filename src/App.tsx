@@ -249,6 +249,51 @@ export default function App() {
   // Handler: Approve Quote (EPIC G & H)
   const handleApproveQuote = async (rfqId: string, quoteId: string) => {
     try {
+      // Find the corresponding case and request/approve PO draft via modern endpoints
+      const casesRes = await fetch("/api/v1/cases", {
+        headers: { "X-Organization-Id": orgId }
+      });
+      if (casesRes.ok) {
+        const casesData = await casesRes.json();
+        const cases = casesData.data || [];
+        const relatedCase = cases.find((c: any) => c.currentRfqId === rfqId || c.requestId === rfqs.find(r => r.id === rfqId)?.purchaseRequestId);
+        if (relatedCase) {
+          const caseId = relatedCase.id;
+          
+          // Submit approval request
+          await fetch(`/api/v1/cases/${caseId}/approval/request`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Organization-Id": orgId
+            },
+            body: JSON.stringify({
+              selectedQuoteId: quoteId,
+              comment: "Trình duyệt tự động từ màn hình đối chiếu RFQ"
+            })
+          });
+
+          // Approve the request
+          await fetch(`/api/v1/approval-requests/${caseId}/approve`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Organization-Id": orgId
+            },
+            body: JSON.stringify({
+              comment: "Phê duyệt tự động từ màn hình đối chiếu RFQ",
+              selectedQuoteId: quoteId
+            })
+          });
+
+          // Create PO Draft
+          await fetch(`/api/v1/cases/${caseId}/po-draft`, {
+            method: "POST",
+            headers: { "X-Organization-Id": orgId }
+          });
+        }
+      }
+
       const res = await fetch(`/api/rfq/${rfqId}/approve`, {
         method: "POST",
         headers: {
@@ -272,17 +317,18 @@ export default function App() {
   // Handler: Goods receipt in stock (EPIC I)
   const handleReceiveGoods = async (itemId: string, qty: number, sourcePo: string) => {
     try {
-      const res = await fetch("/api/inventory/receive-goods", {
+      // Find the inventory item name
+      const itemName = inventory.find(i => i.id === itemId)?.name || "";
+
+      const res = await fetch(`/api/v1/purchase-orders/${sourcePo}/receive`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Organization-Id": orgId
         },
         body: JSON.stringify({
-          itemId,
-          quantityReceived: qty,
-          referenceId: sourcePo,
-          createdBy: "Lý Văn Khoa (Thủ Kho)"
+          items: [{ name: itemName, quantityReceived: qty }],
+          receivedAt: new Date().toISOString()
         })
       });
 

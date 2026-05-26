@@ -3,6 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { dbState, ai } from "../../server.js";
 import { persistDbState } from "./db.js";
 import { sendRealEmail } from "./mailer.js";
+import { buildSupplierFromCandidate, discoverSuppliers } from "./supplier_discovery.js";
 import { 
   ProcurementCase, 
   CaseStatus, 
@@ -29,7 +30,7 @@ export const apiV1Router = Router();
 // STATE MACHINE TRANSITION ENGINE (Strict transition logic)
 // ----------------------------------------------------
 const VALID_TRANSITIONS: Record<CaseStatus, CaseStatus[]> = {
-  "draft_request": ["request_submitted", "cancelled"],
+  "draft_request": ["request_submitted", "request_validating", "cancelled"],
   "request_submitted": ["request_validating", "cancelled"],
   "request_validating": ["supplier_matching", "exception", "cancelled"],
   "supplier_matching": ["rfq_draft", "cancelled"],
@@ -511,109 +512,60 @@ apiV1Router.post("/cases/:caseId/suppliers/select", (req: Request, res: Response
 });
 
 apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: Response) => {
+  const orgId = req.organizationId;
   const { caseId } = req.params;
-  const { query } = req.body;
+  const { query, limit, dryRun } = req.body;
+  const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
   
-  if (ai) {
-    try {
-      console.log(`🤖 AI Sourcing Crawler starting for query: "${query}"...`);
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `Hãy tìm kiếm trên Google/Internet 3 nhà cung cấp (doanh nghiệp/tổng kho/đại lý) có thực tế tại Việt Nam cung cấp mặt hàng: "${query}".
-Hãy bóc tách thông tin của họ thành danh sách JSON chuẩn cấu trúc dưới đây.
-Đảm bảo thông tin email và số điện thoại là hợp lệ hoặc dự đoán sát thực tế nếu không tìm thấy. Tất cả địa chỉ và tên doanh nghiệp phải có thật.
-Không viết bất kỳ văn bản giải thích nào khác ngoài chuỗi JSON hợp lệ theo cấu trúc mảng:
-[
-  {
-    "name": "Tên nhà cung cấp đầy đủ",
-    "contactPerson": "Tên người đại diện hoặc để trống",
-    "email": "địa chỉ email liên hệ",
-    "phone": "số điện thoại liên hệ",
-    "address": "địa chỉ trụ sở hoặc kho",
-    "rating": 4.5,
-    "tags": ["rau củ", "gia vị", "thực phẩm"],
-    "historicalPricing": "Mô tả ngắn gọn về chính sách giá sỉ hoặc mức chiết khấu thông thường"
+  if (!caseObj) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy case" } });
   }
-]`,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json"
-        }
-      });
 
-      if (response.text) {
-        const discovered = JSON.parse(response.text.trim());
-        const mappedDiscovered = discovered.map((d: any, idx: number) => ({
-          id: `sup-crawled-${Date.now()}-${idx}`,
-          organizationId: req.organizationId || "org-1",
-          name: d.name,
-          contactPerson: d.contactPerson || "Đại diện kinh doanh",
-          email: d.email || `contact@${d.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com.vn`,
-          phone: d.phone || "0900000000",
-          address: d.address || "Việt Nam",
-          rating: Number(d.rating) || 4.5,
-          tags: d.tags || [query],
-          historicalPricing: d.historicalPricing || "Liên hệ nhận báo giá sỉ cập nhật.",
-          source: "crawled" as const
-        }));
+  try {
+    console.log(`AI supplier discovery started. case=${caseId} query="${query}"`);
+    const candidates = await discoverSuppliers(ai, {
+      query,
+      orgId,
+      caseObj,
+      existingSuppliers: dbState.suppliers.filter(s => s.organizationId === orgId),
+      limit: Number(limit) || 5,
+    });
 
-        mappedDiscovered.forEach((ns: any) => {
-          if (!dbState.suppliers.some((s: any) => s.email === ns.email)) {
-            dbState.suppliers.push(ns);
-          }
-        });
-
-        return res.json({
-          message: `AI đã hoàn tất cào tìm kiếm trực tiếp trên Google Search Grounding cho từ khóa "${query}".`,
-          data: mappedDiscovered
-        });
+    const addedSuppliers: Supplier[] = [];
+    for (const candidate of candidates) {
+      if (dryRun) continue;
+      if (!candidate.autoAddEligible) continue;
+      const supplier = buildSupplierFromCandidate(candidate, orgId, addedSuppliers.length);
+      if (!dbState.suppliers.some(s => s.organizationId === orgId && (s.email.toLowerCase() === supplier.email.toLowerCase() || s.name.toLowerCase() === supplier.name.toLowerCase()))) {
+        dbState.suppliers.push(supplier);
+        addedSuppliers.push(supplier);
       }
-    } catch (err) {
-      console.error("Gemini Search Grounding Sourcing Crawler failed, falling back to simulator:", err);
     }
+
+    return res.json({
+      message: addedSuppliers.length
+        ? `Đã crawl và thêm ${addedSuppliers.length} NCC đủ thông tin xác minh vào CRM.`
+        : dryRun
+          ? "Dry-run crawl xong. Chưa ghi NCC nào vào CRM."
+          : "Đã crawl xong nhưng chưa có NCC đủ email/số điện thoại/confidence để tự thêm vào CRM.",
+      data: addedSuppliers,
+      candidates,
+      summary: {
+        totalCandidates: candidates.length,
+        addedCount: addedSuppliers.length,
+        reviewRequiredCount: candidates.length - addedSuppliers.length,
+        dryRun: Boolean(dryRun),
+      }
+    });
+  } catch (err: any) {
+    console.error("Supplier discovery failed:", err);
+    return res.status(502).json({
+      error: {
+        code: "SUPPLIER_DISCOVERY_FAILED",
+        message: err.message || "Không crawl được nhà cung cấp lúc này.",
+      }
+    });
   }
-
-  // Local intelligent fallback generator based on keywords
-  const cleanQuery = (query || "Nguyên liệu").trim();
-  const fallbackList = [
-    {
-      id: `sup-crawled-${Date.now()}-1`,
-      organizationId: req.organizationId || "org-1",
-      name: `Tổng kho Sỉ ${cleanQuery} Đại Việt`,
-      contactPerson: "Lê Minh Quốc",
-      email: `quoc.le@${cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "")}daiviet.vn`,
-      phone: "0905888999",
-      address: "Chợ đầu mối nông sản Thủ Đức, TP. Hồ Chí Minh",
-      rating: 4.7,
-      tags: [cleanQuery, "Thực phẩm sỉ"],
-      historicalPricing: `Chiết khấu 8-12% cho đơn hàng ${cleanQuery} số lượng lớn.`,
-      source: "crawled" as const
-    },
-    {
-      id: `sup-crawled-${Date.now()}-2`,
-      organizationId: req.organizationId || "org-1",
-      name: `Hợp tác xã Nông nghiệp Sạch ${cleanQuery} miền Trung`,
-      contactPerson: "Nguyễn Thị Phương",
-      email: `phuong.coop@${cleanQuery.toLowerCase().replace(/[^a-z0-9]/g, "")}mientrung.org`,
-      phone: "0914222333",
-      address: "Lô C2 Cụm công nghiệp Hòa Khánh, Liên Chiểu, Đà Nẵng",
-      rating: 4.5,
-      tags: [cleanQuery, "Nông sản sạch"],
-      historicalPricing: `Báo giá ổn định theo hợp đồng năm. Miễn phí vận chuyển nội thành.`,
-      source: "crawled" as const
-    }
-  ];
-
-  fallbackList.forEach(ns => {
-    if (!dbState.suppliers.some((s: any) => s.email === ns.email)) {
-      dbState.suppliers.push(ns);
-    }
-  });
-
-  res.json({
-    message: `Đã cào dữ liệu NCC trực tuyến từ trang vàng nội bộ với từ khóa "${cleanQuery}" (Simulator Mode)`,
-    data: fallbackList
-  });
 });
 
 // SUPPLIERS CRM REST
@@ -700,10 +652,14 @@ apiV1Router.post("/cases/:caseId/rfq-draft", async (req: Request, res: Response)
           contents: `Hãy viết lại thư mời chào thầu chuyên nghiệp gửi đến NCC ${supplier.name} bán mặt hàng liên quan.
 Hàng cần báo giá:
 ${prItemsText}
-Yêu cầu trả về định dạng HTML trong hòm thư điện tử. Đừng thêm bất kì ghi chú hay thẻ định dạng markdown ngoài mã HTML.`
+Yêu cầu trả về định dạng HTML trong hòm thư điện tử. Chỉ trả về nội dung HTML thô. Tuyệt đối không thêm bất kỳ ghi chú, lời thoại, lời giải thích hay thẻ định dạng markdown (như \`\`\`html) ngoài mã HTML.`
         });
         if (response.text) {
-          emailBody = response.text;
+          let cleanText = response.text.trim();
+          if (cleanText.includes("```")) {
+            cleanText = cleanText.replace(/```html?/g, "").replace(/```/g, "").trim();
+          }
+          emailBody = cleanText;
         }
       } catch (err) {
         // Fallback
@@ -921,7 +877,7 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
   let resolvedSupplierId = supplierId || "";
   
   // Rule 1: Code in Subject, supports both [STALLY RFQ-CASE-...] and [STALLY RFQ-RFQ-...]
-  const subjectMatch = subject ? subject.match(/\[STALLY RFQ-((?:case|rfq)-[a-z0-9-]+)\]/i) : null;
+  const subjectMatch = subject ? subject.match(/\[STALLY (?:RFQ|NEGOTIATION)-((?:case|rfq)-[a-z0-9-]+)\]/i) : null;
   if (subjectMatch) {
     const code = subjectMatch[1].toLowerCase();
     if (code.startsWith("case-")) {
@@ -1074,6 +1030,7 @@ QUY TẮC CỰC KỲ QUAN TRỌNG:
    - Thuế VAT (taxAmount): Nếu email không nhắc tới VAT, mặc định điền 0.
    - Số ngày giao hàng (deliveryDays): Nếu không có thông tin, mặc định điền 3.
    - Điều khoản thanh toán (paymentTerms): Nếu không có, mặc định điền "Không đề cập".
+5. TRÁNH NHẦM LẪN ĐƠN GIÁ VÀ TỔNG TIỀN (Unit Price vs Total Price): Hãy phân biệt rõ giữa đơn giá (unitPrice - giá của 1 đơn vị sản phẩm) và thành tiền (totalPrice của từng mặt hàng) hoặc tổng thanh toán (totalAmount của cả đơn). Nếu email phản hồi thầu ghi "tổng tiền", "tổng giá trị là X" cho toàn bộ đơn hàng/gói hàng, thì X chính là totalPrice hoặc totalAmount. Tuyệt đối KHÔNG ĐƯỢC điền X vào đơn giá (unitPrice) của từng món hàng để tránh tính toán sai lệch nhân lên hàng chục lần (Ví dụ: nếu đơn thầu gồm 10 kg và tổng tiền sau giảm giá của món đó là 1,000,000đ, thì totalPrice = 1,000,000đ và unitPrice phải được tính lùi là 100,000đ).
 
 NỘI DUNG EMAIL & FILE:
 ${rawTextForGemini}
@@ -1128,44 +1085,73 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
   const normalizedShippingFee = Number(extractedQuote.shippingFee) || 0;
   const normalizedTotalAmount = Number(extractedQuote.totalAmount) || normalizedSubtotal + normalizedTaxAmount + normalizedShippingFee;
   
-  // Save quote and quote version
-  const quoteId = `q-${Date.now()}`;
-  const newQuote: Quote = {
-    id: quoteId,
-    organizationId: orgId,
-    rfqCaseId: caseObj?.currentRfqId || "rfq-1",
-    supplierId,
-    supplierName: supplierObj ? supplierObj.name : email.from,
-    items: normalizedItems,
-    subtotal: normalizedSubtotal,
-    taxAmount: normalizedTaxAmount,
-    shippingFee: normalizedShippingFee,
-    totalAmount: normalizedTotalAmount,
-    deliveryDays: Number(extractedQuote.deliveryDays) || 3,
-    paymentTerms: isFallback ? "GIẢ LẬP (Lỗi kết nối Gemini API)" : (extractedQuote.paymentTerms || "COD / Chuyển khoản"),
-    validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    aiConfidenceScore: isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70),
-    status: "extracted",
-    originalFileUrl: isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt"),
-    createdAt: new Date().toISOString()
-  };
+  // Save or update quote, and log quote version
+  const targetRfqCaseId = caseObj?.currentRfqId || "rfq-1";
+  const existingQuote = dbState.quotes.find(q => q.rfqCaseId === targetRfqCaseId && q.supplierId === supplierId);
   
-  dbState.quotes.push(newQuote);
+  let quoteId: string;
+  let finalQuote: Quote;
+  let roundNum = 1;
+  
+  if (existingQuote) {
+    quoteId = existingQuote.id;
+    existingQuote.items = normalizedItems;
+    existingQuote.subtotal = normalizedSubtotal;
+    existingQuote.taxAmount = normalizedTaxAmount;
+    existingQuote.shippingFee = normalizedShippingFee;
+    existingQuote.totalAmount = normalizedTotalAmount;
+    existingQuote.deliveryDays = Number(extractedQuote.deliveryDays) || 3;
+    existingQuote.paymentTerms = isFallback ? "GIẢ LẬP (Lỗi kết nối Gemini API)" : (extractedQuote.paymentTerms || "COD / Chuyển khoản");
+    existingQuote.validUntil = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    existingQuote.aiConfidenceScore = isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70);
+    existingQuote.originalFileUrl = isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt");
+    existingQuote.createdAt = new Date().toISOString();
+    
+    finalQuote = existingQuote;
+    
+    // Determine next round number
+    const existingVersions = dbState.quote_versions.filter(qv => qv.quoteId === quoteId);
+    roundNum = existingVersions.length > 0 ? Math.max(...existingVersions.map(v => v.round)) + 1 : 2;
+  } else {
+    quoteId = `q-${Date.now()}`;
+    const newQuote: Quote = {
+      id: quoteId,
+      organizationId: orgId,
+      rfqCaseId: targetRfqCaseId,
+      supplierId,
+      supplierName: supplierObj ? supplierObj.name : email.from,
+      items: normalizedItems,
+      subtotal: normalizedSubtotal,
+      taxAmount: normalizedTaxAmount,
+      shippingFee: normalizedShippingFee,
+      totalAmount: normalizedTotalAmount,
+      deliveryDays: Number(extractedQuote.deliveryDays) || 3,
+      paymentTerms: isFallback ? "GIẢ LẬP (Lỗi kết nối Gemini API)" : (extractedQuote.paymentTerms || "COD / Chuyển khoản"),
+      validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      aiConfidenceScore: isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70),
+      status: "extracted",
+      originalFileUrl: isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt"),
+      createdAt: new Date().toISOString()
+    };
+    dbState.quotes.push(newQuote);
+    finalQuote = newQuote;
+    roundNum = 1;
+  }
   
   const quoteVer: QuoteVersion = {
     id: `qv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
     quoteId,
-    round: 1,
-    items: newQuote.items,
-    subtotal: newQuote.subtotal,
-    taxAmount: newQuote.taxAmount,
-    shippingFee: newQuote.shippingFee,
-    totalAmount: newQuote.totalAmount,
-    deliveryDays: newQuote.deliveryDays,
-    paymentTerms: newQuote.paymentTerms,
-    validUntil: newQuote.validUntil,
-    aiConfidenceScore: newQuote.aiConfidenceScore,
-    originalFileUrl: newQuote.originalFileUrl,
+    round: roundNum,
+    items: finalQuote.items,
+    subtotal: finalQuote.subtotal,
+    taxAmount: finalQuote.taxAmount,
+    shippingFee: finalQuote.shippingFee,
+    totalAmount: finalQuote.totalAmount,
+    deliveryDays: finalQuote.deliveryDays,
+    paymentTerms: finalQuote.paymentTerms,
+    validUntil: finalQuote.validUntil,
+    aiConfidenceScore: finalQuote.aiConfidenceScore,
+    originalFileUrl: finalQuote.originalFileUrl,
     createdAt: new Date().toISOString()
   };
   
@@ -1189,7 +1175,7 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
         toStatus: "quote_review",
         actorId: "system",
         actorRole: "procurement",
-        reason: `Báo giá thầu của NCC ${newQuote.supplierName} đã được AI trích xuất xong.`,
+        reason: `Báo giá thầu của NCC ${finalQuote.supplierName} đã được AI trích xuất xong.`,
         orgId
       });
     }
@@ -1210,9 +1196,30 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
         }
       }, 400);
     }
+    
+    if (caseObj.status === "negotiating") {
+      // Find the corresponding "draft" or "sent" AiNegotiationLog for this case and supplier, and update its status to "supplier_responded"
+      const activeLogs = dbState.ai_negotiation_logs.filter(
+        l => l.caseId === caseId && l.supplierId === supplierId && (l.status === "draft" || l.status === "sent")
+      );
+      if (activeLogs.length > 0) {
+        const latestLog = activeLogs[activeLogs.length - 1];
+        latestLog.status = "supplier_responded";
+        latestLog.supplierReplyRaw = email.bodyText || email.snippet || "Phản hồi qua email";
+      }
+
+      transitionCaseStatus({
+        caseId,
+        toStatus: "comparison_ready",
+        actorId: "system",
+        actorRole: "procurement",
+        reason: `NCC ${finalQuote.supplierName} đã phản hồi đàm phán thương lượng. Đã cập nhật báo giá V${roundNum}.`,
+        orgId
+      });
+    }
   }
   
-  broadcastRealtimeEvent("quote.extracted", caseId, newQuote);
+  broadcastRealtimeEvent("quote.extracted", caseId, finalQuote);
   
   // Persist State to SQLite
   try {
@@ -1340,9 +1347,18 @@ apiV1Router.post("/cases/:caseId/negotiations/:supplierId/draft", async (req: Re
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Hãy đóng vai trò là một chuyên viên mua sắm chuyên nghiệp. Hãy soạn thảo một email đàm phán gửi đến NCC ${supplier.name} nhằm mục tiêu: ${targetDetail}. Báo giá hiện tại của họ là: ${currentPriceText}. Thư viết bằng tiếng Việt trang trọng, định dạng HTML.`
+        contents: `Hãy đóng vai trò là một chuyên viên mua sắm chuyên nghiệp. Hãy soạn thảo một email đàm phán gửi đến NCC ${supplier.name} nhằm mục tiêu: ${targetDetail}. 
+Lưu ý quan trọng về số tiền: Tổng trị giá của toàn bộ báo giá thầu/đơn hàng (tổng số tiền cho tất cả nguyên liệu cộng lại) hiện tại là: ${currentPriceText} (đây là tổng giá trị của toàn bộ đơn thầu, tuyệt đối không phải là đơn giá của từng món hay của một đơn vị sản phẩm).
+Thư viết bằng tiếng Việt trang trọng, định dạng HTML.
+QUAN TRỌNG: Chỉ trả về duy nhất nội dung email thô (bắt đầu từ phần Kính gửi/Chào đối tác đến hết phần Ký tên). Tuyệt đối không thêm bất kỳ lời giới thiệu, giải thích, lời bàn luận của AI, hoặc bao bọc mã trong khối code block markdown (như \`\`\`html) nào khác.`
       });
-      if (response.text) draftEmail = response.text;
+      if (response.text) {
+        let cleanText = response.text.trim();
+        if (cleanText.includes("```")) {
+          cleanText = cleanText.replace(/```html?/g, "").replace(/```/g, "").trim();
+        }
+        draftEmail = cleanText;
+      }
     } catch (e) {}
   }
   
@@ -1377,7 +1393,7 @@ apiV1Router.post("/negotiation-drafts/:draftId/send", (req: Request, res: Respon
   const supplierEmail = supplier ? supplier.email : "supplier@example.com";
   sendRealEmail({
     to: supplierEmail,
-    subject: `[STALLY NEGOTIATION] Thương lượng báo giá Case thầu`,
+    subject: `[STALLY NEGOTIATION-${log.caseId.toUpperCase()}] Thương lượng báo giá Case thầu`,
     html: editedBody || log.draftEmail
   }).catch(err => {
     console.error("Async sending real negotiation email failed:", err);
@@ -1393,10 +1409,15 @@ apiV1Router.post("/negotiation-drafts/:draftId/send", (req: Request, res: Respon
     orgId: req.organizationId || "org-1"
   });
   
-  // Simulate supplier reply back with adjusted price in 5 seconds
+  // CẢNH BÁO / LƯU Ý: Đã tắt tự động giả lập phản hồi sau 1 giây 
+  // để hệ thống chờ nhận email thật từ đối tác qua cổng IMAP/Gmail.
+  // Nếu bạn muốn giả lập phản hồi nhanh mà không cần gửi email thật, 
+  // hãy bỏ comment đoạn code setTimeout dưới đây:
+  /*
   setTimeout(() => {
     simulateSupplierNegotiationReply(log.caseId, log.supplierId, log.promptGoal);
   }, 1000);
+  */
   
   res.json({ data: log });
 });

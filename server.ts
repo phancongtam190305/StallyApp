@@ -20,52 +20,91 @@ app.use(express.json());
 
 const PORT = Number(process.env.PORT || 3000);
 
-// Initialize Google GenAI
-const geminiApiKey = process.env.GEMINI_API_KEY;
-export let ai: GoogleGenAI | null = null;
-if (geminiApiKey && geminiApiKey !== "MY_GEMINI_API_KEY") {
-  try {
-    ai = new GoogleGenAI({
-      apiKey: geminiApiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
+// Initialize Google GenAI with local key rotation support
+const geminiApiKeyEnv = process.env.GEMINI_API_KEY;
+const geminiApiKeys = geminiApiKeyEnv 
+  ? geminiApiKeyEnv.split(",").map(k => k.trim().replace(/^["']|["']$/g, "")).filter(k => k && k !== "MY_GEMINI_API_KEY")
+  : [];
+
+const aiClients: GoogleGenAI[] = [];
+
+if (geminiApiKeys.length > 0) {
+  geminiApiKeys.forEach((key, idx) => {
+    try {
+      const client = new GoogleGenAI({
+        apiKey: key,
+        httpOptions: {
+          baseUrl: process.env.GEMINI_BASE_URL || undefined,
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
         },
-      },
-    });
-    console.log("Google GenAI initialized with API Key.");
-  } catch (err) {
-    console.error("Failed to initialize Google GenAI SDK:", err);
-  }
+      });
+      aiClients.push(client);
+      console.log(`Google GenAI Client [${idx + 1}/${geminiApiKeys.length}] initialized successfully.`);
+    } catch (err) {
+      console.error(`Failed to initialize Google GenAI Client [${idx + 1}]:`, err);
+    }
+  });
+}
+
+let activeClientIndex = 0;
+function getNextAiClient(): GoogleGenAI | null {
+  if (aiClients.length === 0) return null;
+  const client = aiClients[activeClientIndex];
+  console.log(`[Stally Key Rotator] 🔄 Using API Key Index [${activeClientIndex + 1}/${aiClients.length}] for current request.`);
+  activeClientIndex = (activeClientIndex + 1) % aiClients.length;
+  return client;
+}
+
+export let ai: GoogleGenAI | null = null;
+if (aiClients.length > 0) {
+  ai = {
+    models: {
+      async generateContent(config: any) {
+        let lastError: any = null;
+        for (let attempt = 0; attempt < aiClients.length; attempt++) {
+          const client = getNextAiClient();
+          if (!client) {
+            throw new Error("No Gemini API clients available.");
+          }
+          try {
+            return await client.models.generateContent(config);
+          } catch (err: any) {
+            console.warn(`[Stally Key Rotator] ⚠️ Attempt ${attempt + 1} failed with Key [${activeClientIndex || aiClients.length}/${aiClients.length}]. Error: ${err.message || err}`);
+            lastError = err;
+          }
+        }
+        throw lastError || new Error("All rotated API keys failed.");
+      }
+    } as any
+  } as unknown as GoogleGenAI;
+  console.log(`Local Key Rotator active with ${aiClients.length} keys.`);
 } else {
   console.log("No valid GEMINI_API_KEY found. Running in high-fidelity simulator mode.");
 }
 
 import { 
-  initDb, db, parseSupplier, parseProcurementCase, parsePurchaseRequest, 
-  parseRfqCase, parseQuote, parseQuoteVersion, parsePurchaseOrder, 
-  parseEmailMessage, persistDbState 
+  initDb, loadDbState, checkDbHealth, persistDbState
 } from "./src/backend/db.ts";
 
-initDb();
-
 export let dbState: any = {
-  organizations: db.prepare("SELECT * FROM organizations").all(),
-  users: db.prepare("SELECT * FROM users").all(),
-  suppliers: db.prepare("SELECT * FROM suppliers").all().map(parseSupplier),
-  inventory_items: db.prepare("SELECT * FROM inventory_items").all(),
-  procurement_cases: db.prepare("SELECT * FROM procurement_cases").all().map(parseProcurementCase),
-  case_transitions: db.prepare("SELECT * FROM case_transitions").all(),
-  purchase_requests: db.prepare("SELECT * FROM purchase_requests").all().map(parsePurchaseRequest),
-  rfq_cases: db.prepare("SELECT * FROM rfq_cases").all().map(parseRfqCase),
-  quotes: db.prepare("SELECT * FROM quotes").all().map(parseQuote),
-  quote_versions: db.prepare("SELECT * FROM quote_versions").all().map(parseQuoteVersion),
-  purchase_orders: db.prepare("SELECT * FROM purchase_orders").all().map(parsePurchaseOrder),
-  email_accounts: db.prepare("SELECT * FROM email_accounts").all(),
-  email_messages: db.prepare("SELECT * FROM email_messages").all().map(parseEmailMessage),
-  ai_negotiation_logs: db.prepare("SELECT * FROM ai_negotiation_logs").all(),
-  rfq_email_drafts: db.prepare("SELECT * FROM rfq_email_drafts").all(),
-  stock_movements: db.prepare("SELECT * FROM stock_movements").all()
+  organizations: [],
+  users: [],
+  suppliers: [],
+  inventory_items: [],
+  procurement_cases: [],
+  case_transitions: [],
+  purchase_requests: [],
+  rfq_cases: [],
+  quotes: [],
+  quote_versions: [],
+  purchase_orders: [],
+  email_accounts: [],
+  email_messages: [],
+  ai_negotiation_logs: [],
+  rfq_email_drafts: [],
+  stock_movements: [],
 };
 
 // ----------------------------------------------------
@@ -92,6 +131,52 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   next();
 });
 
+app.get("/api/health", async (_req, res) => {
+  try {
+    await checkDbHealth();
+    res.json({
+      ok: true,
+      service: "stally",
+      database: "supabase_postgres_ok",
+      uptimeSeconds: Math.round(process.uptime()),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(503).json({
+      ok: false,
+      service: "stally",
+      database: "error",
+      error: err?.message || "Database health check failed",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+app.get("/api/email/status", (_req, res) => {
+  res.json({
+    smtp: {
+      configured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+      host: process.env.SMTP_HOST || null,
+      port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : null,
+      secure: process.env.SMTP_SECURE === "true",
+      fromEmailConfigured: Boolean(process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER),
+    },
+    imap: {
+      enabled: process.env.IMAP_POLL_ENABLED === "true",
+      configured: Boolean(
+        process.env.IMAP_HOST &&
+        (process.env.IMAP_USER || process.env.SMTP_USER) &&
+        (process.env.IMAP_PASS || process.env.SMTP_PASS)
+      ),
+      host: process.env.IMAP_HOST || null,
+      port: process.env.IMAP_PORT ? Number(process.env.IMAP_PORT) : 993,
+      mailbox: process.env.IMAP_MAILBOX || "INBOX",
+      pollIntervalMs: Number(process.env.IMAP_POLL_INTERVAL_MS || 60000),
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use("/api/v1", apiV1Router);
 
 // Extend Express Request type
@@ -116,7 +201,9 @@ app.get("/api/state", (req, res) => {
     purchaseRequests: dbState.purchase_requests.filter(pr => pr.organizationId === req.organizationId),
     rfqs: dbState.rfq_cases.filter(rfq => rfq.organizationId === req.organizationId),
     quotes: dbState.quotes.filter(q => q.organizationId === req.organizationId),
-    stockMovements: dbState.stock_movements.filter(m => m.organizationId === req.organizationId)
+    stockMovements: dbState.stock_movements.filter(m => m.organizationId === req.organizationId),
+    cases: dbState.procurement_cases.filter(c => c.organizationId === req.organizationId),
+    purchaseOrders: dbState.purchase_orders.filter(p => p.organizationId === req.organizationId)
   });
 });
 
@@ -884,6 +971,15 @@ Tôi có thể hỗ trợ bạn đắc lực trong quy trình mua sắm nội b�
 // VITE CLIENT DEV SERVER / PRODUCTION HOOKS
 // ----------------------------------------------------
 async function startServer() {
+  await initDb();
+  dbState = await loadDbState();
+  console.log("Supabase Postgres state loaded.", {
+    organizations: dbState.organizations.length,
+    suppliers: dbState.suppliers.length,
+    cases: dbState.procurement_cases.length,
+    quotes: dbState.quotes.length,
+  });
+
   if (process.env.NODE_ENV !== "production") {
     console.log("Starting server in DEVELOPMENT MODE with live Vite middleware integration...");
     const vite = await createViteServer({
