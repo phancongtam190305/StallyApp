@@ -1,18 +1,16 @@
 import React from "react";
+import { UserRole } from "../types";
 import { 
   LayoutDashboard, 
+  GitMerge, 
   FileSpreadsheet, 
   SendToBack, 
-  Boxes, 
-  Bot, 
   Building2, 
-  ChevronRight,
+  Boxes,
   LogOut,
-  FolderKey,
-  ChevronLeft,
-  GitMerge
+  ChevronRight,
+  FolderKey
 } from "lucide-react";
-import { UserRole } from "../types";
 
 interface SidebarProps {
   activeTab: string;
@@ -23,12 +21,12 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout }: SidebarProps) {
   const allMenuItems = [
-    { id: "overview", label: "Tổng quan Dashboard", icon: LayoutDashboard },
-    { id: "cases", label: "Quy trình mua sắm (Cases)", icon: GitMerge },
-    { id: "pr", label: "Yêu cầu mua (PR)", icon: FileSpreadsheet },
-    { id: "rfq", label: "Đấu thầu & Giá (RFQ)", icon: SendToBack },
-    { id: "suppliers", label: "Hồ sơ đối tác NCC", icon: Building2 },
-    { id: "inventory", label: "Quản lý tồn kho", icon: Boxes },
+    { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
+    { id: "cases", label: "Quy trình (Cases)", icon: GitMerge },
+    { id: "pr", label: "Yêu cầu (PR)", icon: FileSpreadsheet },
+    { id: "rfq", label: "Thầu & Giá (RFQ)", icon: SendToBack },
+    { id: "suppliers", label: "Nhà cung cấp", icon: Building2 },
+    { id: "inventory", label: "Tồn kho", icon: Boxes },
   ];
 
   // Role dynamic tabs definition
@@ -47,38 +45,36 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
     requester: "Bếp Trưởng",
     procurement: "Ban Mua Sắm",
     manager: "Giám Đốc (CEO)",
-    warehouse: "Thủ Kho",
-    admin: "Quản Trị Viên (Admin)"
+    warehouse: "Thủ Kho Trưởng",
+    admin: "Quản Trị Viên"
   };
 
   return (
-    <aside className="w-72 bg-[#091e22] border-r border-[#1a383d] flex flex-col justify-between h-screen fixed top-0 left-0 text-slate-350 z-20 shadow-2xl">
+    <aside className="w-72 bg-[#0c2b29] border-r-3 border-primary-dark flex flex-col justify-between h-screen fixed top-0 left-0 text-slate-300 z-20 shadow-xl">
       {/* Brand Section */}
       <div>
-        <div className="p-6 border-b border-[#1a383d] flex items-center space-x-3 bg-gradient-to-r from-[#0d2a30] via-[#091e22] to-transparent">
-          <div className="w-9 h-9 rounded-xl bg-[#82d3de] flex items-center justify-center shadow-lg text-[#003d44] font-extrabold text-lg font-display">
-            S
+        <div className="p-6 border-b border-[#135d5a] flex flex-col items-center">
+          <div className="retro-ribbon w-full py-2.5 shadow-md flex items-center justify-center gap-2">
+            <span className="w-5 h-5 rounded-lg bg-accent-gold text-primary-dark flex items-center justify-center font-extrabold text-xs border border-primary-dark">S</span>
+            <span className="font-display font-black text-[12px] tracking-widest text-[#1e8c86]">STALLY B2B</span>
           </div>
-          <div>
-            <h1 className="text-md font-black text-white font-display tracking-tight leading-none">STALLY PROCUREMENT</h1>
-            <p className="text-[9px] text-[#82d3de] font-mono tracking-wider font-extrabold mt-1.5 uppercase">Enterprise Node</p>
-          </div>
+          <p className="text-[9px] text-accent-light font-mono tracking-widest font-extrabold mt-2.5 uppercase">Enterprise Node</p>
         </div>
 
         {/* Locked Profile Badge */}
-        <div className="p-4 mx-4 mt-4 bg-[#0d262a] border border-[#1a3c42] rounded-xl flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-[#14b8a6]/25 flex items-center justify-center border border-[#14b8a6]/30 font-bold text-teal-400 text-xs">
+        <div className="p-4 mx-4 mt-4 bg-cream border-2 border-primary-dark rounded-2xl flex items-center space-x-3 shadow-md shadow-primary/10">
+          <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center border-2 border-primary-dark font-black text-xs shadow-teal-glow shrink-0">
             {roleLabels[currentRole]?.substring(0, 2)}
           </div>
           <div className="overflow-hidden">
-            <p className="text-[10px] text-slate-400 font-bold leading-none">Vai Trò Đăng Nhập</p>
-            <p className="text-xs text-white font-black mt-1 truncate">{roleLabels[currentRole]}</p>
+            <p className="text-[9px] text-primary-dark/70 font-black leading-none uppercase tracking-wider">VẬN HÀNH</p>
+            <p className="text-xs text-primary-dark font-black mt-1.5 truncate">{roleLabels[currentRole]}</p>
           </div>
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-4 space-y-1.5 mt-2">
-          <div className="px-3 mb-2 text-[9px] font-bold text-[#82d3de]/50 uppercase tracking-widest font-display">Chức Năng Được Cấp Quyền</div>
+        <nav className="p-4 space-y-2 mt-4">
+          <div className="px-3 mb-2 text-[9px] font-bold text-accent-light/50 uppercase tracking-widest font-display">CHỨC NĂNG CẤP PHÉP</div>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -87,15 +83,15 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
                 key={item.id}
                 id={`btn-tab-${item.id}`}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-150 cursor-pointer ${
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-full text-xs font-black tracking-wider uppercase transition-all duration-200 cursor-pointer border-2 ${
                   isActive
-                    ? "bg-[#004d53] text-white border-l-4 border-[#82d3de] pl-2.5"
-                    : "text-slate-300 hover:bg-[#0c282d] hover:text-white"
+                    ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow transform scale-[1.02]"
+                    : "text-white/90 border-transparent hover:bg-primary-light hover:text-white hover:scale-[1.01]"
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#82d3de]" : "text-slate-400 group-hover:text-white"}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary-dark" : "text-accent-light"}`} />
                 <span>{item.label}</span>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#82d3de]" />}
+                {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-primary-dark animate-pulse" />}
               </button>
             );
           })}
@@ -103,13 +99,13 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
       </div>
 
       {/* Logout & Tenant Context */}
-      <div className="p-4 border-t border-[#1a383d] bg-[#061518]">
+      <div className="p-4 border-t border-[#135d5a] bg-[#091f1e]">
         {/* Simple Tenant Info */}
-        <div className="mb-3 bg-[#091e22]/50 p-3 rounded-xl border border-[#1a383d]/60 flex items-center space-x-2.5">
-          <FolderKey className="w-4 h-4 text-[#82d3de] shrink-0" />
+        <div className="mb-3 bg-cream p-3 rounded-2xl border-2 border-primary-dark flex items-center space-x-2.5 shadow-sm">
+          <FolderKey className="w-4 h-4 text-primary shrink-0" />
           <div className="overflow-hidden">
-            <p className="text-[9px] text-[#82d3de]/70 font-bold uppercase tracking-wider font-mono">Cách Ly Dữ Liệu</p>
-            <p className="text-xs text-slate-200 font-bold truncate">Stally Food Group</p>
+            <p className="text-[9px] text-primary-dark/70 font-bold uppercase tracking-wider font-mono">Cách Ly Dữ Liệu</p>
+            <p className="text-xs text-primary-dark font-black truncate">Stally Food Group</p>
           </div>
         </div>
 
@@ -117,9 +113,9 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
         <button
           onClick={onLogout}
           id="btn-logout"
-          className="w-full flex items-center justify-center space-x-2 p-2.5 bg-rose-950/45 hover:bg-rose-900/60 border border-rose-900/40 text-rose-300 text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer"
+          className="w-full flex items-center justify-center space-x-2 p-2.5 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white text-xs font-black uppercase rounded-full tracking-wider transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-coral-glow"
         >
-          <LogOut className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
           <span>Đăng xuất hệ thống</span>
         </button>
       </div>

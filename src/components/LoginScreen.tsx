@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { 
-  UserRole 
-} from "../types";
+import { UserRole } from "../types";
 import { 
   Utensils, 
   Sparkles, 
@@ -10,7 +8,6 @@ import {
   TrendingUp, 
   Boxes, 
   User, 
-  Key,
   HelpCircle,
   FolderLock,
   X
@@ -31,9 +28,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       name: "Trần Lý Bình",
       dept: "Khối Vận hành Nhà Hàng",
       icon: Utensils,
-      color: "from-amber-500 to-orange-600",
-      bgClass: "hover:border-amber-400 bg-amber-50/20 text-neutral-800",
-      textAccent: "text-amber-700",
+      color: "from-coral-light to-coral-dark",
+      accentBorder: "border-coral",
+      accentBg: "bg-coral-light/10",
+      textAccent: "text-coral-dark",
       desc: "Chuyên trách quản lý bếp, định hình định mức, tạo yêu cầu mua sắm thực vật tư (PR) khi có thâm hụt.",
       responsibilities: ["Đề xuất thầu vật tư (PR)", "Dùng AI trợ lý tạo dự thảo", "Kiểm sát tồn khả dụng tối thiểu"]
     },
@@ -43,9 +41,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       name: "Phan Công Tâm",
       dept: "Ban Procurement & Sourcing",
       icon: TrendingUp,
-      color: "from-teal-500 to-emerald-600",
-      bgClass: "hover:border-teal-400 bg-teal-50/20 text-neutral-800",
-      textAccent: "text-teal-700",
+      color: "from-primary-light to-primary-dark",
+      accentBorder: "border-primary",
+      accentBg: "bg-primary-bg",
+      textAccent: "text-primary-dark",
       desc: "Trực ban rà duyệt yêu cầu, gán cặp nhà cung cấp NCC ưu tú, phát thầu RFQ và đàm phán tối ưu biểu giá.",
       responsibilities: ["Gửi thầu RFQ cho NCC đối tác", "So sánh đơn thầu tự động", "Chuyển duyệt báo giá tối ưu lên CEO"]
     },
@@ -55,9 +54,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       name: "Nguyễn Thị Mai",
       dept: "Ban Giám Đốc (CEO)",
       icon: Building2,
-      color: "from-indigo-500 to-blue-600",
-      bgClass: "hover:border-indigo-400 bg-indigo-50/20 text-neutral-800",
-      textAccent: "text-indigo-700",
+      color: "from-accent-light to-accent-dark",
+      accentBorder: "border-accent-gold",
+      accentBg: "bg-accent-light/10",
+      textAccent: "text-accent-dark",
       desc: "Phê duyệt các quyết toán đơn PO dựa trên bảng đối chiếu thầu thông minh đa chiều tự động do phòng mua sắm đệ trình.",
       responsibilities: ["Ký duyệt thầu chính thức (PO)", "Phân tích tài chính mua sắm tổng", "Bản đồ nhiệt chấm điểm NCC"]
     },
@@ -67,9 +67,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       name: "Lý Văn Khoa",
       dept: "Tổ Kho & Cung Ứng Vật Tư",
       icon: Boxes,
-      color: "from-sky-500 to-cyan-600",
-      bgClass: "hover:border-sky-400 bg-sky-50/20 text-neutral-800",
-      textAccent: "text-sky-700",
+      color: "from-sky-blue to-primary",
+      accentBorder: "border-sky-blue",
+      accentBg: "bg-sky-blue/10",
+      textAccent: "text-sky-blue",
       desc: "Xác nhận nhận hàng thực tế dựa trên PO đã duyệt, kiểm kê hao hụt nguyên vật liệu định kỳ, kiểm duyệt nhật ký dòng kho.",
       responsibilities: ["Nhận hàng vật lý khớp PO thầu", "Cân đối điều chỉnh tồn hao hụt", "Nhật ký lưu kho luồng nhập xuất"]
     }
@@ -88,34 +89,42 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f6f9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Decorative top grid background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e9f0_1px,transparent_1px),linear-gradient(to_bottom,#e5e9f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70 pointer-events-none" />
+    <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Playful background decor */}
+      <div className="absolute inset-0 bg-[radial-gradient(#2ba8a2_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
       
-      {/* Dynamic blurred orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-100 rounded-full blur-3xl opacity-50 pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-50 pointer-events-none" />
+      {/* Dynamic blurred glow orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-bg rounded-full blur-3xl opacity-60 pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-light/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
 
-      <div className="w-full max-w-5xl bg-white rounded-3xl border border-slate-200/80 shadow-2xl relative z-10 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[660px]">
+      <div className="w-full max-w-5xl bg-white rounded-3xl border-3 border-primary-dark shadow-card relative z-10 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[660px]">
         
-        {/* Left Interactive / Selectable Roles Column */}
-        <div className="lg:col-span-7 p-8 md:p-10 flex flex-col justify-between border-r border-slate-100">
+        {/* Left Dynamic Selector Column */}
+        <div className="lg:col-span-7 p-8 md:p-10 flex flex-col justify-between border-r-3 border-primary-dark">
           <div>
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-xl bg-[#00535b] text-white flex items-center justify-center font-extrabold text-sm shadow-md">
-                S
-              </div>
-              <div className="font-display font-black text-slate-800 tracking-tight text-md">
-                STALLY <span className="text-teal-600 font-bold">PROCUREMENT</span>
+            {/* Playful Flip7 Style Logo Header */}
+            <div className="flex flex-col items-center mb-8">
+              {/* Fan Cards Background */}
+              <div className="relative w-48 h-20 flex items-center justify-center mt-3">
+                <div className="absolute w-12 h-18 bg-coral rounded-lg border-2 border-primary-dark rotate-[-24deg] -translate-x-12 shadow-md"></div>
+                <div className="absolute w-12 h-18 bg-accent-gold rounded-lg border-2 border-primary-dark rotate-[-12deg] -translate-x-6 shadow-md"></div>
+                <div className="absolute w-12 h-18 bg-cream rounded-lg border-2 border-primary-dark rotate-[0deg] shadow-md"></div>
+                <div className="absolute w-12 h-18 bg-sky-blue rounded-lg border-2 border-primary-dark rotate-[12deg] translate-x-6 shadow-md"></div>
+                <div className="absolute w-12 h-18 bg-primary rounded-lg border-2 border-primary-dark rotate-[24deg] translate-x-12 shadow-md"></div>
+                
+                {/* Skew parallelogram banner with text */}
+                <div className="absolute bg-cream border-3 border-primary-dark px-4 py-2 skew-x-[-6deg] rotate-[-3deg] shadow-md w-64 text-center">
+                  <span className="font-display font-black text-md tracking-widest text-primary-dark">STALLY B2B</span>
+                </div>
               </div>
             </div>
 
-            <div className="mt-8">
-              <h2 className="text-2xl font-black text-[#00535b] font-display tracking-tight leading-none">
+            <div className="mt-4 text-center sm:text-left">
+              <h2 className="text-xl font-black text-primary-dark font-display tracking-tight leading-tight">
                 Hệ Thống Điều Phối Mua Sắm & Cung Ứng STALLY
               </h2>
-              <p className="text-slate-500 text-xs mt-3 max-w-lg leading-relaxed">
-                Chào mừng bạn đến với Cổng quản trị phân quyền chuỗi cung ứng STALLY. Vui lòng lựa chọn tài khoản tương ứng với vai trò nghiệp vụ của bạn để truy cập đúng các phân hệ chức năng:
+              <p className="text-primary-dark/85 text-xs mt-3 max-w-lg leading-relaxed font-medium">
+                Chào mừng bạn đến với Cổng quản trị phân quyền chuỗi cung ứng STALLY. Vui lòng lựa chọn tài khoản tương ứng với vai trò nghiệp vụ để truy cập đúng phân hệ:
               </p>
             </div>
 
@@ -128,24 +137,31 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                     key={r.id}
                     type="button"
                     onClick={() => setSelectedRole(r.id)}
-                    className={`p-4 rounded-2xl border text-left cursor-pointer transition-all duration-300 relative ${
+                    className={`p-4 rounded-2xl border-2 text-left cursor-pointer transition-all duration-200 relative transform ${
                       isSelected 
-                        ? "border-[#00535b] bg-slate-50 shadow-md ring-2 ring-teal-600/10 scale-[1.02]" 
-                        : "border-slate-150 hover:border-slate-300 bg-white hover:bg-slate-50/50"
+                        ? "border-primary-dark bg-cream shadow-accent-glow scale-[1.03]" 
+                        : "border-primary-dark/20 bg-white hover:border-primary-dark/50 hover:scale-[1.01]"
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${r.color} text-white flex items-center justify-center shadow-lg shadow-teal-900/10 shrink-0`}>
-                        <Icon className="w-4 h-4" />
+                    {/* Left state accent bar */}
+                    <div className={`absolute top-0 left-0 bottom-0 w-1.5 rounded-l-xl ${
+                      r.id === "requester" ? "bg-coral" :
+                      r.id === "procurement" ? "bg-primary" :
+                      r.id === "manager" ? "bg-accent-gold" : "bg-sky-blue"
+                    }`} />
+                    
+                    <div className="flex items-center space-x-3 pl-1.5">
+                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${r.color} text-white flex items-center justify-center border-2 border-primary-dark shadow-sm shrink-0`}>
+                        <Icon className="w-4 h-4 text-primary-dark" />
                       </div>
                       <div className="overflow-hidden">
-                        <p className="text-xs font-black text-slate-800">{r.title}</p>
-                        <p className="text-[10px] text-slate-400 font-medium truncate">{r.name}</p>
+                        <p className="text-xs font-black text-primary-dark">{r.title}</p>
+                        <p className="text-[10px] text-primary-dark/60 font-black truncate">{r.name}</p>
                       </div>
                     </div>
                     {isSelected && (
-                      <div className="absolute top-3 right-3 shrink-0 bg-teal-600 text-white rounded-full p-0.5">
-                        <ShieldCheck className="w-3.5 h-3.5 fill-teal-600" />
+                      <div className="absolute top-3 right-3 shrink-0 bg-accent-gold text-primary-dark rounded-full border border-primary-dark p-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5" />
                       </div>
                     )}
                   </button>
@@ -154,57 +170,57 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-            <span className="flex items-center gap-1">
-              <FolderLock className="w-3.5 h-3.5 text-slate-400" />
-              Isolated Multi-Tenant Node: org-1
+          <div className="mt-8 pt-6 border-t-2 border-primary-dark/15 flex items-center justify-between text-[11px] text-primary-dark/60 font-black uppercase tracking-wider">
+            <span className="flex items-center gap-1.5">
+              <FolderLock className="w-3.5 h-3.5" />
+              Cách ly dữ liệu: org-1
             </span>
-            <span className="font-mono font-medium">Stally ERP Enterprise © 2026</span>
+            <span className="font-mono font-medium">Stally ERP © 2026</span>
           </div>
         </div>
 
         {/* Right Preview & Action Column */}
-        <div className="lg:col-span-5 p-8 md:p-10 bg-gradient-to-br from-[#091e22] via-[#051518] to-[#040f11] text-white flex flex-col justify-between relative">
-          {/* Subtle decor dots */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl" />
+        <div className="lg:col-span-5 p-8 md:p-10 bg-primary-dark text-white flex flex-col justify-between relative border-t-3 lg:border-t-0 lg:border-l-0">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-accent-light/10 rounded-full blur-2xl pointer-events-none" />
           
           {currentInfo ? (
-            <div className="space-y-6 animate-fade-slide-up flex flex-col justify-between h-full">
-              <div className="space-y-6">
+            <div className="space-y-6 flex flex-col justify-between h-full">
+              <div className="space-y-5">
                 <div>
-                  <span className={`text-[10px] font-mono tracking-widest uppercase font-extrabold px-3 py-1 bg-teal-950/80 border border-teal-850 text-teal-400 rounded-full`}>
-                    Xem trước đặc quyền
+                  <span className="text-[9px] font-mono tracking-widest uppercase font-black px-3 py-1 bg-cream/20 border border-cream/30 text-accent-light rounded-full">
+                    Đặc Quyền Vai Trò
                   </span>
+                  
                   <div className="flex items-center gap-3 mt-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-teal-400 shadow-xl">
-                      <currentInfo.icon className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-2xl bg-cream border-2 border-primary-dark flex items-center justify-center text-primary shadow-lg">
+                      <currentInfo.icon className="w-6 h-6 text-primary-dark" />
                     </div>
                     <div>
-                      <h3 className="text-md font-bold text-white">{currentInfo.title}</h3>
-                      <p className="text-xs text-slate-400">{currentInfo.dept}</p>
+                      <h3 className="text-md font-black text-white uppercase tracking-wider">{currentInfo.title}</h3>
+                      <p className="text-xs text-accent-light font-bold">{currentInfo.dept}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-3">
+                <div className="bg-cream border-2 border-primary-dark p-5 rounded-2xl space-y-3 shadow-md">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-teal-400" />
-                    <span className="text-xs text-slate-300 font-bold">Mã nhân sự:</span>
-                    <span className="text-xs font-mono font-bold text-slate-100">{currentInfo.name}</span>
+                    <User className="w-4 h-4 text-primary-dark" />
+                    <span className="text-xs text-primary-dark/80 font-black">Mã nhân sự:</span>
+                    <span className="text-xs font-mono font-bold text-primary-dark">{currentInfo.name}</span>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                  <p className="text-xs text-primary-dark/80 leading-relaxed font-bold">
                     {currentInfo.desc}
                   </p>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-[11px] uppercase tracking-wider text-slate-400 font-bold font-display">
+                  <h4 className="text-[10px] uppercase tracking-wider text-accent-light font-black font-display">
                     Nhiệm vụ nghiệp vụ khả dụng:
                   </h4>
                   <ul className="space-y-2">
                     {currentInfo.responsibilities.map((resTask, idx) => (
-                      <li key={idx} className="flex items-center space-x-2.5 text-xs text-slate-300 font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                      <li key={idx} className="flex items-center space-x-2.5 text-xs text-white font-bold">
+                        <span className="w-2 h-2 rounded-full bg-accent-gold border border-primary-dark shadow-accent-glow" />
                         <span>{resTask}</span>
                       </li>
                     ))}
@@ -212,16 +228,16 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="pt-6 border-t border-white/10 space-y-3">
+              <form onSubmit={handleSubmit} className="pt-6 border-t border-white/20 space-y-3">
                 <button
                   type="submit"
                   id="btn-login"
-                  className="w-full bg-[#14b8a6] hover:bg-[#0d9488] text-white font-black text-xs p-3.5 rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 tracking-wide font-display shadow-lg shadow-teal-500/10"
+                  className="w-full bg-accent-gold hover:bg-accent-dark text-primary-dark font-black text-xs p-3.5 rounded-full cursor-pointer border-2 border-primary-dark transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.95] flex items-center justify-center gap-2 tracking-widest uppercase shadow-accent-glow"
                 >
-                  BẮT ĐẦU VẬN HÀNH <Sparkles className="w-4 h-4 text-white shrink-0 animate-pulse" />
+                  BẮT ĐẦU VẬN HÀNH <Sparkles className="w-4 h-4 text-primary-dark" />
                 </button>
-                <p className="text-[10px] text-center text-slate-500 leading-none flex items-center justify-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5" /> Mật khẩu tự động điền (SSO)
+                <p className="text-[9px] text-center text-white/50 leading-none flex items-center justify-center gap-1.5 font-bold uppercase tracking-widest">
+                  <HelpCircle className="w-3.5 h-3.5" /> Mật khẩu tự động (SSO)
                 </p>
               </form>
             </div>
@@ -235,31 +251,31 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       {/* Onboarding Dialog Question Modal */}
       {showQuestionModal && (
-        <div id="onboarding-modal" className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300">
-          <div className="w-full max-w-md bg-white border border-slate-250/80 shadow-2xl rounded-3xl p-6 md:p-7 text-slate-800 relative overflow-hidden animate-bounce-short">
-            {/* Top color strap */}
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-teal-500 to-emerald-600" />
+        <div id="onboarding-modal" className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300">
+          <div className="w-full max-w-md bg-white border-3 border-primary-dark shadow-coral-glow rounded-3xl p-6 md:p-7 text-slate-800 relative overflow-hidden animate-crown-bounce">
+            {/* Top color stripe */}
+            <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-coral via-accent-gold to-primary" />
             
             <button 
               type="button"
               onClick={() => setShowQuestionModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+              className="absolute top-4 right-4 text-primary-dark hover:text-coral p-1 rounded-lg transition-colors cursor-pointer border-2 border-transparent hover:border-primary-dark/20"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="flex flex-col items-center text-center mt-2">
-              <div className="w-14 h-14 bg-teal-50 border border-teal-200 text-[#00535b] rounded-2.5xl flex items-center justify-center shadow-md mb-4 animate-pulse">
-                <HelpCircle className="w-7 h-7 text-[#00535b]" />
+              <div className="w-14 h-14 bg-cream border-2 border-primary-dark text-primary-dark rounded-2xl flex items-center justify-center shadow-accent-glow mb-4">
+                <HelpCircle className="w-7 h-7 text-primary-dark" />
               </div>
 
-              <h3 className="text-lg font-black text-[#00535b] leading-tight font-display">
-                Bạn đã biết cách sử dụng hệ thống này chưa?
+              <h3 className="text-lg font-black text-primary-dark leading-tight font-display uppercase tracking-wide">
+                Bạn đã biết sử dụng hệ thống này chưa?
               </h3>
               
-              <div className="mt-2 text-xs text-slate-500 leading-relaxed font-sans max-w-sm w-full">
-                <span className="block mt-1 bg-teal-50 px-2.5 py-1.5 border border-teal-150/40 rounded-lg text-[10px] text-teal-700 font-bold font-mono">
-                  Vai trò của bạn: {currentInfo?.title} ({currentInfo?.name})
+              <div className="mt-2 text-xs text-primary-dark/70 leading-relaxed font-sans max-w-sm w-full">
+                <span className="block mt-1 bg-cream px-2.5 py-1.5 border-2 border-primary-dark rounded-xl text-[10px] text-primary-dark font-black font-mono">
+                  BẮT ĐẦU: {currentInfo?.title} ({currentInfo?.name})
                 </span>
               </div>
             </div>
@@ -268,7 +284,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               <button
                 type="button"
                 onClick={() => handleSelectTutorialMode(true)}
-                className="w-full bg-[#14b8a6] hover:bg-[#0d9488] text-white p-3.5 rounded-2xl cursor-pointer text-xs font-black tracking-wide shadow-lg shadow-teal-500/10 transition-all duration-150 flex items-center justify-center gap-2"
+                className="w-full bg-primary hover:bg-primary-dark text-white p-3.5 rounded-full cursor-pointer text-xs font-black tracking-widest uppercase border-2 border-primary-dark shadow-teal-glow transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.95] flex items-center justify-center gap-2"
               >
                 CHƯA BIẾT
               </button>
@@ -276,7 +292,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               <button
                 type="button"
                 onClick={() => handleSelectTutorialMode(false)}
-                className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-3.5 rounded-2xl cursor-pointer text-xs font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-1.5"
+                className="w-full bg-cream hover:bg-[#fff0cb] border-2 border-primary-dark text-primary-dark p-3.5 rounded-full cursor-pointer text-xs font-black tracking-widest uppercase transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.95] flex items-center justify-center gap-1.5"
               >
                 TÔI ĐÃ BIẾT SỬ DỤNG RỒI
               </button>

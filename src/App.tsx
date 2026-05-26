@@ -389,7 +389,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] flex font-sans text-slate-800">
+    <div className="min-h-screen bg-[#EFF8F7] flex font-sans text-primary-dark">
       
       {showTutorial && (
         <OnboardingTutorial 
@@ -407,160 +407,177 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 ml-72 p-8 text-slate-800 min-h-screen">
+      {/* Main Content Area - Single Screen Viewport Layout */}
+      <main className="flex-1 ml-72 h-screen flex flex-col overflow-hidden p-8 text-primary-dark">
         
-        {/* Top Header navbar bar - Sleek & Beautiful */}
-        <header className="flex justify-between items-center pb-5 mb-6 border-b border-slate-200">
+        {/* Top Header navbar bar - Styled as a playful pill-shaped board */}
+        <header className="flex justify-between items-center bg-[#FFF8E7] border-3 border-primary-dark p-4 px-6 rounded-full shadow-card mb-6 shrink-0">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-display">Bảng điều khiển</span>
-            <div className="flex items-center gap-2.5 mt-1">
-              <span className="text-base font-extrabold text-[#00535b] font-display tracking-tight">Hệ thống Thu mua Stally</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-              <span className="text-xs text-[#00535b] font-bold bg-[#e0f2f1]/80 px-2 py-0.5 rounded border border-[#b2dfdb] font-mono">
+            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 font-display">Bảng điều khiển</span>
+            <div className="flex items-center gap-2.5 mt-0.5">
+              <span className="text-sm font-black text-primary-dark font-display tracking-wide">Hệ thống Thu mua Stally</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-dark/30" />
+              <span className="text-[10px] text-primary-dark font-extrabold bg-[#E8F6F5] border border-primary-dark/20 px-2.5 py-0.5 rounded-full font-mono">
                 Mã chi nhánh: org-1
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#e0f2f1] border border-[#b2dfdb] rounded-lg text-xs">
-              <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
-              <span className="text-slate-600 font-medium">Nhân sự hiện tại:</span>
-              <span className="text-[#00535b] font-bold">{
-                currentRole === "requester" ? "Bếp Trưởng Bình " :
-                currentRole === "procurement" ? "Thu Mua Tâm " :
-                currentRole === "manager" ? "Giám Đốc Mai " :
-                "Thủ Kho Khoa "
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-accent-light via-accent-gold to-accent-dark border-2 border-primary-dark rounded-full text-xs font-black text-primary-dark shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
+              <span className="w-2 h-2 rounded-full bg-[#27AE60] animate-pulse" />
+              <span>Nhân sự hiện tại:</span>
+              <span className="font-extrabold">{
+                currentRole === "requester" ? "Bếp Trưởng Bình" :
+                currentRole === "procurement" ? "Thu Mua Tâm" :
+                currentRole === "manager" ? "Giám Đốc Mai" :
+                "Thủ Kho Khoa"
               }</span>
             </div>
           </div>
         </header>
 
         {errorText && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-rose-800 p-4 rounded-xl text-xs flex items-center gap-2.5 shadow-sm">
-            <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0" />
+          <div className="mb-6 bg-[#FF8A6A]/10 border-3 border-[#EF6C4A] text-[#EF6C4A] p-4 rounded-[24px] text-xs flex items-center gap-2.5 shadow-coral-glow animate-fade-slide-up shrink-0">
+            <ShieldAlert className="w-5 h-5 text-coral shrink-0" />
             <div>
-              <p className="font-bold">Lỗi kết nối đồng bộ cơ sở dữ liệu</p>
-              <p className="opacity-95">{errorText}. Vui lòng thử khởi động lại máy chủ phát triển.</p>
+              <p className="font-black">Lỗi kết nối đồng bộ cơ sở dữ liệu</p>
+              <p className="opacity-95 font-bold">{errorText}. Vui lòng thử khởi động lại máy chủ phát triển.</p>
             </div>
           </div>
         )}
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-96 text-xs text-slate-400 space-y-3">
+          <div className="flex flex-col items-center justify-center flex-1 text-xs text-slate-400 space-y-3">
             <RefreshCw className="w-5 h-5 text-[#006d77] animate-spin" />
             <span className="font-medium tracking-wide">Đang đồng bộ hồ sơ nhà hàng...</span>
           </div>
         ) : (
-          <div className="transition-all duration-300">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300">
             {activeTab === "overview" && (
-              currentRole === "requester" ? (
-                <RequesterDashboard
-                  inventory={inventory}
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                {currentRole === "requester" ? (
+                  <RequesterDashboard
+                    inventory={inventory}
+                    purchaseRequests={purchaseRequests}
+                    onCreatePr={handleCreatePr}
+                    currentRole={currentRole}
+                    setActiveTab={setActiveTab}
+                  />
+                ) : currentRole === "warehouse" ? (
+                  <WarehouseDashboard
+                    inventory={inventory}
+                    stockMovements={stockMovements}
+                    currentRole={currentRole}
+                    onReceiveGoods={handleReceiveGoods}
+                    onAdjustStock={handleAdjustStock}
+                    onCreatePrFromStock={handleCreatePrFromStock}
+                    setActiveTab={setActiveTab}
+                  />
+                ) : currentRole === "manager" ? (
+                  <ManagerDashboard
+                    purchaseRequests={purchaseRequests}
+                    rfqs={rfqs}
+                    quotes={quotes}
+                    suppliers={suppliers}
+                    onApproveQuote={handleApproveQuote}
+                    setActiveTab={setActiveTab}
+                  />
+                ) : (
+                  <StatsDashboard 
+                    purchaseRequests={purchaseRequests}
+                    rfqs={rfqs}
+                    quotes={quotes}
+                    inventory={inventory}
+                    onCreatePrFromStock={handleCreatePrFromStock}
+                    setActiveTab={setActiveTab}
+                  />
+                )
+              }
+              </div>
+            )}
+
+            {activeTab === "cases" && (
+              selectedCaseId ? (
+                <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                  <CaseDetailTimeline
+                    caseId={selectedCaseId}
+                    onBackToList={() => setSelectedCaseId(null)}
+                    currentRole={currentRole}
+                    orgId={orgId}
+                    onStateChanged={syncStateFromServer}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                  <ProcurementDashboard
+                    currentRole={currentRole}
+                    orgId={orgId}
+                    onSelectCase={(caseId) => setSelectedCaseId(caseId)}
+                  />
+                </div>
+              )
+            )}
+
+            {activeTab === "pr" && (
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                <PurchaseRequestsList 
                   purchaseRequests={purchaseRequests}
-                  onCreatePr={handleCreatePr}
                   currentRole={currentRole}
+                  onCreatePr={handleCreatePr}
+                  onSelectPrForSourcing={(pr) => {
+                    setSelectedPr(pr);
+                  }}
                   setActiveTab={setActiveTab}
                 />
-              ) : currentRole === "warehouse" ? (
-                <WarehouseDashboard
+              </div>
+            )}
+
+            {activeTab === "rfq" && (
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                <RfqComparison 
+                  selectedPr={selectedPr}
+                  rfqs={rfqs}
+                  quotes={quotes}
+                  suppliers={suppliers}
+                  currentRole={currentRole}
+                  onCreateRfq={handleCreateRfq}
+                  onApproveQuote={handleApproveQuote}
+                  onSimulateInboundEmail={handleSimulateInboundEmail}
+                />
+              </div>
+            )}
+
+            {activeTab === "suppliers" && (
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                <SupplierManagement 
+                  currentRole={currentRole}
+                  orgId={orgId}
+                  onSuppliersChanged={syncStateFromServer}
+                />
+              </div>
+            )}
+
+            {activeTab === "inventory" && (
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                <InventoryManager 
                   inventory={inventory}
                   stockMovements={stockMovements}
                   currentRole={currentRole}
                   onReceiveGoods={handleReceiveGoods}
                   onAdjustStock={handleAdjustStock}
                   onCreatePrFromStock={handleCreatePrFromStock}
-                  setActiveTab={setActiveTab}
                 />
-              ) : currentRole === "manager" ? (
-                <ManagerDashboard
-                  purchaseRequests={purchaseRequests}
-                  rfqs={rfqs}
-                  quotes={quotes}
-                  suppliers={suppliers}
-                  onApproveQuote={handleApproveQuote}
-                  setActiveTab={setActiveTab}
-                />
-              ) : (
-                <StatsDashboard 
-                  purchaseRequests={purchaseRequests}
-                  rfqs={rfqs}
-                  quotes={quotes}
-                  inventory={inventory}
-                  onCreatePrFromStock={handleCreatePrFromStock}
-                  setActiveTab={setActiveTab}
-                />
-              )
-            )}
-
-            {activeTab === "cases" && (
-              selectedCaseId ? (
-                <CaseDetailTimeline
-                  caseId={selectedCaseId}
-                  onBackToList={() => setSelectedCaseId(null)}
-                  currentRole={currentRole}
-                  orgId={orgId}
-                  onStateChanged={syncStateFromServer}
-                />
-              ) : (
-                <ProcurementDashboard
-                  currentRole={currentRole}
-                  orgId={orgId}
-                  onSelectCase={(caseId) => setSelectedCaseId(caseId)}
-                />
-              )
-            )}
-
-            {activeTab === "pr" && (
-              <PurchaseRequestsList 
-                purchaseRequests={purchaseRequests}
-                currentRole={currentRole}
-                onCreatePr={handleCreatePr}
-                onSelectPrForSourcing={(pr) => {
-                  setSelectedPr(pr);
-                }}
-                setActiveTab={setActiveTab}
-              />
-            )}
-
-            {activeTab === "rfq" && (
-              <RfqComparison 
-                selectedPr={selectedPr}
-                rfqs={rfqs}
-                quotes={quotes}
-                suppliers={suppliers}
-                currentRole={currentRole}
-                onCreateRfq={handleCreateRfq}
-                onApproveQuote={handleApproveQuote}
-                onSimulateInboundEmail={handleSimulateInboundEmail}
-              />
-            )}
-
-            {activeTab === "suppliers" && (
-              <SupplierManagement 
-                currentRole={currentRole}
-                orgId={orgId}
-                onSuppliersChanged={syncStateFromServer}
-              />
-            )}
-
-            {activeTab === "inventory" && (
-              <InventoryManager 
-                inventory={inventory}
-                stockMovements={stockMovements}
-                currentRole={currentRole}
-                onReceiveGoods={handleReceiveGoods}
-                onAdjustStock={handleAdjustStock}
-                onCreatePrFromStock={handleCreatePrFromStock}
-              />
+              </div>
             )}
 
             {activeTab === "chatbot" && (
-              <ChatbotPanel 
-                onCreatePr={handleCreatePr}
-                setActiveTab={setActiveTab}
-              />
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
+                <ChatbotPanel 
+                  onCreatePr={handleCreatePr}
+                  setActiveTab={setActiveTab}
+                />
+              </div>
             )}
           </div>
         )}
