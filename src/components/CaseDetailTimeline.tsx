@@ -60,6 +60,7 @@ interface RfqDraft {
 }
 
 interface SupplierDiscoveryCandidate {
+  id?: string;
   name: string;
   email: string;
   phone: string;
@@ -104,6 +105,8 @@ export default function CaseDetailTimeline({
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [aiSearchQuery, setAiSearchQuery] = useState("");
   const [discoveryCandidates, setDiscoveryCandidates] = useState<SupplierDiscoveryCandidate[]>([]);
+  const [selectedDiscoveryCandidateIds, setSelectedDiscoveryCandidateIds] = useState<string[]>([]);
+  const [discoveryElapsedSec, setDiscoveryElapsedSec] = useState(0);
   const [customRfqDueDate, setCustomRfqDueDate] = useState("");
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
@@ -130,6 +133,31 @@ export default function CaseDetailTimeline({
   const [receivedQtys, setReceivedQtys] = useState<Record<number, number>>({});
   const [qualityStatuses, setQualityStatuses] = useState<Record<number, string>>({});
   const [receivingNotes, setReceivingNotes] = useState<Record<number, string>>({});
+
+  const discoverySteps = [
+    "Gửi truy vấn lên AI sourcing agent",
+    "Tìm nguồn công khai bằng Google Search Grounding",
+    "Đọc website, địa chỉ và thông tin liên hệ",
+    "Chuẩn hóa email, số điện thoại, website",
+    "Chấm confidence, kiểm tra trùng CRM",
+    "Đồng bộ kết quả vào danh sách NCC"
+  ];
+  const discoveryStepIndex = Math.min(
+    discoverySteps.length - 1,
+    Math.floor(discoveryElapsedSec / 7)
+  );
+  const discoveryProgress = loadingAction === "discover_suppliers"
+    ? Math.min(94, 12 + discoveryElapsedSec * 3)
+    : 0;
+
+  useEffect(() => {
+    if (loadingAction !== "discover_suppliers") return;
+    setDiscoveryElapsedSec(0);
+    const timer = window.setInterval(() => {
+      setDiscoveryElapsedSec((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [loadingAction]);
 
   const showToast = (text: string, type: "success" | "error" | "info" = "success") => {
     setToastMessage({ text, type });
@@ -400,6 +428,9 @@ export default function CaseDetailTimeline({
   const handleSupplierDiscover = async () => {
     if (!aiSearchQuery) return;
     setLoadingAction("discover_suppliers");
+    setDiscoveryElapsedSec(0);
+    setDiscoveryCandidates([]);
+    setSelectedDiscoveryCandidateIds([]);
     try {
       const res = await fetch(`/api/v1/cases/${caseId}/suppliers/discover`, {
         method: "POST",
@@ -408,16 +439,44 @@ export default function CaseDetailTimeline({
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      const addedCount = data.summary?.addedCount || 0;
       const reviewCount = data.summary?.reviewRequiredCount || 0;
       setDiscoveryCandidates(data.candidates || []);
       showToast(
-        data.message || `Crawl xong: thêm ${addedCount} NCC, ${reviewCount} NCC cần kiểm tra.`,
-        addedCount > 0 ? "success" : "info"
+        data.message || `Crawl xong: ${reviewCount} NCC chờ bạn chọn đưa vào danh sách chính.`,
+        "info"
       );
       fetchData();
     } catch (e: any) {
       showToast(e.message || "Cào tìm kiếm nhà cung cấp thất bại.", "error");
+    } finally {
+      setLoadingAction(null);
+      setDiscoveryElapsedSec(0);
+    }
+  };
+
+  const handlePromoteDiscoveryCandidates = async () => {
+    if (selectedDiscoveryCandidateIds.length === 0) {
+      showToast("Vui lòng chọn ít nhất 1 NCC crawl để thêm vào danh sách chính.", "error");
+      return;
+    }
+
+    setLoadingAction("promote_discovery_candidates");
+    try {
+      const res = await fetch(`/api/v1/cases/${caseId}/suppliers/promote-candidates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
+        body: JSON.stringify({ candidateIds: selectedDiscoveryCandidateIds })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const addedIds = new Set((data.data || []).map((supplier: Supplier) => supplier.id));
+      setDiscoveryCandidates(prev => prev.filter(candidate => !selectedDiscoveryCandidateIds.includes(candidate.id || "")));
+      setSelectedDiscoveryCandidateIds([]);
+      showToast(data.message || `Đã thêm ${addedIds.size} NCC vào danh sách chính.`, data.summary?.addedCount > 0 ? "success" : "info");
+      fetchData();
+    } catch (e: any) {
+      showToast(e.message || "Không thêm được NCC vào danh sách chính.", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -1001,29 +1060,131 @@ export default function CaseDetailTimeline({
                       AI quét thầu
                     </button>
                   </div>
+                  {loadingAction === "discover_suppliers" && (
+                    <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 space-y-3 animate-fade-slide-up">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-primary text-white border-2 border-primary-dark flex items-center justify-center shrink-0">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-primary-dark uppercase tracking-wider">
+                              Đang crawl nhà cung cấp
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-bold truncate">
+                              {discoverySteps[discoveryStepIndex]}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-black text-primary-dark">{discoveryElapsedSec}s</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">Thời gian chạy</p>
+                        </div>
+                      </div>
+
+                      <div className="h-2.5 bg-slate-100 border border-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary via-accent-gold to-coral transition-all duration-700"
+                          style={{ width: `${discoveryProgress}%` }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {discoverySteps.map((step, index) => {
+                          const isDone = index < discoveryStepIndex;
+                          const isActive = index === discoveryStepIndex;
+                          return (
+                            <div
+                              key={step}
+                              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-black ${
+                                isActive
+                                  ? "bg-accent-light/20 border-accent-gold text-primary-dark"
+                                  : isDone
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                    : "bg-slate-50 border-slate-200 text-slate-400"
+                              }`}
+                            >
+                              {isDone ? (
+                                <Check className="w-3 h-3 shrink-0" />
+                              ) : isActive ? (
+                                <RefreshCw className="w-3 h-3 shrink-0 animate-spin" />
+                              ) : (
+                                <Clock className="w-3 h-3 shrink-0" />
+                              )}
+                              <span className="truncate">{step}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <p className="text-[10px] text-slate-500 font-bold leading-snug">
+                        Bước này có thể mất 20-60 giây. Sau khi crawl xong, bạn sẽ chọn NCC nào được đưa vào danh sách chính.
+                      </p>
+                    </div>
+                  )}
                   {discoveryCandidates.length > 0 && (
-                    <div className="space-y-2 pt-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-black uppercase text-slate-500">Kết quả crawl cần kiểm tra ({discoveryCandidates.length})</p>
-                        <button
-                          onClick={() => setDiscoveryCandidates([])}
-                          className="text-[10px] font-bold text-slate-400 hover:text-slate-700"
-                        >
-                          Ẩn
-                        </button>
+                    <div className="space-y-3 pt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-slate-500">Kết quả crawl chờ duyệt ({discoveryCandidates.length})</p>
+                          <p className="text-[10px] text-slate-500 font-bold">Tick chọn NCC bạn muốn đưa vào danh sách chính trước khi gửi RFQ.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const eligibleIds = discoveryCandidates.filter(c => c.autoAddEligible && c.id).map(c => c.id as string);
+                              setSelectedDiscoveryCandidateIds(eligibleIds);
+                            }}
+                            className="text-[10px] font-black px-2.5 py-1.5 bg-white border border-primary-dark/20 rounded-lg text-primary-dark hover:bg-cream"
+                          >
+                            Chọn đủ điều kiện
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDiscoveryCandidates([]);
+                              setSelectedDiscoveryCandidateIds([]);
+                            }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-slate-700"
+                          >
+                            Ẩn
+                          </button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         {discoveryCandidates.map((candidate, index) => (
-                          <div key={`${candidate.name}-${index}`} className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+                          <div
+                            key={candidate.id || `${candidate.name}-${index}`}
+                            className={`bg-white border rounded-lg p-3 space-y-2 transition ${
+                              selectedDiscoveryCandidateIds.includes(candidate.id || "")
+                                ? "border-primary-dark ring-2 ring-accent-gold/50"
+                                : "border-slate-200"
+                            }`}
+                          >
                             <div className="flex items-start justify-between gap-2">
-                              <div>
+                              <label className="flex items-start gap-2 cursor-pointer min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedDiscoveryCandidateIds.includes(candidate.id || "")}
+                                  disabled={!candidate.id}
+                                  onChange={() => {
+                                    if (!candidate.id) return;
+                                    setSelectedDiscoveryCandidateIds(prev =>
+                                      prev.includes(candidate.id!)
+                                        ? prev.filter(id => id !== candidate.id)
+                                        : [...prev, candidate.id!]
+                                    );
+                                  }}
+                                  className="mt-0.5 w-3.5 h-3.5 accent-primary shrink-0"
+                                />
+                                <div className="min-w-0">
                                 <p className="text-xs font-black text-slate-800 leading-snug">{candidate.name}</p>
                                 <p className="text-[10px] text-slate-500 mt-0.5">{candidate.address || "Chưa có địa chỉ"}</p>
-                              </div>
+                                </div>
+                              </label>
                               <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
                                 candidate.autoAddEligible ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}>
-                                {candidate.confidence}%
+                                {candidate.autoAddEligible ? "Có thể thêm" : "Cần kiểm tra"} · {candidate.confidence}%
                               </span>
                             </div>
                             <div className="text-[10px] text-slate-600 space-y-0.5">
@@ -1045,6 +1206,19 @@ export default function CaseDetailTimeline({
                             )}
                           </div>
                         ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-3 bg-white border-2 border-primary-dark/20 rounded-2xl p-3">
+                        <p className="text-[10px] text-slate-600 font-bold">
+                          Đã chọn <span className="font-black text-primary-dark">{selectedDiscoveryCandidateIds.length}</span> NCC để đưa vào danh sách chính.
+                        </p>
+                        <button
+                          onClick={handlePromoteDiscoveryCandidates}
+                          disabled={loadingAction !== null || selectedDiscoveryCandidateIds.length === 0}
+                          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark rounded-xl text-[10px] font-black uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        >
+                          {loadingAction === "promote_discovery_candidates" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                          Thêm vào danh sách chính
+                        </button>
                       </div>
                     </div>
                   )}

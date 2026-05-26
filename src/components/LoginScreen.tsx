@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { UserRole } from "../types";
+import React, { useEffect, useState } from "react";
+import { User as AppUser, UserRole } from "../types";
 import { 
   Utensils, 
   Sparkles, 
@@ -7,19 +7,31 @@ import {
   Building2, 
   TrendingUp, 
   Boxes, 
-  User, 
+  User as UserIcon, 
   HelpCircle,
   FolderLock,
   X
 } from "lucide-react";
 
 interface LoginScreenProps {
-  onLogin: (role: UserRole, wantsTutorial: boolean) => void;
+  onLogin: (role: UserRole, wantsTutorial: boolean, user?: AppUser) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>("procurement");
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [emailRoleAuthEnabled, setEmailRoleAuthEnabled] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [resolvedUser, setResolvedUser] = useState<AppUser | null>(null);
+  const [loginError, setLoginError] = useState("");
+  const [checkingLogin, setCheckingLogin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/v1/auth/config")
+      .then(res => res.json())
+      .then(data => setEmailRoleAuthEnabled(Boolean(data.data?.emailRoleAuthEnabled)))
+      .catch(() => setEmailRoleAuthEnabled(false));
+  }, []);
 
   const roles = [
     {
@@ -78,14 +90,41 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const currentInfo = roles.find(r => r.id === selectedRole);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError("");
+
+    if (emailRoleAuthEnabled) {
+      if (!loginEmail.trim()) {
+        setLoginError("Vui lòng nhập email đã được cấp quyền.");
+        return;
+      }
+
+      setCheckingLogin(true);
+      try {
+        const res = await fetch(`/api/v1/me?email=${encodeURIComponent(loginEmail.trim())}`, {
+          headers: { "X-Organization-Id": "org-1" }
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error?.message || "Email chưa được cấp quyền.");
+        }
+        setResolvedUser(data.data);
+        setSelectedRole(data.data.role);
+      } catch (err: any) {
+        setLoginError(err.message || "Không xác thực được email.");
+        return;
+      } finally {
+        setCheckingLogin(false);
+      }
+    }
+
     setShowQuestionModal(true);
   };
 
   const handleSelectTutorialMode = (wantsTutorial: boolean) => {
     setShowQuestionModal(false);
-    onLogin(selectedRole, wantsTutorial);
+    onLogin(resolvedUser?.role || selectedRole, wantsTutorial, resolvedUser || undefined);
   };
 
   return (
@@ -136,7 +175,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   <button
                     key={r.id}
                     type="button"
-                    onClick={() => setSelectedRole(r.id)}
+                    onClick={() => !emailRoleAuthEnabled && setSelectedRole(r.id)}
+                    disabled={emailRoleAuthEnabled}
                     className={`p-4 rounded-2xl border-2 text-left cursor-pointer transition-all duration-200 relative transform ${
                       isSelected 
                         ? "border-primary-dark bg-cream shadow-accent-glow scale-[1.03]" 
@@ -204,7 +244,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
                 <div className="bg-cream border-2 border-primary-dark p-5 rounded-2xl space-y-3 shadow-md">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-primary-dark" />
+                    <UserIcon className="w-4 h-4 text-primary-dark" />
                     <span className="text-xs text-primary-dark/80 font-black">Mã nhân sự:</span>
                     <span className="text-xs font-mono font-bold text-primary-dark">{currentInfo.name}</span>
                   </div>
@@ -229,15 +269,38 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
 
               <form onSubmit={handleSubmit} className="pt-6 border-t border-white/20 space-y-3">
+                {emailRoleAuthEnabled && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest text-accent-light font-black">
+                      Email được cấp quyền
+                    </label>
+                    <input
+                      type="email"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="w-full bg-white text-primary-dark border-2 border-primary-dark rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-accent-gold"
+                    />
+                    <p className="text-[9px] text-white/55 leading-snug font-bold">
+                      Đang bật phân quyền theo email. Role sẽ lấy từ Supabase, không chọn thủ công.
+                    </p>
+                  </div>
+                )}
+                {loginError && (
+                  <div className="bg-coral/15 border border-coral text-coral-light rounded-xl p-2.5 text-[10px] font-black">
+                    {loginError}
+                  </div>
+                )}
                 <button
                   type="submit"
                   id="btn-login"
+                  disabled={checkingLogin}
                   className="w-full bg-accent-gold hover:bg-accent-dark text-primary-dark font-black text-xs p-3.5 rounded-full cursor-pointer border-2 border-primary-dark transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.95] flex items-center justify-center gap-2 tracking-widest uppercase shadow-accent-glow"
                 >
-                  BẮT ĐẦU VẬN HÀNH <Sparkles className="w-4 h-4 text-primary-dark" />
+                  {checkingLogin ? "ĐANG KIỂM TRA EMAIL..." : "BẮT ĐẦU VẬN HÀNH"} <Sparkles className="w-4 h-4 text-primary-dark" />
                 </button>
                 <p className="text-[9px] text-center text-white/50 leading-none flex items-center justify-center gap-1.5 font-bold uppercase tracking-widest">
-                  <HelpCircle className="w-3.5 h-3.5" /> Mật khẩu tự động (SSO)
+                  <HelpCircle className="w-3.5 h-3.5" /> {emailRoleAuthEnabled ? "Phân quyền theo email" : "Test mode: chọn role nhanh"}
                 </p>
               </form>
             </div>
@@ -275,7 +338,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               
               <div className="mt-2 text-xs text-primary-dark/70 leading-relaxed font-sans max-w-sm w-full">
                 <span className="block mt-1 bg-cream px-2.5 py-1.5 border-2 border-primary-dark rounded-xl text-[10px] text-primary-dark font-black font-mono">
-                  BẮT ĐẦU: {currentInfo?.title} ({currentInfo?.name})
+                  BẮT ĐẦU: {currentInfo?.title} ({resolvedUser?.name || currentInfo?.name})
                 </span>
               </div>
             </div>

@@ -92,6 +92,7 @@ export let dbState: any = {
   organizations: [],
   users: [],
   suppliers: [],
+  supplier_discovery_candidates: [],
   inventory_items: [],
   procurement_cases: [],
   case_transitions: [],

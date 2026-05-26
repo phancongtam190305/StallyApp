@@ -9,6 +9,7 @@ import {
   QuoteVersion,
   PurchaseOrder,
   EmailMessage,
+  SupplierDiscoveryCandidate,
 } from "../types.js";
 
 dotenv.config();
@@ -43,6 +44,7 @@ const tableNames = [
   "organizations",
   "users",
   "suppliers",
+  "supplier_discovery_candidates",
   "inventory_items",
   "procurement_cases",
   "case_transitions",
@@ -67,6 +69,10 @@ function prepareJsonFields(table: string, entity: any) {
 
   if (table === "suppliers" && Array.isArray(data.tags)) {
     data.tags = JSON.stringify(data.tags);
+  } else if (table === "supplier_discovery_candidates") {
+    data.tags = JSON.stringify(data.tags || []);
+    data.sourceUrls = JSON.stringify(data.sourceUrls || []);
+    data.riskFlags = JSON.stringify(data.riskFlags || []);
   } else if (table === "procurement_cases" && Array.isArray(data.items)) {
     data.items = JSON.stringify(data.items);
   } else if (table === "purchase_requests" && Array.isArray(data.items)) {
@@ -147,6 +153,29 @@ export async function initDb() {
       "tags" TEXT,
       "historicalPricing" TEXT,
       "source" TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "supplier_discovery_candidates" (
+      "id" TEXT PRIMARY KEY,
+      "organizationId" TEXT NOT NULL,
+      "caseId" TEXT NOT NULL,
+      "query" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "contactPerson" TEXT,
+      "email" TEXT,
+      "phone" TEXT,
+      "address" TEXT,
+      "website" TEXT,
+      "tags" TEXT NOT NULL,
+      "sourceUrls" TEXT NOT NULL,
+      "evidence" TEXT,
+      "confidence" INTEGER NOT NULL,
+      "riskFlags" TEXT NOT NULL,
+      "autoAddEligible" BOOLEAN NOT NULL,
+      "duplicateOfSupplierId" TEXT,
+      "status" TEXT NOT NULL,
+      "promotedSupplierId" TEXT,
+      "createdAt" TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS "inventory_items" (
@@ -442,6 +471,7 @@ export async function loadDbState() {
     organizations: await rows("organizations"),
     users: await rows("users"),
     suppliers: (await rows("suppliers")).map(parseSupplier),
+    supplier_discovery_candidates: (await rows("supplier_discovery_candidates")).map(parseSupplierDiscoveryCandidate),
     inventory_items: await rows("inventory_items"),
     procurement_cases: (await rows("procurement_cases")).map(parseProcurementCase),
     case_transitions: await rows("case_transitions"),
@@ -467,6 +497,17 @@ export function parseSupplier(row: any): Supplier {
   return {
     ...row,
     tags: row.tags ? JSON.parse(row.tags) : [],
+  };
+}
+
+export function parseSupplierDiscoveryCandidate(row: any): SupplierDiscoveryCandidate {
+  if (!row) return row;
+  return {
+    ...row,
+    tags: row.tags ? JSON.parse(row.tags) : [],
+    sourceUrls: row.sourceUrls ? JSON.parse(row.sourceUrls) : [],
+    riskFlags: row.riskFlags ? JSON.parse(row.riskFlags) : [],
+    autoAddEligible: Boolean(row.autoAddEligible),
   };
 }
 
@@ -560,6 +601,7 @@ export async function persistDbStateNow(dbState: any) {
     await saveAll("organizations", dbState.organizations);
     await saveAll("users", dbState.users);
     await saveAll("suppliers", dbState.suppliers);
+    await saveAll("supplier_discovery_candidates", dbState.supplier_discovery_candidates);
     await saveAll("inventory_items", dbState.inventory_items);
     await saveAll("procurement_cases", dbState.procurement_cases);
     await saveAll("case_transitions", dbState.case_transitions);

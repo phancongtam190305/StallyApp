@@ -18,6 +18,7 @@ import {
   InventoryItem, 
   StockMovement, 
   Supplier, 
+  SupplierDiscoveryCandidate,
   UserRole,
   PriorityLevel,
   PurchaseRequestItem,
@@ -156,9 +157,38 @@ apiV1Router.get("/events/stream", (req: Request, res: Response) => {
 // AUTH & PERMISSIONS MOCK
 // ----------------------------------------------------
 apiV1Router.get("/me", (req: Request, res: Response) => {
-  const role = (req.query.role as UserRole) || "procurement";
-  const user = dbState.users.find(u => u.role === role && u.organizationId === req.organizationId) || dbState.users[0];
-  res.json({ data: user });
+  const emailRoleAuthEnabled = process.env.EMAIL_ROLE_AUTH_ENABLED === "true";
+  const requestedEmail = String(req.query.email || "").trim().toLowerCase();
+  const requestedRole = (req.query.role as UserRole) || "procurement";
+
+  if (emailRoleAuthEnabled) {
+    if (!requestedEmail) {
+      return res.status(401).json({
+        error: { code: "EMAIL_REQUIRED", message: "Cần email để xác định phân quyền." }
+      });
+    }
+
+    const user = dbState.users.find(
+      u => u.organizationId === req.organizationId && u.email.toLowerCase() === requestedEmail && u.status === "active"
+    );
+    if (!user) {
+      return res.status(403).json({
+        error: { code: "USER_NOT_ALLOWED", message: "Email này chưa được cấp quyền trong hệ thống." }
+      });
+    }
+    return res.json({ data: user, authMode: "email" });
+  }
+
+  const user = dbState.users.find(u => u.role === requestedRole && u.organizationId === req.organizationId) || dbState.users[0];
+  res.json({ data: user, authMode: "role_switch" });
+});
+
+apiV1Router.get("/auth/config", (_req: Request, res: Response) => {
+  res.json({
+    data: {
+      emailRoleAuthEnabled: process.env.EMAIL_ROLE_AUTH_ENABLED === "true",
+    }
+  });
 });
 
 apiV1Router.get("/permissions", (req: Request, res: Response) => {
@@ -531,29 +561,45 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
       limit: Number(limit) || 5,
     });
 
-    const addedSuppliers: Supplier[] = [];
-    for (const candidate of candidates) {
-      if (dryRun) continue;
-      if (!candidate.autoAddEligible) continue;
-      const supplier = buildSupplierFromCandidate(candidate, orgId, addedSuppliers.length);
-      if (!dbState.suppliers.some(s => s.organizationId === orgId && (s.email.toLowerCase() === supplier.email.toLowerCase() || s.name.toLowerCase() === supplier.name.toLowerCase()))) {
-        dbState.suppliers.push(supplier);
-        addedSuppliers.push(supplier);
-      }
+    const now = new Date().toISOString();
+    const storedCandidates: SupplierDiscoveryCandidate[] = candidates.map((candidate, index) => ({
+      id: `supdisc-${Date.now()}-${index}`,
+      organizationId: orgId,
+      caseId,
+      query,
+      name: candidate.name,
+      contactPerson: candidate.contactPerson,
+      email: candidate.email,
+      phone: candidate.phone,
+      address: candidate.address,
+      website: candidate.website,
+      tags: candidate.tags,
+      sourceUrls: candidate.sourceUrls,
+      evidence: candidate.evidence,
+      confidence: candidate.confidence,
+      riskFlags: candidate.riskFlags,
+      autoAddEligible: candidate.autoAddEligible,
+      duplicateOfSupplierId: candidate.duplicateOfSupplierId,
+      status: "review",
+      createdAt: now,
+    }));
+
+    if (!dryRun) {
+      dbState.supplier_discovery_candidates = (dbState.supplier_discovery_candidates || [])
+        .filter((candidate: SupplierDiscoveryCandidate) => !(candidate.caseId === caseId && candidate.query === query && candidate.status === "review"));
+      dbState.supplier_discovery_candidates.push(...storedCandidates);
     }
 
     return res.json({
-      message: addedSuppliers.length
-        ? `Đã crawl và thêm ${addedSuppliers.length} NCC đủ thông tin xác minh vào CRM.`
-        : dryRun
-          ? "Dry-run crawl xong. Chưa ghi NCC nào vào CRM."
-          : "Đã crawl xong nhưng chưa có NCC đủ email/số điện thoại/confidence để tự thêm vào CRM.",
-      data: addedSuppliers,
-      candidates,
+      message: dryRun
+        ? "Dry-run crawl xong. Chưa ghi NCC nào vào CRM."
+        : `Đã crawl ${storedCandidates.length} NCC. Vui lòng chọn NCC muốn thêm vào danh sách chính.`,
+      data: [],
+      candidates: dryRun ? candidates : storedCandidates,
       summary: {
-        totalCandidates: candidates.length,
-        addedCount: addedSuppliers.length,
-        reviewRequiredCount: candidates.length - addedSuppliers.length,
+        totalCandidates: storedCandidates.length,
+        addedCount: 0,
+        reviewRequiredCount: storedCandidates.length,
         dryRun: Boolean(dryRun),
       }
     });
@@ -566,6 +612,77 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
       }
     });
   }
+});
+
+apiV1Router.get("/cases/:caseId/suppliers/discovery-candidates", (req: Request, res: Response) => {
+  const orgId = req.organizationId;
+  const { caseId } = req.params;
+  const candidates = (dbState.supplier_discovery_candidates || [])
+    .filter((candidate: SupplierDiscoveryCandidate) => candidate.organizationId === orgId && candidate.caseId === caseId && candidate.status === "review")
+    .sort((a: SupplierDiscoveryCandidate, b: SupplierDiscoveryCandidate) => b.confidence - a.confidence);
+
+  res.json({ data: candidates });
+});
+
+apiV1Router.post("/cases/:caseId/suppliers/promote-candidates", (req: Request, res: Response) => {
+  const orgId = req.organizationId;
+  const { caseId } = req.params;
+  const { candidateIds } = req.body;
+  const selectedIds: string[] = Array.isArray(candidateIds) ? candidateIds : [];
+
+  if (selectedIds.length === 0) {
+    return res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Vui lòng chọn ít nhất 1 NCC để thêm vào danh sách chính." } });
+  }
+
+  const candidates: SupplierDiscoveryCandidate[] = (dbState.supplier_discovery_candidates || [])
+    .filter((candidate: SupplierDiscoveryCandidate) =>
+      candidate.organizationId === orgId &&
+      candidate.caseId === caseId &&
+      candidate.status === "review" &&
+      selectedIds.includes(candidate.id)
+    );
+
+  const addedSuppliers: Supplier[] = [];
+  const rejected: Array<{ candidateId: string; reason: string }> = [];
+
+  candidates.forEach((candidate, index) => {
+    if (!candidate.autoAddEligible) {
+      rejected.push({ candidateId: candidate.id, reason: "NCC chưa đủ email, số điện thoại hoặc confidence để đưa vào CRM." });
+      return;
+    }
+
+    const supplier = buildSupplierFromCandidate(candidate, orgId, index);
+    const duplicate = dbState.suppliers.find(s =>
+      s.organizationId === orgId &&
+      (
+        s.email.toLowerCase() === supplier.email.toLowerCase() ||
+        s.name.toLowerCase() === supplier.name.toLowerCase()
+      )
+    );
+
+    if (duplicate) {
+      candidate.status = "promoted";
+      candidate.promotedSupplierId = duplicate.id;
+      addedSuppliers.push(duplicate);
+      return;
+    }
+
+    dbState.suppliers.push(supplier);
+    candidate.status = "promoted";
+    candidate.promotedSupplierId = supplier.id;
+    addedSuppliers.push(supplier);
+  });
+
+  res.json({
+    message: `Đã thêm ${addedSuppliers.length} NCC vào danh sách chính.`,
+    data: addedSuppliers,
+    rejected,
+    summary: {
+      requestedCount: selectedIds.length,
+      addedCount: addedSuppliers.length,
+      rejectedCount: rejected.length,
+    }
+  });
 });
 
 // SUPPLIERS CRM REST

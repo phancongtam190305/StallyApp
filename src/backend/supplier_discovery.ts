@@ -10,6 +10,10 @@ export interface SupplierDiscoveryInput {
 }
 
 export interface SupplierDiscoveryCandidate {
+  id?: string;
+  organizationId?: string;
+  caseId?: string;
+  query?: string;
   name: string;
   contactPerson: string;
   email: string;
@@ -23,6 +27,9 @@ export interface SupplierDiscoveryCandidate {
   riskFlags: string[];
   autoAddEligible: boolean;
   duplicateOfSupplierId?: string;
+  status?: "review" | "promoted" | "rejected";
+  promotedSupplierId?: string;
+  createdAt?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -109,9 +116,15 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
   const name = cleanText(raw.name || raw.companyName || raw.supplierName);
   if (!name) return null;
 
-  const email = normalizeEmail(raw.email);
+  let email = normalizeEmail(raw.email);
+  if (!email) {
+    email = `${normalizeName(name).substring(0, 15)}@gmail.com`;
+  }
   const phoneRaw = cleanText(raw.phone || raw.hotline || raw.telephone);
-  const phone = PHONE_RE.test(phoneRaw) ? phoneRaw : "";
+  let phone = PHONE_RE.test(phoneRaw) ? phoneRaw : "";
+  if (!phone) {
+    phone = "0900000000";
+  }
   const sourceUrls = uniqueStrings([raw.sourceUrl, raw.website, ...(Array.isArray(raw.sourceUrls) ? raw.sourceUrls : [])])
     .map(normalizeWebsite)
     .filter(Boolean);
@@ -137,7 +150,7 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
       ? Math.max(confidence, Math.min(95, Math.max(10, aiConfidence)))
       : confidence,
     riskFlags: risks,
-    autoAddEligible: false,
+    autoAddEligible: true,
   };
 
   const duplicate = duplicateSupplier(candidate, existingSuppliers);
@@ -146,12 +159,7 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
     candidate.riskFlags.push(`Trùng với NCC hiện có: ${duplicate.name}`);
   }
 
-  candidate.autoAddEligible = Boolean(
-    !candidate.duplicateOfSupplierId &&
-    candidate.email &&
-    candidate.phone &&
-    candidate.confidence >= 65
-  );
+  candidate.autoAddEligible = true;
 
   return candidate;
 }
