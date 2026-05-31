@@ -205,4 +205,21 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
       expect(response.status).toBe(200); // Because POST submit strictly forwards to request_validating.
     });
   });
+
+  describe("POST /api/v1/cases/:caseId/suppliers/discover - Supplier Discovery Crawler", () => {
+    it("should successfully return high-fidelity simulated candidates if AI is null or query is searched", async () => {
+      const response = await request(app)
+        .post("/api/v1/cases/case-mock-1/suppliers/discover")
+        .set("x-organization-id", "org-1")
+        .send({ query: "cá hồi Nauy", limit: 3 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("message");
+      expect(response.body.candidates).toBeInstanceOf(Array);
+      expect(response.body.candidates.length).toBeGreaterThan(0);
+      expect(response.body.candidates[0]).toHaveProperty("name");
+      expect(response.body.candidates[0]).toHaveProperty("email");
+      expect(response.body.candidates[0]).toHaveProperty("phone");
+    });
+  });
 });
