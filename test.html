@@ -1,0 +1,1386 @@
+﻿<div data-bind="foreach: AssessmentData().Questions()">
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 1</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Choose a correctly flow for creating a Unit TestCase?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="8a1ae454-7305-45e3-9577-5df6b741e526" name="ko_unique_1">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Setup, Prepare an input, Call a method, Check a out put, Tear down</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="06c43604-1b46-4284-a6a8-911455f7e0f4" name="ko_unique_2">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Prepare an input, Setup , Call a method, Check a out put, Tear down</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="b9034a02-5c3e-44b3-abe9-0bd612b72ec0" name="ko_unique_3">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Call a method, Prepare an input, Setup, Check a out put, Tear down</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="49e16961-081b-404c-a39b-275743eaf263" name="ko_unique_4">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Setup, Call a method, Prepare an input,Check a out put, Tear down</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 2</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer" style="display: none;">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Choose correct statements about manual test vs Automated test</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="a6d81964-fe15-416e-ac4b-ed2bb0fc0415">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Tests provide limited Visibility and have to be Repeated by all Stakeholders</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="1dc75568-fcfc-4633-b636-6cb3457afa76">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Tests is not reusable
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="439f6474-badc-4f2c-aaee-891f4cc25642">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Manual Tests provide limited Visibility and have to be Repeated by all Stakeholders
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="8101b836-8d71-4b14-88e3-c58b9963d6f1">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Tests are completely reusable
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 3</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer" style="display: none;">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Choose correct statements about manual test vs Automated test</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="1fc513ed-6e35-4c48-b704-f0db19ebaaf9">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Manual Testing requires complex Manual Setup and Tear Down
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="5b8d3671-a325-4c14-be06-ffd2b4c9394f">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Tests can have varying scopes and require less complex setup and teardown
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="d1ccba04-c4bc-4cf5-9ec6-ce2337f308fd">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Testing requires complex Manual Setup and Tear Down
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="80e84cb4-ef12-497a-9a3e-824c61b80f1f">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Manual Tests can have varying scopes and require less complex setup and teardown</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 4</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer" style="display: none;">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Choose correct statements about manual test vs Automated test</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="f94aef1b-37c3-4328-8257-fdc42affd98e">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Testing has a high risk of missing out on something
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="262f9531-d17e-42e7-8d6d-fdb398d622ad">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Manual Testing has a high risk of missing out on something
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="fa460157-3677-4553-b1ba-3e5b116d769f">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Manual Tests have zero risk of missing out a pre-decided test
+</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer --><!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                                    <input type="checkbox" data-bind="attr: {value: Id}, checked: $parent.Response, disable: $parent.IsAnswered" value="805299f8-3824-4d9d-8fdd-ddb9ca933034">
+                                                    <!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Automated Tests have zero risk of missing out a pre-decided test</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 5</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Choose correct Coding Process with Automated Unit Tests</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="fdfb8bfc-7a56-4e24-a091-5a6d42c41dce" name="ko_unique_5">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Write code, Write one or more test cases script, Auto-compile and run, If tests fail -&gt; make appropriate modifications If tests pass -&gt; repeat for next method</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="dac07d69-bec8-4542-af42-7fb704860a57" name="ko_unique_6">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Write code, Auto-compile and run, If tests fail -&gt; make appropriate modifications If tests pass -&gt; repeat for next method</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="ebf815a9-919b-4d04-a5d7-fc832716f5a8" name="ko_unique_7">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Write one or more test cases script, Auto-compile and run, If tests fail -&gt; make appropriate modifications If tests pass -&gt; repeat for next method</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="2796095d-7cd4-47f6-9e41-9556919ca7c4" name="ko_unique_8">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Write code, Write one or more test cases script, If tests fail -&gt; make appropriate modifications</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 6</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Limitations when use Unit Testing based on UT cases?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="53daf876-c34e-4081-9769-8382ab17a3e6" name="ko_unique_9">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">With big projects, number of test cases is so much</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="0669eedf-70f0-4982-80e7-6a5729aad957" name="ko_unique_10">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Project requirements  always change, developer do not have effort to update unit test case documents</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="a98c8fed-1f79-44da-aa1f-db653ff697a1" name="ko_unique_11">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Beside we can not use excel unit test case in some cases</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="54a2f2f8-4cba-42b1-b1cb-117c42c3a9ec" name="ko_unique_12">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">All</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 7</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Tools use to Automated Unit Tests</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="62732c50-6205-4fe4-ab2f-9491d365b6bf" name="ko_unique_13">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">JUnit</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="8c30e95c-4e89-4595-bebb-04cd307ac035" name="ko_unique_14">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">NUnit</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="a537862d-779a-41f5-805c-6dde2f07fcaa" name="ko_unique_15">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">VBUnit</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="ab7b2873-5d06-4fd8-84a1-b4463dc5e85c" name="ko_unique_16">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">All</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 8</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">For example:
+
+1. Class
+public class ClsInvoiceCalculation
+{
+     public int calculateCost(int intPerProductCost, int intNumberOfProducts)
+    {
+         return intPerProductCost * intNumberOfProducts;
+    }
+}
+
+2. Method in Nunit to test above Class.
+[TestFixture]
+Public class ClsInvoiceUnitTest
+{
+   [Test]
+   public void TestInvoiceCalculation()
+   {
+ ClsInvoiceCalculation obj = new ClsInvoiceCalculation();
+        int intTotalCost = obj.CalculateCost(10,20);
+        Assert.AreEqual(200, inTotalCost);
+   }
+}
+
+Choose correct result when run ClsInvoiceUnitTest with NUnit</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="6dc7cf18-d971-4430-a4b1-f6ac9edce28d" name="ko_unique_17">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Expected: 200 But was: 200</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="1be2618b-9275-4533-985d-0a87c0251c0e" name="ko_unique_18">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Expected: 200 But was: 30</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="9cfc03f4-c530-4d2a-9458-279afc444712" name="ko_unique_19">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Expected: 200 Success: 30</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="a3034034-c6fa-4d2e-89ec-aec1710a4574" name="ko_unique_20">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Expected: 200 Result: 30</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 9</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">What is TestFixture Attribute used in NUnit?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="0f73754d-c4ad-4e7d-8025-a5757a5c5152" name="ko_unique_21">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Used to indicate that a test methods</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="60c7816b-e835-4d47-9271-10b9c3d22f75" name="ko_unique_22">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Used to execute that a class contains test methods</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="99abb568-d987-44cc-9867-3620527b265a" name="ko_unique_23">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Used to indicate that a class contains test methods</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="cdf15d4a-d870-43b0-9454-c2b802549a76" name="ko_unique_24">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Used to execute a test methods</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 10</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">What is Test Attribute used in Nunit?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="a793a99d-8807-414e-89b9-978aea384445" name="ko_unique_25">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Indicate that a class within a test fixture should be run by the Test Runner application</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="3c8ea616-a9ab-4de3-9a0e-c5fc0462a84c" name="ko_unique_26">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">run that a class with Test Runner application</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="e0a38c28-434a-45ed-b7c4-b1d35fb9bdc8" name="ko_unique_27">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Execute a class within a test fixture with Test Runner application</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="c673261d-dd2c-4930-84db-fc72013a9fb6" name="ko_unique_28">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Indicate that a method within a test fixture should be run by the Test Runner application</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 11</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">For code example:
+namespace UnitTestingExamples
+{
+  using System;
+  using NUnit.Framework;
+
+  [Test]
+  public class SomeTests
+  {
+    [TestFixture]
+    public void TestOne()
+    {
+      // Do something...
+    }
+  }
+}
+
+Above example TRUE or FALSE?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="204ff2cb-2a23-4b56-9f48-4cbbde12fb88" name="ko_unique_29">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">TRUE</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="172e93b3-f03d-4ccc-8554-f63ad0019955" name="ko_unique_30">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">FAISE</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 12</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">For example:
+namespace UnitTestingExamples
+{
+  using System;
+  using NUnit.Framework;
+
+  [TestFixture]
+  public class SomeTests
+  {
+    private int _someValue;
+
+    [SetUp]
+    public void Setup()
+    {
+      _someValue = 5;
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+      _someValue = 0;
+    }
+
+    [Test]
+    public void TestOne()
+    {
+      // Do something...
+    }
+  }
+}
+
+Choose a correct answer:</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="0baf0bb0-6a0b-4397-8c70-cdd6505145fc" name="ko_unique_31">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">The method should be executed before SetUp or after Teardown every test method in the Test Fixture</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="f9146005-fa7d-4859-82a5-02f317d4f1f8" name="ko_unique_32">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">The method should be executed after SetUp or before Teardown every test method in the Test Fixture</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="49e2dbeb-3f74-47e9-9f66-7d7df2906111" name="ko_unique_33">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">The method should be executed at the same time SetUp and Teardown every test method in the Test Fixture</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 13</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">ExpectedExceptionAttribute is used to specify that the execution of a test will throw an exception
+How is ExpectedExceptionAttribute used?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="2d71e476-1e6d-44f8-94b1-aa015f298637" name="ko_unique_34">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Specifying the Expected Exception Type</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="f54a01b3-056b-401d-b52c-9df757aa0f83" name="ko_unique_35">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Specifying the Expected Message and a Custom Error Message</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="e70bee7d-9bf8-45c6-abe9-c81f5937c746" name="ko_unique_36">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Handling the Exception in Code</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="5de78635-617e-45e0-a5af-bfeadf8cc28e" name="ko_unique_37">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">All</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 14</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">Let list method types in Assert class</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="6785d6f2-7fcd-4ce6-a67f-cab409ad6f4e" name="ko_unique_38">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Equality Asserts, Identity Asserts, Comparisons, Condition Tests, Utility Methods, StringAssert</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="a26e1dba-5dc2-469e-8e98-f1f3a97951ea" name="ko_unique_39">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Equality Asserts, Identity Asserts, Comparisons, Type Asserts, StringAssert</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="ef7cf245-dd06-4f47-bb1a-5f8bc1d6d6ea" name="ko_unique_40">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Equality Asserts, Identity Asserts, Comparisons, Type Asserts, Condition Tests, Utility Methods, StringAssert</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="338099c9-ce9f-423a-a16a-a7a6db0bd469" name="ko_unique_41">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">Equality Asserts, Comparisons, Type Asserts, Condition Tests, Utility Methods, StringAssert</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    
+                        <div class="question-wrapper">
+                            <div class="question">
+                                <div class="question-header">
+                                    <div class="question-num" data-bind="term: {term: $parent.Terms.AssessmentQuestionNum, 1: ($index() + 1)}">Question 15</div>
+                                    <div class="question-type">
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer, term: $parent.Terms.AssessmentTypeSingleAnswer">Select the appropriate response</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer, term: $parent.Terms.AssessmentTypeMultipleAnswer" style="display: none;">Select all that apply</span>
+                                        <span data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry, term: $parent.Terms.AssessmentTypeText" style="display: none;">Written response</span>
+                                    </div>
+                                </div>
+                                <div class="question-content">
+                                    <a class="attachment" data-bind="visible: Attachment, attr: { href: AttachmentUrl }" target="_blank" style="display: none;"><span data-bind="term: $parent.Terms.AssessmentOpenAttachment">Open Attachment</span><span class="icon icon-paperclip"></span></a>
+                                    <div class="question-title" data-bind="sanitizedHtml: Name()">There are two main ways of testing for exceptions: 
+
+1. Assert.Throws(()=&gt;MethodThatThrows()) 
+2. [ExpectedException(typeof(Exception))] 
+
+What is the main difference between the two ways above?</div>
+                                    <div class="clearfix"></div>
+                                    <!-- ko if: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer -->
+                                    <div class="options" data-bind="foreach: Options()">
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="26d301b6-efcb-40ac-a434-ce0ace6b492b" name="ko_unique_42">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">The first allows you to test for more than one exception.The second only allows you to test for one exception per test function.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="803db798-274e-4329-b8b8-3e186bb88502" name="ko_unique_43">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">The first allows to specify exact place of the code where exception is expected.The second attribute makes test passed if exception occurs in any place in the test method.</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    
+                                        <div class="option">
+                                            <label class="option-link">
+                                                <span class="option-bar">
+                                                    <span class="option-icon" data-bind="visible: IsCorrect() != null" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-checkmark-circle correct" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-circle-2 wrong"></span></span>
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.SingleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollSingleAnswer -->
+                                                    <input type="radio" data-bind="attr: {value: Id}, checked: $parent.Response()[0], click: $root.UpdateSingleResponse.bind($data, $parent), disable: $parent.IsAnswered" value="1e565c57-6eba-45c8-abaf-80e4cef85970" name="ko_unique_44">
+                                                    <!-- /ko -->
+                                                    <!-- ko if: $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.MultipleAnswer || $parent.Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.PollMultipleAnswer --><!-- /ko -->
+                                                    <span class="option-text" data-bind="sanitizedHtml: Name()">All</span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- /ko -->
+                                    <div class="question-input-wrapper" data-bind="visible: Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.Text || Type() == AbsorbLMS.Absorb.Assessment.Models.QuestionType.FreeFormInquiry" style="display: none;">
+                                        <!-- ko if: InputCharacterLimit()--><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.AnyCharacters -->
+                                        <textarea class="question-input" data-bind="valueUpdate: 'afterkeydown', assessmentInput: {Value: Response, LimitCharacters: InputCharacterLimit}, disable: IsAnswered"></textarea>
+                                        <!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.NumbersOnly --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateDDMMYYYY --><!-- /ko -->
+                                        <!-- ko if: InputType() == AbsorbLMS.Absorb.Assessment.Models.InputType.DateMMDDYYYY --><!-- /ko -->
+                                        <!-- ko if: TextAnswers().length --><!-- /ko -->
+                                    </div>
+                                </div>
+                                <div class="question-footer" data-bind="visible: !$parent.SubmitAssessmentPending() &amp;&amp; !(IsAnswered() &amp;&amp; ($parent.AssessmentData().ShowAnswers() || $parent.AssessmentData().ShowFeedback()))">
+                                    <div class="btn-wrapper">
+                                        <button class="assessment-btn has-icon" data-bind="visible: !IsAnswered(), click: $parent.SubmitResponse.bind($parent, $data), enable: HasSelection()" disabled=""><span data-bind="visible: !$parent.SubmitResponsePending()" class="icon icon-checkmark"></span><span data-bind="visible: $parent.SubmitResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentSubmitResponse">Submit Response</span></button>
+                                        <button class="assessment-btn grey has-icon" data-bind="visible: IsAnswered() &amp;&amp; !$parent.AssessmentData().ShowAnswers() &amp;&amp; !$parent.AssessmentData().ShowFeedback(), click: $parent.ResetResponse.bind($parent, $data)" style="display: none;"><span data-bind="visible: !$parent.ResetResponsePending()" class="icon icon-reset"></span><span data-bind="visible: $parent.ResetResponsePending" class="icon icon-gear spin" style="display: none;"></span><span data-bind="term: $parent.Terms.AssessmentReset">Reset</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feedback wrong" data-bind="visible: Reply() != null, css: { correct: IsCorrect, wrong: !IsCorrect() }" style="display: none;"><span data-bind="visible: IsCorrect" class="icon icon-thumbs-up" style="display: none;"></span><span data-bind="visible: !IsCorrect()" class="icon icon-x-medium"></span><span data-bind="html: Reply"></span></div>
+                        </div>
+                    </div>

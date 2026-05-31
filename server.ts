@@ -94,6 +94,30 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 
 app.use("/api/v1", apiV1Router);
 
+app.get("/api/health", (req, res) => {
+  try {
+    const result = db.prepare("SELECT 1 as val").get() as { val: number };
+    const orgCount = db.prepare("SELECT COUNT(*) as count FROM organizations").get() as { count: number };
+    res.json({
+      status: "ok",
+      database: "connected",
+      sqliteTest: result.val === 1 ? "success" : "failed",
+      organizationsCount: orgCount.count,
+      environment: process.env.NODE_ENV || "production",
+      isVercel: process.env.VERCEL === "1",
+      dbPath: db.name
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      status: "error",
+      database: "failed",
+      error: err.message,
+      stack: err.stack,
+      isVercel: process.env.VERCEL === "1"
+    });
+  }
+});
+
 // Extend Express Request type
 declare global {
   namespace Express {
@@ -923,4 +947,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export { app };

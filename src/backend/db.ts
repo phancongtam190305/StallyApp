@@ -1,12 +1,32 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { 
   Organization, User, Supplier, InventoryItem, ProcurementCase, CaseTransition,
   PurchaseRequest, RfqCase, Quote, QuoteVersion, PurchaseOrder, EmailMessage,
   AiNegotiationLog, StockMovement
 } from "../types.js";
 
-const dbPath = path.resolve(process.cwd(), "stally.db");
+const isVercel = process.env.VERCEL === "1" || process.env.NOW_BUILDER === "1";
+const rootDbPath = path.resolve(process.cwd(), "stally.db");
+let dbPath = rootDbPath;
+
+if (isVercel) {
+  dbPath = "/tmp/stally.db";
+  if (!fs.existsSync(dbPath)) {
+    try {
+      if (fs.existsSync(rootDbPath)) {
+        fs.copyFileSync(rootDbPath, dbPath);
+        console.log("Database copied to /tmp/stally.db successfully.");
+      } else {
+        console.warn("Seed database not found at " + rootDbPath);
+      }
+    } catch (e) {
+      console.error("Failed to copy seed database to /tmp:", e);
+    }
+  }
+}
+
 export const db = new Database(dbPath);
 
 // Enable foreign keys
