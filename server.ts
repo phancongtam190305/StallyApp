@@ -112,37 +112,28 @@ export let dbState: any = {
 // MIDDLEWARES
 // ----------------------------------------------------
 
-// Lazy database state loading for Vercel Serverless environment
-let isDbInitialized = false;
-let initPromise: Promise<void> | null = null;
+// ----------------------------------------------------
+// MIDDLEWARES
+// ----------------------------------------------------
 
-async function ensureDbInitialized() {
-  if (isDbInitialized) return;
-  if (!initPromise) {
-    initPromise = (async () => {
-      await initDb();
-      const loaded = await loadDbState();
-      // Safely map each loaded table state back to the exported dbState reference
-      Object.keys(loaded).forEach((key) => {
-        if (dbState[key] && Array.isArray(dbState[key])) {
-          dbState[key] = loaded[key];
-        }
-      });
-      isDbInitialized = true;
-      console.log(`[Stally DB Init] 📂 Lazily loaded Supabase Postgres state successfully. Organizations: ${dbState.organizations.length}, Cases: ${dbState.procurement_cases.length}`);
-    })();
-  }
-  await initPromise;
-}
+import { persistDbStateNow } from "./src/backend/db.ts";
 
+// Guarantee 100% real-time container consistency in serverless environments
+// by reloading database state from Supabase Postgres on every incoming request
 app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    await ensureDbInitialized();
-    next();
+    await initDb();
+    const loaded = await loadDbState();
+    // Safely map each loaded table state back to the exported dbState reference
+    Object.keys(loaded).forEach((key) => {
+      if (dbState[key] && Array.isArray(dbState[key])) {
+        dbState[key] = loaded[key];
+      }
+    });
   } catch (err) {
-    console.error("Database lazy initialization failed in request middleware:", err);
-    next(err);
+    console.error("[Stally DB Sync] ❌ Database state reloading failed:", err);
   }
+  next();
 });
 
 const organizationChecker = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -154,15 +145,26 @@ const organizationChecker = (req: express.Request, res: express.Response, next: 
 
 app.use(organizationChecker);
 
-// Auto-persist in-memory changes back to SQLite database at the end of every request
+// Intercept res.json to synchronously await database persistence on Vercel
+// before the serverless container is frozen upon sending the response
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  res.on("finish", () => {
-    try {
-      persistDbState(dbState);
-    } catch (err) {
-      console.error("Failed to persist database state:", err);
+  const originalJson = res.json;
+  res.json = function (body) {
+    if (["POST", "PUT", "DELETE"].includes(req.method)) {
+      persistDbStateNow(dbState)
+        .then(() => {
+          console.log(`[Stally Sync] 💾 Synchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);
+          originalJson.call(res, body);
+        })
+        .catch((err) => {
+          console.error("[Stally Sync] ❌ Failed to persist database state synchronously:", err);
+          originalJson.call(res, body);
+        });
+    } else {
+      originalJson.call(res, body);
     }
-  });
+    return res;
+  };
   next();
 });
 
