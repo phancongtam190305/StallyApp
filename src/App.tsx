@@ -26,7 +26,8 @@ import {
   Supplier, 
   UserRole,
   PriorityLevel,
-  PurchaseRequestItem
+  PurchaseRequestItem,
+  User
 } from "./types";
 
 import { 
@@ -45,6 +46,7 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [currentRole, setCurrentRole] = useState<UserRole>("procurement");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // Multi-tenant logical isolation state
   const orgId = "org-1"; // Simulated logical multi-tenant organization
@@ -68,6 +70,7 @@ export default function App() {
 
   // Sync state from server on load
   const syncStateFromServer = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/state", {
         headers: { "X-Organization-Id": orgId }
@@ -82,10 +85,11 @@ export default function App() {
       setStockMovements(state.stockMovements);
       setSuppliers(state.suppliers || []);
       
+      setErrorText("");
       setLoading(false);
     } catch (err) {
       console.error("Fetch state failed", err);
-      setErrorText("Lỗi máy chủ: Chưa bắt đầu server node.");
+      setErrorText(err instanceof Error ? err.message : "Không thể kết nối server backend.");
       setLoading(false);
     }
   };
@@ -249,6 +253,51 @@ export default function App() {
   // Handler: Approve Quote (EPIC G & H)
   const handleApproveQuote = async (rfqId: string, quoteId: string) => {
     try {
+      // Find the corresponding case and request/approve PO draft via modern endpoints
+      const casesRes = await fetch("/api/v1/cases", {
+        headers: { "X-Organization-Id": orgId }
+      });
+      if (casesRes.ok) {
+        const casesData = await casesRes.json();
+        const cases = casesData.data || [];
+        const relatedCase = cases.find((c: any) => c.currentRfqId === rfqId || c.requestId === rfqs.find(r => r.id === rfqId)?.purchaseRequestId);
+        if (relatedCase) {
+          const caseId = relatedCase.id;
+          
+          // Submit approval request
+          await fetch(`/api/v1/cases/${caseId}/approval/request`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Organization-Id": orgId
+            },
+            body: JSON.stringify({
+              selectedQuoteId: quoteId,
+              comment: "Trình duyệt tự động từ màn hình đối chiếu RFQ"
+            })
+          });
+
+          // Approve the request
+          await fetch(`/api/v1/approval-requests/${caseId}/approve`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Organization-Id": orgId
+            },
+            body: JSON.stringify({
+              comment: "Phê duyệt tự động từ màn hình đối chiếu RFQ",
+              selectedQuoteId: quoteId
+            })
+          });
+
+          // Create PO Draft
+          await fetch(`/api/v1/cases/${caseId}/po-draft`, {
+            method: "POST",
+            headers: { "X-Organization-Id": orgId }
+          });
+        }
+      }
+
       const res = await fetch(`/api/rfq/${rfqId}/approve`, {
         method: "POST",
         headers: {
@@ -272,17 +321,18 @@ export default function App() {
   // Handler: Goods receipt in stock (EPIC I)
   const handleReceiveGoods = async (itemId: string, qty: number, sourcePo: string) => {
     try {
-      const res = await fetch("/api/inventory/receive-goods", {
+      // Find the inventory item name
+      const itemName = inventory.find(i => i.id === itemId)?.name || "";
+
+      const res = await fetch(`/api/v1/purchase-orders/${sourcePo}/receive`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Organization-Id": orgId
         },
         body: JSON.stringify({
-          itemId,
-          quantityReceived: qty,
-          referenceId: sourcePo,
-          createdBy: "Lý Văn Khoa (Thủ Kho)"
+          items: [{ name: itemName, quantityReceived: qty }],
+          receivedAt: new Date().toISOString()
         })
       });
 
@@ -320,8 +370,9 @@ export default function App() {
     }
   };
 
-  const handleLogin = (role: UserRole, withTutorial: boolean) => {
+  const handleLogin = (role: UserRole, withTutorial: boolean, user?: User) => {
     setCurrentRole(role);
+    setCurrentUser(user || null);
     setIsLoggedIn(true);
     setShowTutorial(withTutorial);
     setSelectedCaseId(null);
@@ -334,6 +385,7 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser(null);
     setShowTutorial(false);
     setSelectedCaseId(null);
   };
@@ -381,12 +433,15 @@ export default function App() {
             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-accent-light via-accent-gold to-accent-dark border-2 border-primary-dark rounded-full text-xs font-black text-primary-dark shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
               <span className="w-2 h-2 rounded-full bg-[#27AE60] animate-pulse" />
               <span>Nhân sự hiện tại:</span>
-              <span className="font-extrabold">{
-                currentRole === "requester" ? "Bếp Trưởng Bình" :
-                currentRole === "procurement" ? "Thu Mua Tâm" :
-                currentRole === "manager" ? "Giám Đốc Mai" :
-                "Thủ Kho Khoa"
-              }</span>
+              <span className="font-extrabold">
+                {currentUser?.name || (
+                  currentRole === "requester" ? "Bếp Trưởng Bình" :
+                  currentRole === "procurement" ? "Thu Mua Tâm" :
+                  currentRole === "manager" ? "Giám Đốc Mai" :
+                  currentRole === "admin" ? "Quản trị viên" :
+                  "Thủ Kho Khoa"
+                )}
+              </span>
             </div>
           </div>
         </header>
@@ -396,7 +451,13 @@ export default function App() {
             <ShieldAlert className="w-5 h-5 text-coral shrink-0" />
             <div>
               <p className="font-black">Lỗi kết nối đồng bộ cơ sở dữ liệu</p>
-              <p className="opacity-95 font-bold">{errorText}. Vui lòng thử khởi động lại máy chủ phát triển.</p>
+              <p className="opacity-95 font-bold">{errorText}. Kiểm tra server rồi bấm thử lại.</p>
+              <button
+                onClick={syncStateFromServer}
+                className="mt-2 px-3 py-1.5 bg-white border border-[#EF6C4A]/30 rounded-lg text-[11px] font-black text-[#EF6C4A] hover:bg-[#FF8A6A]/10"
+              >
+                Thử đồng bộ lại
+              </button>
             </div>
           </div>
         )}

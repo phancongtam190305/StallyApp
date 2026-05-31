@@ -130,6 +130,29 @@ export interface Supplier {
   source?: "crm" | "discovered" | "manual" | "crawled";
 }
 
+export interface SupplierDiscoveryCandidate {
+  id: string;
+  organizationId: string;
+  caseId: string;
+  query: string;
+  name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  address: string;
+  website: string;
+  tags: string[];
+  sourceUrls: string[];
+  evidence: string;
+  confidence: number;
+  riskFlags: string[];
+  autoAddEligible: boolean;
+  duplicateOfSupplierId?: string;
+  status: "review" | "promoted" | "rejected";
+  promotedSupplierId?: string;
+  createdAt: string;
+}
+
 export type CaseStatus =
   | "draft_request"
   | "request_submitted"

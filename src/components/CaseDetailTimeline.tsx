@@ -59,6 +59,22 @@ interface RfqDraft {
   status: string;
 }
 
+interface SupplierDiscoveryCandidate {
+  id?: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  website: string;
+  tags: string[];
+  sourceUrls: string[];
+  evidence: string;
+  confidence: number;
+  riskFlags: string[];
+  autoAddEligible: boolean;
+  duplicateOfSupplierId?: string;
+}
+
 export default function CaseDetailTimeline({ 
   caseId, 
   onBackToList, 
@@ -66,6 +82,7 @@ export default function CaseDetailTimeline({
   orgId, 
   onStateChanged 
 }: CaseDetailTimelineProps) {
+  const showDevTools = import.meta.env.VITE_ENABLE_DEV_TOOLS === "true";
   
   const [loading, setLoading] = useState(true);
   const [caseObj, setCaseObj] = useState<ProcurementCase | null>(null);
@@ -87,6 +104,9 @@ export default function CaseDetailTimeline({
   // Sourcing States
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [aiSearchQuery, setAiSearchQuery] = useState("");
+  const [discoveryCandidates, setDiscoveryCandidates] = useState<SupplierDiscoveryCandidate[]>([]);
+  const [selectedDiscoveryCandidateIds, setSelectedDiscoveryCandidateIds] = useState<string[]>([]);
+  const [discoveryElapsedSec, setDiscoveryElapsedSec] = useState(0);
   const [customRfqDueDate, setCustomRfqDueDate] = useState("");
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editedSubject, setEditedSubject] = useState("");
@@ -114,75 +134,136 @@ export default function CaseDetailTimeline({
   const [qualityStatuses, setQualityStatuses] = useState<Record<number, string>>({});
   const [receivingNotes, setReceivingNotes] = useState<Record<number, string>>({});
 
+  const discoverySteps = [
+    "Gửi truy vấn lên AI sourcing agent",
+    "Tìm nguồn công khai bằng Google Search Grounding",
+    "Đọc website, địa chỉ và thông tin liên hệ",
+    "Chuẩn hóa email, số điện thoại, website",
+    "Chấm confidence, kiểm tra trùng CRM",
+    "Đồng bộ kết quả vào danh sách NCC"
+  ];
+  const discoveryStepIndex = Math.min(
+    discoverySteps.length - 1,
+    Math.floor(discoveryElapsedSec / 7)
+  );
+  const discoveryProgress = loadingAction === "discover_suppliers"
+    ? Math.min(94, 12 + discoveryElapsedSec * 3)
+    : 0;
+
+  useEffect(() => {
+    if (loadingAction !== "discover_suppliers") return;
+    setDiscoveryElapsedSec(0);
+    const timer = window.setInterval(() => {
+      setDiscoveryElapsedSec((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [loadingAction]);
+
   const showToast = (text: string, type: "success" | "error" | "info" = "success") => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 5000);
   };
 
-  const fetchData = async () => {
+  const fetchData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
+      // Fetch Case Details
       const caseRes = await fetch(`/api/v1/cases/${caseId}`, {
         headers: { "X-Organization-Id": orgId }
       });
       const caseData = await caseRes.json();
       if (caseData.error) throw new Error(caseData.error.message);
-      setCaseObj(caseData.data);
+      setCaseObj(prev => JSON.stringify(prev) !== JSON.stringify(caseData.data) ? caseData.data : prev);
 
       const timelineRes = await fetch(`/api/v1/cases/${caseId}/timeline`, {
         headers: { "X-Organization-Id": orgId }
       });
       const timelineData = await timelineRes.json();
-      setTimeline(timelineData.data || []);
+      setTimeline(prev => JSON.stringify(prev) !== JSON.stringify(timelineData.data || []) ? (timelineData.data || []) : prev);
 
       const supRes = await fetch(`/api/suppliers`, {
         headers: { "X-Organization-Id": orgId }
       });
       const supData = await supRes.json();
-      setSuppliers(supData || []);
+      setSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(supData || []) ? (supData || []) : prev);
 
       const compRes = await fetch(`/api/v1/cases/${caseId}/comparison`, {
         headers: { "X-Organization-Id": orgId }
       });
       const compData = await compRes.json();
-      setComparison(compData);
+      setComparison(prev => JSON.stringify(prev) !== JSON.stringify(compData) ? compData : prev);
 
       const poRes = await fetch(`/api/v1/purchase-orders`, {
         headers: { "X-Organization-Id": orgId }
       });
       const poData = await poRes.json().catch(() => ({ data: [] }));
       const casePOs = (poData.data || []).filter((p: PurchaseOrder) => p.caseId === caseId);
-      setPoList(casePOs);
+      setPoList(prev => JSON.stringify(prev) !== JSON.stringify(casePOs) ? casePOs : prev);
+
+      // Pre-populate received quantities
+      if (casePOs.length > 0) {
+        const po = casePOs[0];
+        setReceivedQtys(prev => {
+          const updated = { ...prev };
+          po.items.forEach((it: any, idx) => {
+            if (updated[idx] === undefined) {
+              updated[idx] = it.quantityReceived !== undefined ? it.quantityReceived : it.quantity;
+            }
+          });
+          return updated;
+        });
+      }
       
+      // Determine Milestone
       const status = caseData.data.status;
-      if (["draft_request", "request_submitted", "request_validating"].includes(status)) {
-        setActiveMilestone(1);
-      } else if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
-        setActiveMilestone(2);
+      if (!isBackground) {
+        if (["draft_request", "request_submitted", "request_validating"].includes(status)) {
+          setActiveMilestone(1);
+        } else if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
+          setActiveMilestone(2);
+        } else if (["quote_review", "comparison_ready", "negotiating"].includes(status)) {
+          setActiveMilestone(3);
+        } else if (["pending_approval"].includes(status)) {
+          setActiveMilestone(4);
+        } else {
+          setActiveMilestone(5);
+        }
+      }
+
+      // Always fetch matched suppliers if status is step 2
+      if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
         const matchesRes = await fetch(`/api/v1/cases/${caseId}/supplier-matches`, {
           method: "POST",
           headers: { "X-Organization-Id": orgId }
         });
         const matchesData = await matchesRes.json();
-        setMatchedSuppliers(matchesData.data || []);
-      } else if (["quote_review", "comparison_ready", "negotiating"].includes(status)) {
-        setActiveMilestone(3);
-      } else if (["pending_approval", "approved", "po_draft"].includes(status)) {
-        setActiveMilestone(4);
-      } else {
-        setActiveMilestone(5);
+        setMatchedSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(matchesData.data || []) ? (matchesData.data || []) : prev);
       }
 
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     } catch (err: any) {
       console.error(err);
-      showToast(err.message || "Không thể đồng bộ dữ liệu hồ sơ thầu.", "error");
-      setLoading(false);
+      if (!isBackground) {
+        showToast(err.message || "Không thể đồng bộ dữ liệu hồ sơ thầu.", "error");
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchData();
+    // Initial fetch is foreground
+    fetchData(false);
+    
+    // Auto-refresh is background
+    const intervalId = setInterval(() => {
+      fetchData(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [caseId]);
 
   useEffect(() => {
@@ -194,7 +275,7 @@ export default function CaseDetailTimeline({
       setActiveMilestone(2);
     } else if (["quote_review", "comparison_ready", "negotiating"].includes(status)) {
       setActiveMilestone(3);
-    } else if (["pending_approval", "approved", "po_draft"].includes(status)) {
+    } else if (["pending_approval"].includes(status)) {
       setActiveMilestone(4);
     } else {
       setActiveMilestone(5);
@@ -347,6 +428,9 @@ export default function CaseDetailTimeline({
   const handleSupplierDiscover = async () => {
     if (!aiSearchQuery) return;
     setLoadingAction("discover_suppliers");
+    setDiscoveryElapsedSec(0);
+    setDiscoveryCandidates([]);
+    setSelectedDiscoveryCandidateIds([]);
     try {
       const res = await fetch(`/api/v1/cases/${caseId}/suppliers/discover`, {
         method: "POST",
@@ -354,10 +438,45 @@ export default function CaseDetailTimeline({
         body: JSON.stringify({ query: aiSearchQuery })
       });
       const data = await res.json();
-      showToast(data.message || "Cào tìm kiếm trực tuyến thành công!", "success");
+      if (data.error) throw new Error(data.error.message);
+      const reviewCount = data.summary?.reviewRequiredCount || 0;
+      setDiscoveryCandidates(data.candidates || []);
+      showToast(
+        data.message || `Crawl xong: ${reviewCount} NCC chờ bạn chọn đưa vào danh sách chính.`,
+        "info"
+      );
       fetchData();
     } catch (e: any) {
-      showToast("Cào tìm kiếm nhà cung cấp thất bại.", "error");
+      showToast(e.message || "Cào tìm kiếm nhà cung cấp thất bại.", "error");
+    } finally {
+      setLoadingAction(null);
+      setDiscoveryElapsedSec(0);
+    }
+  };
+
+  const handlePromoteDiscoveryCandidates = async () => {
+    if (selectedDiscoveryCandidateIds.length === 0) {
+      showToast("Vui lòng chọn ít nhất 1 NCC crawl để thêm vào danh sách chính.", "error");
+      return;
+    }
+
+    setLoadingAction("promote_discovery_candidates");
+    try {
+      const res = await fetch(`/api/v1/cases/${caseId}/suppliers/promote-candidates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
+        body: JSON.stringify({ candidateIds: selectedDiscoveryCandidateIds })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const addedIds = new Set((data.data || []).map((supplier: Supplier) => supplier.id));
+      setDiscoveryCandidates(prev => prev.filter(candidate => !selectedDiscoveryCandidateIds.includes(candidate.id || "")));
+      setSelectedDiscoveryCandidateIds([]);
+      showToast(data.message || `Đã thêm ${addedIds.size} NCC vào danh sách chính.`, data.summary?.addedCount > 0 ? "success" : "info");
+      fetchData();
+    } catch (e: any) {
+      showToast(e.message || "Không thêm được NCC vào danh sách chính.", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -587,50 +706,30 @@ export default function CaseDetailTimeline({
     }
   };
 
-  const handleReceiveGoodsItem = async (itemId: string, itemIdx: number, poId: string) => {
-    const qty = receivedQtys[itemIdx] || 0;
+  // Goods receipt (I) -> auto updates inventory and closes case
+  const handleReceiveAllAndClose = async (poId: string, poItems: any[]) => {
+    const itemsPayload = poItems.map((it: any) => {
+      return {
+        name: it.name,
+        quantityReceived: it.quantity // Chốt nhận đầy đủ 100%!
+      };
+    });
 
-    if (qty <= 0) {
-      showToast("Vui lòng nhập số lượng nhận hợp lệ.", "error");
-      return;
-    }
-
-    setLoadingAction(`receive_${itemIdx}`);
+    setLoadingAction("receive_all");
     try {
-      const poItemName = poList[0]?.items[itemIdx]?.name;
-      const invItem = suppliers.length > 0 ? (await (await fetch("/api/state", { headers: { "X-Organization-Id": orgId } })).json()).inventory.find((i: any) => i.name.toLowerCase() === poItemName.toLowerCase()) : null;
-      
-      if (!invItem) {
-        throw new Error("Không tìm thấy sản phẩm tương ứng trong danh mục Kho để nhập hàng.");
-      }
-
-      const res = await fetch(`/api/inventory/receive-goods`, {
+      const res = await fetch(`/api/v1/purchase-orders/${poId}/receive`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({
-          itemId: invItem.id,
-          quantityReceived: qty,
-          referenceId: poId,
-          createdBy: "Thủ Kho Stally"
+          items: itemsPayload,
+          receivedAt: new Date().toISOString(),
+          forceClose: true
         })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      showToast(`Đã nhận thành công ${qty} ${invItem.unit} ${poItemName} vào kho hàng!`, "success");
-      
-      const allReceived = poList[0]?.items.every((it: any, idx: number) => {
-        if (idx === itemIdx) return true;
-        return (receivedQtys[idx] || 0) >= it.quantity;
-      });
 
-      if (allReceived && qty >= poList[0]?.items[itemIdx]?.quantity) {
-        await fetch(`/api/v1/cases/${caseId}/submit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
-          body: JSON.stringify({ reason: "Thủ kho nhận hàng đầy đủ. Quy trình đóng thầu hoàn tất." })
-        });
-        showToast("Quy trình mua sắm thầu khép kín đã hoàn tất thành công và được Đóng lại!", "success");
-      }
+      showToast("Quy trình mua sắm thầu khép kín đã hoàn tất thành công. Toàn bộ nguyên liệu đã được nhập kho!", "success");
 
       if (onStateChanged) onStateChanged();
       setTimeout(fetchData, 650);
@@ -643,6 +742,34 @@ export default function CaseDetailTimeline({
 
   const formatVND = (num: number) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(num);
+  };
+
+  const renderPermissionLock = (allowedRoles: UserRole[], actionName: string) => {
+    if (!allowedRoles.includes(currentRole)) {
+      const roleLabels: Record<UserRole, string> = {
+        requester: "Bếp Trưởng (Requester)",
+        procurement: "Nhân viên Thu Mua (Procurement)",
+        manager: "Giám Đốc (Manager)",
+        warehouse: "Thủ Kho (Warehouse)",
+        admin: "Quản trị viên (Admin)"
+      };
+      const allowedLabels = allowedRoles.map(r => roleLabels[r]).join(" hoặc ");
+      return (
+        <div className="bg-amber-50 border border-amber-220 p-5 rounded-2xl flex items-start gap-3.5 shadow-sm mb-6 animate-pulse">
+          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">Hạn chế quyền hạn (Role-based Restriction)</h4>
+            <p className="text-xs text-amber-800 font-semibold leading-relaxed">
+              Thao tác <strong className="text-teal-900">"{actionName}"</strong> đang bị khóa đối với vai trò hiện tại của bạn.
+            </p>
+            <p className="text-[10px] text-slate-500 font-bold mt-1">
+              Vai trò của bạn: <span className="text-rose-700 font-black">{roleLabels[currentRole]}</span> | Vai trò được phép: <span className="text-emerald-700 font-black">{allowedLabels}</span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -681,7 +808,7 @@ export default function CaseDetailTimeline({
             <RefreshCw className="w-3.5 h-3.5" /> Làm mới
           </button>
           
-          {caseObj.status !== "closed" && caseObj.status !== "cancelled" && (
+          {caseObj.status !== "closed" && caseObj.status !== "cancelled" && (currentRole === "procurement" || currentRole === "manager") && (
             <button
               onClick={handleCancelCase}
               className="px-4 py-2.5 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white font-black text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-coral-glow"
@@ -698,42 +825,60 @@ export default function CaseDetailTimeline({
           {/* Thick board game dashed line */}
           <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-1 bg-primary-dark/15 border-t-2 border-dashed border-primary-dark/30 hidden md:block z-0" />
           
-          {milestones.map((step) => {
-            const isCompleted = step.num < activeMilestone;
-            const isActive = step.num === activeMilestone;
-            
-            return (
-              <button
-                key={step.num}
-                onClick={() => {
-                  if (step.num <= activeMilestone) {
-                    setActiveMilestone(step.num);
-                  } else {
-                    showToast(`Khóa. Hãy hoàn tất bước hiện tại trước.`, "info");
-                  }
-                }}
-                className={`relative z-10 flex items-center space-x-3 text-left w-full md:w-auto p-3 rounded-2xl border-2 transition-all cursor-pointer ${
-                  isActive ? "bg-accent-gold border-primary-dark shadow-accent-glow scale-[1.03]" : "bg-white border-transparent hover:bg-primary-bg/15"
-                }`}
-              >
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0 border-2 transition-all ${
-                  isCompleted ? "bg-primary border-primary-dark text-white" :
-                  isActive ? "bg-[#FFF8E7] border-primary-dark text-primary-dark animate-pulse shadow-sm" :
-                  "bg-white border-primary-dark/30 text-primary-dark/55"
-                }`}>
-                  {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : step.num}
-                </div>
-                <div>
-                  <p className={`text-[11px] font-black uppercase tracking-wider leading-none ${isActive ? "text-primary-dark" : isCompleted ? "text-primary-dark/85" : "text-primary-dark/45"}`}>
-                    {step.label}
-                  </p>
-                  <p className="text-[8px] font-black text-primary-dark/50 uppercase tracking-widest mt-1.5 leading-none">
-                    {step.desc}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+          {(() => {
+            const getStatusMilestoneNum = (status: string): number => {
+              if (["draft_request", "request_submitted", "request_validating"].includes(status)) {
+                return 1;
+              } else if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
+                return 2;
+              } else if (["quote_review", "comparison_ready", "negotiating"].includes(status)) {
+                return 3;
+              } else if (["pending_approval"].includes(status)) {
+                return 4;
+              } else {
+                return 5;
+              }
+            };
+            const maxMilestone = getStatusMilestoneNum(caseObj.status);
+
+            return milestones.map((step) => {
+              const isCompleted = step.num < maxMilestone;
+              const isActive = step.num === activeMilestone;
+              const isLocked = step.num > maxMilestone;
+              
+              return (
+                <button
+                  key={step.num}
+                  onClick={() => {
+                    if (step.num <= maxMilestone) {
+                      setActiveMilestone(step.num);
+                    } else {
+                      showToast(`Bước này đang bị khóa. Hãy hoàn tất bước hiện tại trước.`, "info");
+                    }
+                  }}
+                  className={`relative z-10 flex items-center space-x-3 text-left w-full md:w-auto p-3 rounded-xl transition-all cursor-pointer ${
+                    isActive ? "bg-[#e0f2f1]/80 border border-[#b2dfdb] scale-102" : "hover:bg-slate-50 border border-transparent"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 transition-all ${
+                    isCompleted ? "bg-teal-600 border-teal-600 text-white" :
+                    step.num === maxMilestone ? "bg-[#00535b] border-[#00535b] text-white animate-pulse" :
+                    "bg-white border-slate-200 text-slate-400"
+                  }`}>
+                    {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : step.num}
+                  </div>
+                  <div>
+                    <p className={`text-xs font-black leading-none ${isActive ? "text-[#00535b]" : !isLocked ? "text-slate-700" : "text-slate-400"}`}>
+                      {step.label}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1 leading-none">
+                      {step.desc}
+                    </p>
+                  </div>
+                </button>
+              );
+            });
+          })()}
         </div>
       </div>
 
@@ -745,10 +890,11 @@ export default function CaseDetailTimeline({
           
           {/* Milestone 1 View: Request Intake & Standardization */}
           {activeMilestone === 1 && (
-            <div className="space-y-6 animate-fade-slide-up">
-              <div className="pb-2 border-b-3 border-dashed border-primary/20">
-                <h3 className="text-base font-black text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
-                  <FileText className="w-5 h-5 text-primary-light" /> Bước 1: Tiếp nhận &amp; Xác minh yêu cầu
+            <div className="space-y-6">
+              {renderPermissionLock(["procurement", "requester"], "Chuẩn hóa & Tiếp nhận Yêu cầu")}
+              <div>
+                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
+                  <FileText className="w-5 h-5 text-teal-600" /> Bước 1: Tiếp nhận &amp; Chuẩn hóa Yêu cầu
                 </h3>
               </div>
 
@@ -810,9 +956,9 @@ export default function CaseDetailTimeline({
               </div>
 
               {/* Add New Item Panel */}
-              {["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) && (
-                <div className="bg-cream border-2 border-primary-dark p-4 rounded-2xl space-y-3 shadow-md">
-                  <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">Thêm mặt hàng mới để chuẩn hóa:</h4>
+              {["procurement", "requester"].includes(currentRole) && ["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) && (
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                  <h4 className="text-xs font-black text-slate-700">Thêm sản phẩm mới chuẩn hóa:</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <input 
                       type="text" 
@@ -861,8 +1007,8 @@ export default function CaseDetailTimeline({
                 {["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) ? (
                   <button
                     onClick={handleIntakeSubmit}
-                    disabled={loadingAction !== null || caseObj.items.length === 0}
-                    className="px-5 py-3 bg-accent-gold hover:bg-accent-dark text-primary-dark border-2 border-primary-dark font-black text-xs rounded-full flex items-center gap-2 shadow-accent-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
+                    disabled={loadingAction !== null || caseObj.items.length === 0 || !["procurement", "requester"].includes(currentRole)}
+                    className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                   >
                     {loadingAction === "submit_intake" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
                     Xác nhận chuẩn hóa &amp; Soạn thầu
@@ -878,10 +1024,11 @@ export default function CaseDetailTimeline({
 
           {/* Milestone 2 View: Supplier Matching & RFQ Compose */}
           {activeMilestone === 2 && (
-            <div className="space-y-6 animate-fade-slide-up">
-              <div className="pb-2 border-b-3 border-dashed border-primary/20">
-                <h3 className="text-base font-black text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
-                  <Building2 className="w-5 h-5 text-primary-light" /> Bước 2: Khớp Nhà Cung Cấp &amp; Phát RFQ
+            <div className="space-y-6">
+              {renderPermissionLock(["procurement"], "Khớp Nhà Cung Cấp & Phát RFQ")}
+              <div>
+                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
+                  <Building2 className="w-5 h-5 text-teal-600" /> Bước 2: Khớp Nhà Cung Cấp &amp; Phát RFQ
                 </h3>
               </div>
 
@@ -893,8 +1040,8 @@ export default function CaseDetailTimeline({
                     <Sparkles className="w-4 h-4 text-accent-gold animate-pulse" />
                     <span>Google Search Grounding Sourcing Crawler</span>
                   </div>
-                  <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
-                    Thiếu nhà cung cấp phù hợp trong danh bạ? Nhập mặt hàng, AI của Stally sẽ cào thông tin định vị địa lý, email và báo giá sỉ thực tế trên Google để giới thiệu đối tác mới!
+                  <p className="text-[11px] text-slate-600 leading-normal">
+                    Không có nhà cung cấp phù hợp trong danh bạ? Gõ từ khóa nguyên liệu, AI sẽ tìm nguồn công khai, kiểm tra contact và chỉ thêm NCC có đủ email/số điện thoại xác minh.
                   </p>
                   <div className="flex gap-2.5">
                     <input 
@@ -913,6 +1060,168 @@ export default function CaseDetailTimeline({
                       AI quét thầu
                     </button>
                   </div>
+                  {loadingAction === "discover_suppliers" && (
+                    <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 space-y-3 animate-fade-slide-up">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-primary text-white border-2 border-primary-dark flex items-center justify-center shrink-0">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-primary-dark uppercase tracking-wider">
+                              Đang crawl nhà cung cấp
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-bold truncate">
+                              {discoverySteps[discoveryStepIndex]}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-black text-primary-dark">{discoveryElapsedSec}s</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">Thời gian chạy</p>
+                        </div>
+                      </div>
+
+                      <div className="h-2.5 bg-slate-100 border border-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary via-accent-gold to-coral transition-all duration-700"
+                          style={{ width: `${discoveryProgress}%` }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {discoverySteps.map((step, index) => {
+                          const isDone = index < discoveryStepIndex;
+                          const isActive = index === discoveryStepIndex;
+                          return (
+                            <div
+                              key={step}
+                              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-black ${
+                                isActive
+                                  ? "bg-accent-light/20 border-accent-gold text-primary-dark"
+                                  : isDone
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                    : "bg-slate-50 border-slate-200 text-slate-400"
+                              }`}
+                            >
+                              {isDone ? (
+                                <Check className="w-3 h-3 shrink-0" />
+                              ) : isActive ? (
+                                <RefreshCw className="w-3 h-3 shrink-0 animate-spin" />
+                              ) : (
+                                <Clock className="w-3 h-3 shrink-0" />
+                              )}
+                              <span className="truncate">{step}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <p className="text-[10px] text-slate-500 font-bold leading-snug">
+                        Bước này có thể mất 20-60 giây. Sau khi crawl xong, bạn sẽ chọn NCC nào được đưa vào danh sách chính.
+                      </p>
+                    </div>
+                  )}
+                  {discoveryCandidates.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-slate-500">Kết quả crawl chờ duyệt ({discoveryCandidates.length})</p>
+                          <p className="text-[10px] text-slate-500 font-bold">Tick chọn NCC bạn muốn đưa vào danh sách chính trước khi gửi RFQ.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const eligibleIds = discoveryCandidates.filter(c => c.autoAddEligible && c.id).map(c => c.id as string);
+                              setSelectedDiscoveryCandidateIds(eligibleIds);
+                            }}
+                            className="text-[10px] font-black px-2.5 py-1.5 bg-white border border-primary-dark/20 rounded-lg text-primary-dark hover:bg-cream"
+                          >
+                            Chọn đủ điều kiện
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDiscoveryCandidates([]);
+                              setSelectedDiscoveryCandidateIds([]);
+                            }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-slate-700"
+                          >
+                            Ẩn
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {discoveryCandidates.map((candidate, index) => (
+                          <div
+                            key={candidate.id || `${candidate.name}-${index}`}
+                            className={`bg-white border rounded-lg p-3 space-y-2 transition ${
+                              selectedDiscoveryCandidateIds.includes(candidate.id || "")
+                                ? "border-primary-dark ring-2 ring-accent-gold/50"
+                                : "border-slate-200"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <label className="flex items-start gap-2 cursor-pointer min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedDiscoveryCandidateIds.includes(candidate.id || "")}
+                                  disabled={!candidate.id}
+                                  onChange={() => {
+                                    if (!candidate.id) return;
+                                    setSelectedDiscoveryCandidateIds(prev =>
+                                      prev.includes(candidate.id!)
+                                        ? prev.filter(id => id !== candidate.id)
+                                        : [...prev, candidate.id!]
+                                    );
+                                  }}
+                                  className="mt-0.5 w-3.5 h-3.5 accent-primary shrink-0"
+                                />
+                                <div className="min-w-0">
+                                <p className="text-xs font-black text-slate-800 leading-snug">{candidate.name}</p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">{candidate.address || "Chưa có địa chỉ"}</p>
+                                </div>
+                              </label>
+                              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
+                                candidate.autoAddEligible ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                              }`}>
+                                {candidate.autoAddEligible ? "Có thể thêm" : "Cần kiểm tra"} · {candidate.confidence}%
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-600 space-y-0.5">
+                              <p>Email: <span className="font-bold">{candidate.email || "chưa xác minh"}</span></p>
+                              <p>SĐT: <span className="font-bold">{candidate.phone || "chưa xác minh"}</span></p>
+                              {candidate.website && (
+                                <p className="truncate">Web: <span className="font-bold">{candidate.website}</span></p>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-500 leading-snug">{candidate.evidence}</p>
+                            {candidate.riskFlags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {candidate.riskFlags.slice(0, 2).map((risk) => (
+                                  <span key={risk} className="text-[9px] bg-amber-50 text-amber-700 border border-amber-100 rounded px-1.5 py-0.5 font-bold">
+                                    {risk}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-3 bg-white border-2 border-primary-dark/20 rounded-2xl p-3">
+                        <p className="text-[10px] text-slate-600 font-bold">
+                          Đã chọn <span className="font-black text-primary-dark">{selectedDiscoveryCandidateIds.length}</span> NCC để đưa vào danh sách chính.
+                        </p>
+                        <button
+                          onClick={handlePromoteDiscoveryCandidates}
+                          disabled={loadingAction !== null || selectedDiscoveryCandidateIds.length === 0}
+                          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark rounded-xl text-[10px] font-black uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        >
+                          {loadingAction === "promote_discovery_candidates" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                          Thêm vào danh sách chính
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1046,8 +1355,8 @@ export default function CaseDetailTimeline({
                       {rfqDrafts.length === 0 ? (
                         <button
                           onClick={handleSelectSuppliers}
-                          disabled={loadingAction !== null}
-                          className="w-full sm:w-auto px-5 py-3 bg-accent-gold hover:bg-accent-dark text-primary-dark border-2 border-primary-dark font-black text-xs rounded-full flex items-center justify-center gap-2 shadow-accent-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
+                          disabled={loadingAction !== null || currentRole !== "procurement"}
+                          className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "draft_rfq" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                           AI Soạn thư thầu
@@ -1055,8 +1364,8 @@ export default function CaseDetailTimeline({
                       ) : (
                         <button
                           onClick={handleSendRfqs}
-                          disabled={loadingAction !== null}
-                          className="w-full sm:w-auto px-5 py-3 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-full flex items-center justify-center gap-2 shadow-teal-glow transition transform active:scale-95 cursor-pointer animate-pulse uppercase tracking-wider"
+                          disabled={loadingAction !== null || currentRole !== "procurement"}
+                          className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer animate-bounce disabled:opacity-50"
                         >
                           {loadingAction === "send_rfqs" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                           Gửi thầu Gmail chính thức
@@ -1079,9 +1388,9 @@ export default function CaseDetailTimeline({
                 </div>
               </div>
 
-              {/* Simulator Section for Demo purposes (Cream/dashed card) */}
-              {["collecting_quotes", "rfq_sent"].includes(caseObj.status) && (
-                <div className="bg-cream border-3 border-dashed border-primary-dark/30 p-5 rounded-3xl space-y-4 shadow-sm">
+              {/* Simulator Section for internal debugging only */}
+              {showDevTools && ["collecting_quotes", "rfq_sent"].includes(caseObj.status) && (
+                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4.5 h-4.5 text-accent-gold animate-spin-slow" />
                     <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">Giả lập nhà cung cấp phản hồi thầu</h4>
@@ -1130,8 +1439,8 @@ export default function CaseDetailTimeline({
                   <div className="flex justify-end">
                     <button
                       onClick={handleSimulateQuote}
-                      disabled={loadingAction !== null}
-                      className="px-5 py-2.5 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white font-black text-xs rounded-full flex items-center gap-1.5 shadow-coral-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
+                      disabled={loadingAction !== null || currentRole !== "procurement"}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                     >
                       {loadingAction === "simulate_quote" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
                       Giả lập nộp thầu (Simulate Webhook)
@@ -1144,10 +1453,11 @@ export default function CaseDetailTimeline({
 
           {/* Milestone 3 View: Side-by-side Matrix and AI Negotiation */}
           {activeMilestone === 3 && (
-            <div className="space-y-6 animate-fade-slide-up">
-              <div className="pb-2 border-b-3 border-dashed border-primary/20">
-                <h3 className="text-base font-black text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
-                  <Scale className="w-5 h-5 text-primary-light" /> Bước 3: So sánh &amp; Thương lượng giá (AI Negotiation)
+            <div className="space-y-6">
+              {renderPermissionLock(["procurement"], "Đối Chiếu Báo Giá & AI Negotiation")}
+              <div>
+                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
+                  <Scale className="w-5 h-5 text-teal-600" /> Bước 3: So sánh &amp; Thương lượng giá (AI Negotiation)
                 </h3>
               </div>
 
@@ -1233,7 +1543,8 @@ export default function CaseDetailTimeline({
                               {caseObj.status !== "pending_approval" && caseObj.status !== "approved" && caseObj.status !== "closed" ? (
                                 <button
                                   onClick={() => handleRequestApproval(q.id)}
-                                  className="w-full py-1.5 bg-accent-gold hover:bg-accent-dark border-2 border-primary-dark text-primary-dark font-black text-[9px] rounded-full uppercase transition transform active:scale-95 shadow-sm cursor-pointer text-center"
+                                  disabled={currentRole !== "procurement"}
+                                  className="w-full py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:opacity-50"
                                 >
                                   Trình duyệt PO
                                 </button>
@@ -1290,8 +1601,8 @@ export default function CaseDetailTimeline({
                       <div className="flex justify-end">
                         <button
                           onClick={handleDraftNegotiation}
-                          disabled={negLoading || !selectedNegSupplier}
-                          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-full flex items-center gap-1.5 shadow-teal-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
+                          disabled={negLoading || !selectedNegSupplier || currentRole !== "procurement"}
+                          className="px-4 py-2.5 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           {negLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                           AI soạn thư đàm phán
@@ -1313,8 +1624,8 @@ export default function CaseDetailTimeline({
                             <button onClick={() => setNegDraft(null)} className="px-4 py-1.5 bg-white hover:bg-slate-55 border-2 border-primary-dark text-primary-dark rounded-full font-black text-xs uppercase cursor-pointer">Hủy</button>
                             <button
                               onClick={handleSendNegotiation}
-                              disabled={loadingAction !== null}
-                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-black text-xs flex items-center gap-1.5 border-2 border-primary-dark shadow-teal-glow cursor-pointer uppercase"
+                              disabled={loadingAction !== null || currentRole !== "procurement"}
+                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               {loadingAction === "send_neg" ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                               Gửi email Gmail
@@ -1339,10 +1650,11 @@ export default function CaseDetailTimeline({
 
           {/* Milestone 4 View: Manager Approval Queue */}
           {activeMilestone === 4 && (
-            <div className="space-y-6 animate-fade-slide-up">
-              <div className="pb-2 border-b-3 border-dashed border-primary/20">
-                <h3 className="text-base font-black text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
-                  <Award className="w-5 h-5 text-primary-light" /> Bước 4: Giám Đốc Phê Duyệt Hồ Sơ Thầu (CEO Review)
+            <div className="space-y-6">
+              {renderPermissionLock(["manager"], "Giám Đốc Phê Duyệt Hồ Sơ Thầu")}
+              <div>
+                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
+                  <Award className="w-5 h-5 text-teal-600" /> Bước 4: Giám Đốc Phê Duyệt Hồ Sơ Thầu (CEO Review)
                 </h3>
               </div>
 
@@ -1398,16 +1710,16 @@ export default function CaseDetailTimeline({
                       <div className="flex justify-end gap-3 flex-wrap">
                         <button
                           onClick={handleReject}
-                          disabled={loadingAction !== null}
-                          className="px-4 py-2.5 bg-white hover:bg-cream border-2 border-coral text-coral font-black text-xs rounded-full flex items-center gap-1.5 transition transform active:scale-95 cursor-pointer shadow-coral-glow uppercase tracking-wider"
+                          disabled={loadingAction !== null || currentRole !== "manager"}
+                          className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "reject_po" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ThumbsDown className="w-3.5 h-3.5" />}
                           Bác bỏ &amp; Đàm phán lại
                         </button>
                         <button
                           onClick={handleApprove}
-                          disabled={loadingAction !== null}
-                          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-full flex items-center gap-1.5 transition shadow-teal-glow transform active:scale-95 cursor-pointer uppercase tracking-wider"
+                          disabled={loadingAction !== null || currentRole !== "manager"}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "approve_po" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
                           Ký duyệt phê duyệt đơn PO
@@ -1479,77 +1791,70 @@ export default function CaseDetailTimeline({
                       </div>
 
                       {/* PO Items List with Goods receipt fields */}
-                      <div className="space-y-3.5">
-                        <p className="text-xs font-black text-primary-dark uppercase tracking-wider">Chi tiết thầu &amp; Đối soát nhập thực tế:</p>
+                      <div className="space-y-3">
+                        <p className="text-xs font-bold text-slate-700">Chi tiết sản phẩm đặt hàng (PO):</p>
                         
-                        <div className="space-y-3.5">
+                        <div className="space-y-2.5">
                           {po.items.map((it, idx) => (
-                            <div key={idx} className="bg-surface-base border-2 border-primary-dark/30 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm relative">
-                              <div className="absolute top-0 left-0 bottom-0 w-1 bg-primary rounded-l-xl" />
-                              <div className="space-y-0.5 flex-1 pr-4 pl-1">
-                                <p className="font-black text-xs text-primary-dark uppercase tracking-wide">{it.name}</p>
-                                <p className="text-[9.5px] text-primary-dark/60 font-black font-mono mt-1">Đặt thầu: {it.quantity} {it.unit} | Đơn giá: {formatVND(it.unitPrice)}</p>
+                            <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex justify-between items-center gap-4">
+                              <div className="space-y-0.5 flex-1 pr-4">
+                                <p className="font-black text-xs text-slate-900">{it.name}</p>
+                                <p className="text-[10px] text-slate-500 font-bold font-mono">Số lượng đặt: {it.quantity} {it.unit} | Đơn giá: {formatVND(it.unitPrice)}</p>
                               </div>
-
-                              {po.status === "confirmed" ? (
-                                <div className="flex flex-wrap items-center gap-3.5 shrink-0 w-full md:w-auto">
-                                  <div className="flex flex-col space-y-1">
-                                    <label className="text-[9px] font-black text-primary-dark/70 uppercase block">Thực nhận:</label>
-                                    <input 
-                                      type="number"
-                                      placeholder="Số lượng"
-                                      value={receivedQtys[idx] || ""}
-                                      onChange={e => setReceivedQtys(prev => ({ ...prev, [idx]: Number(e.target.value) }))}
-                                      className="w-20 p-1.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-mono font-black text-primary-dark text-center focus:outline-none"
-                                    />
-                                  </div>
-
-                                  <div className="flex flex-col space-y-1">
-                                    <label className="text-[9px] font-black text-primary-dark/70 uppercase block">Đánh giá:</label>
-                                    <select 
-                                      value={qualityStatuses[idx] || "accepted"}
-                                      onChange={e => setQualityStatuses(prev => ({ ...prev, [idx]: e.target.value }))}
-                                      className="p-1.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-black text-primary-dark focus:outline-none"
-                                    >
-                                      <option value="accepted">Đạt chuẩn 🟢</option>
-                                      <option value="damaged">Bị lỗi hỏng 🔴</option>
-                                      <option value="expired">Móp méo/Hạn 🟡</option>
-                                    </select>
-                                  </div>
-
-                                  <div className="flex flex-col space-y-1 justify-end pt-4">
-                                    {caseObj.status !== "closed" ? (
-                                      <button
-                                        onClick={() => handleReceiveGoodsItem(po.supplierId, idx, po.id)}
-                                        disabled={loadingAction === `receive_${idx}`}
-                                        className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-[9px] rounded-full uppercase transition transform active:scale-95 shadow-sm cursor-pointer"
-                                      >
-                                        {loadingAction === `receive_${idx}` ? "Nhập..." : "Nhập Kho"}
-                                      </button>
-                                    ) : (
-                                      <span className="text-success text-[10px] font-black flex items-center gap-0.5">✓ Nhập kho</span>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-xs text-primary-dark/50 italic font-bold">Cần phát hành PO chính thức trước khi nhập kho.</div>
-                              )}
+                              <div className="text-right shrink-0">
+                                <p className="text-xs font-mono font-bold text-slate-750">{formatVND(it.quantity * it.unitPrice)}</p>
+                                {caseObj.status === "closed" ? (
+                                  <span className="text-[10px] font-black text-emerald-700 mt-1 flex items-center gap-1 justify-end">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 animate-pulse" /> Đã nhập {it.quantity} {it.unit}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-teal-600/80 mt-1 block">Chờ nhập kho</span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
 
                       {/* PO Draft Trigger */}
-                      {po.status !== "confirmed" && (
+                      {po.status === "issued" && (
                         <div className="flex justify-end pt-3">
                           <button
                             onClick={() => handleSendPo(po.id)}
-                            disabled={loadingAction !== null}
-                            className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-full flex items-center gap-1.5 transition shadow-teal-glow transform active:scale-95 cursor-pointer uppercase tracking-wider animate-pulse"
+                            disabled={loadingAction !== null || currentRole !== "procurement"}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                           >
                             {loadingAction === "send_po" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                             Gửi thầu PO chính thức
                           </button>
+                        </div>
+                      )}
+
+                      {po.status === "issued" && currentRole !== "procurement" && (
+                        <div className="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-850 font-bold mt-3.5 flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-amber-600" />
+                          <span>Chỉ Nhân viên Thu Mua mới có quyền gửi đơn PO đặt hàng.</span>
+                        </div>
+                      )}
+
+                      {/* PO Received / Check-in and Close Trigger */}
+                      {po.status === "confirmed" && caseObj.status !== "closed" && (
+                        <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
+                          <button
+                            onClick={() => handleReceiveAllAndClose(po.id, po.items)}
+                            disabled={loadingAction === "receive_all" || currentRole !== "warehouse"}
+                            className="w-full sm:w-auto px-6 py-3 bg-[#006d77] hover:bg-[#00535b] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loadingAction === "receive_all" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Boxes className="w-4 h-4" />}
+                            Xác nhận Kiểm Kho &amp; Hoàn Tất Nhập Kho (1-Click)
+                          </button>
+                        </div>
+                      )}
+
+                      {po.status === "confirmed" && caseObj.status !== "closed" && currentRole !== "warehouse" && (
+                        <div className="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-850 font-bold mt-4 flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-amber-600" />
+                          <span>Chỉ Thủ Kho mới có quyền xác nhận thực nhận và nhập kho.</span>
                         </div>
                       )}
                     </div>
@@ -1563,14 +1868,23 @@ export default function CaseDetailTimeline({
                   </p>
                   
                   {caseObj.status === "po_draft" || caseObj.status === "approved" ? (
-                    <button
-                      onClick={handleCreatePoDraft}
-                      disabled={loadingAction !== null}
-                      className="px-5 py-3 bg-accent-gold hover:bg-accent-dark text-primary-dark border-2 border-primary-dark font-black text-xs rounded-full flex items-center gap-1.5 shadow-accent-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
-                    >
-                      {loadingAction === "po_draft" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 text-primary-dark" />}
-                      Khởi tạo bản thảo PO
-                    </button>
+                    <>
+                      <button
+                        onClick={handleCreatePoDraft}
+                        disabled={loadingAction !== null || currentRole !== "procurement"}
+                        className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
+                      >
+                        {loadingAction === "po_draft" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Khởi tạo bản thảo Đơn PO
+                      </button>
+                      
+                      {currentRole !== "procurement" && (
+                        <div className="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-850 font-bold mt-2 flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-amber-600" />
+                          <span>Chỉ Nhân viên Thu Mua mới có quyền khởi tạo bản thảo Đơn PO.</span>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-xs text-primary-dark/50 italic font-black">Chờ duyệt thầu của Giám đốc ở Bước 4...</div>
                   )}
