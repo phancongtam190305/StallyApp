@@ -111,6 +111,40 @@ export let dbState: any = {
 // ----------------------------------------------------
 // MIDDLEWARES
 // ----------------------------------------------------
+
+// Lazy database state loading for Vercel Serverless environment
+let isDbInitialized = false;
+let initPromise: Promise<void> | null = null;
+
+async function ensureDbInitialized() {
+  if (isDbInitialized) return;
+  if (!initPromise) {
+    initPromise = (async () => {
+      await initDb();
+      const loaded = await loadDbState();
+      // Safely map each loaded table state back to the exported dbState reference
+      Object.keys(loaded).forEach((key) => {
+        if (dbState[key] && Array.isArray(dbState[key])) {
+          dbState[key] = loaded[key];
+        }
+      });
+      isDbInitialized = true;
+      console.log(`[Stally DB Init] 📂 Lazily loaded Supabase Postgres state successfully. Organizations: ${dbState.organizations.length}, Cases: ${dbState.procurement_cases.length}`);
+    })();
+  }
+  await initPromise;
+}
+
+app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    await ensureDbInitialized();
+    next();
+  } catch (err) {
+    console.error("Database lazy initialization failed in request middleware:", err);
+    next(err);
+  }
+});
+
 const organizationChecker = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Always restrict to user tenant for security
   const orgId = req.headers["x-organization-id"] || "org-1";
