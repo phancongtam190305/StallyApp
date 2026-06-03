@@ -112,6 +112,31 @@ export let dbState: any = {
 // ----------------------------------------------------
 // MIDDLEWARES
 // ----------------------------------------------------
+
+// ----------------------------------------------------
+// MIDDLEWARES
+// ----------------------------------------------------
+
+import { persistDbStateNow } from "./src/backend/db.ts";
+
+// Guarantee 100% real-time container consistency in serverless environments
+// by reloading database state from Supabase Postgres on every incoming request
+app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    await initDb();
+    const loaded = await loadDbState();
+    // Safely map each loaded table state back to the exported dbState reference
+    Object.keys(loaded).forEach((key) => {
+      if (dbState[key] && Array.isArray(dbState[key])) {
+        dbState[key] = loaded[key];
+      }
+    });
+  } catch (err) {
+    console.error("[Stally DB Sync] ❌ Database state reloading failed:", err);
+  }
+  next();
+});
+
 const organizationChecker = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Always restrict to user tenant for security
   const orgId = req.headers["x-organization-id"] || "org-1";
@@ -131,14 +156,24 @@ const shouldAutoPersistRequest = (req: express.Request) => {
 // Auto-persist in-memory changes back to Supabase after mutating requests.
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   const shouldPersist = shouldAutoPersistRequest(req);
-  res.on("finish", () => {
+  const originalJson = res.json;
+  res.json = function (body) {
     if (!shouldPersist) return;
-    try {
-      persistDbState(dbState);
-    } catch (err) {
-      console.error("Failed to persist database state:", err);
+    if (["POST", "PUT", "DELETE"].includes(req.method)) {
+      persistDbStateNow(dbState)
+        .then(() => {
+          console.log(`[Stally Sync] 💾 Synchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);
+          originalJson.call(res, body);
+        })
+        .catch((err) => {
+          console.error("[Stally Sync] ❌ Failed to persist database state synchronously:", err);
+          originalJson.call(res, body);
+        });
+    } else {
+      originalJson.call(res, body);
     }
-  });
+    return res;
+  };
   next();
 });
 
@@ -189,6 +224,8 @@ app.get("/api/email/status", (_req, res) => {
 });
 
 app.use("/api/v1", apiV1Router);
+
+
 
 // Extend Express Request type
 declare global {
@@ -1030,4 +1067,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export { app };

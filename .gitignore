@@ -13,3 +13,5 @@ coverage/
 chrome-profile/
 chrome_log.txt
 chrome_error.log
+
+.vercel
