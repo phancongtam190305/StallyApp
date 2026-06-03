@@ -16,6 +16,7 @@ import {
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json());
 
 const PORT = Number(process.env.PORT || 3000);
@@ -120,9 +121,18 @@ const organizationChecker = (req: express.Request, res: express.Response, next: 
 
 app.use(organizationChecker);
 
-// Auto-persist in-memory changes back to SQLite database at the end of every request
+const shouldAutoPersistRequest = (req: express.Request) => {
+  if (process.env.AUTO_PERSIST_ENABLED === "false") return false;
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return false;
+  if (req.path.startsWith("/api/v1/auth/")) return false;
+  return true;
+};
+
+// Auto-persist in-memory changes back to Supabase after mutating requests.
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const shouldPersist = shouldAutoPersistRequest(req);
   res.on("finish", () => {
+    if (!shouldPersist) return;
     try {
       persistDbState(dbState);
     } catch (err) {

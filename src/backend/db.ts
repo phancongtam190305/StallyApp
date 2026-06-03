@@ -574,13 +574,17 @@ export function parseEmailMessage(row: any): EmailMessage {
 let persistChain = Promise.resolve();
 
 export function persistDbState(dbState: any) {
-  if (!dbState) return;
+  if (!dbState) return Promise.resolve();
 
-  persistChain = persistChain
-    .then(() => persistDbStateNow(dbState))
-    .catch((err) => {
+  const operation = persistChain.then(() => persistDbStateNow(dbState));
+  persistChain = operation.catch((err) => {
       console.error("Failed to persist database state to Supabase:", err);
     });
+  return operation;
+}
+
+export async function persistUser(user: any) {
+  await upsert("users", user);
 }
 
 export async function persistDbStateNow(dbState: any) {

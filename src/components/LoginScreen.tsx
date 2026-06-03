@@ -21,6 +21,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>("procurement");
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [emailRoleAuthEnabled, setEmailRoleAuthEnabled] = useState(false);
+  const [googleOAuthEnabled, setGoogleOAuthEnabled] = useState(false);
+  const [googleOAuthAutoProvisionEnabled, setGoogleOAuthAutoProvisionEnabled] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [resolvedUser, setResolvedUser] = useState<AppUser | null>(null);
   const [loginError, setLoginError] = useState("");
@@ -29,9 +31,26 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   useEffect(() => {
     fetch("/api/v1/auth/config")
       .then(res => res.json())
-      .then(data => setEmailRoleAuthEnabled(Boolean(data.data?.emailRoleAuthEnabled)))
+      .then(data => {
+        setEmailRoleAuthEnabled(Boolean(data.data?.emailRoleAuthEnabled));
+        setGoogleOAuthEnabled(Boolean(data.data?.googleOAuthEnabled));
+        setGoogleOAuthAutoProvisionEnabled(Boolean(data.data?.googleOAuthAutoProvisionEnabled));
+      })
       .catch(() => setEmailRoleAuthEnabled(false));
   }, []);
+
+  useEffect(() => {
+    fetch("/api/v1/auth/session", {
+      headers: { "X-Organization-Id": "org-1" }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.data) {
+          onLogin(data.data.role, false, data.data);
+        }
+      })
+      .catch(() => {});
+  }, [onLogin]);
 
   const roles = [
     {
@@ -125,6 +144,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const handleSelectTutorialMode = (wantsTutorial: boolean) => {
     setShowQuestionModal(false);
     onLogin(resolvedUser?.role || selectedRole, wantsTutorial, resolvedUser || undefined);
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "/api/v1/auth/google/start";
   };
 
   return (
@@ -269,6 +292,23 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
 
               <form onSubmit={handleSubmit} className="pt-6 border-t border-white/20 space-y-3">
+                {googleOAuthEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      className="w-full bg-white hover:bg-cream text-primary-dark font-black text-xs p-3.5 rounded-full cursor-pointer border-2 border-primary-dark transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.95] flex items-center justify-center gap-2 tracking-widest uppercase shadow-md"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center font-black text-[11px] text-[#4285F4]">G</span>
+                      ĐĂNG NHẬP BẰNG GOOGLE
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-white/20" />
+                      <span className="text-[9px] text-white/45 font-black uppercase">hoặc</span>
+                      <div className="h-px flex-1 bg-white/20" />
+                    </div>
+                  </>
+                )}
                 {emailRoleAuthEnabled && (
                   <div className="space-y-2">
                     <label className="text-[10px] uppercase tracking-widest text-accent-light font-black">
@@ -300,7 +340,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   {checkingLogin ? "ĐANG KIỂM TRA EMAIL..." : "BẮT ĐẦU VẬN HÀNH"} <Sparkles className="w-4 h-4 text-primary-dark" />
                 </button>
                 <p className="text-[9px] text-center text-white/50 leading-none flex items-center justify-center gap-1.5 font-bold uppercase tracking-widest">
-                  <HelpCircle className="w-3.5 h-3.5" /> {emailRoleAuthEnabled ? "Phân quyền theo email" : "Test mode: chọn role nhanh"}
+                  <HelpCircle className="w-3.5 h-3.5" /> {googleOAuthEnabled ? googleOAuthAutoProvisionEnabled ? "Google OAuth: tự tạo user mới" : "Google OAuth + phân quyền Supabase" : emailRoleAuthEnabled ? "Phân quyền theo email" : "Test mode: chọn role nhanh"}
                 </p>
               </form>
             </div>
