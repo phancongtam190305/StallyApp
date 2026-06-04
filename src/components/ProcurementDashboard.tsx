@@ -29,12 +29,14 @@ interface ProcurementDashboardProps {
   currentRole: UserRole;
   orgId: string;
   onSelectCase: (caseId: string) => void;
+  isActive?: boolean;
 }
 
 export default function ProcurementDashboard({ 
   currentRole, 
   orgId, 
-  onSelectCase 
+  onSelectCase,
+  isActive = true
 }: ProcurementDashboardProps) {
 
   const { showToast } = useToast();
@@ -55,9 +57,9 @@ export default function ProcurementDashboard({
   ]);
   const [creating, setCreating] = useState(false);
 
-  const fetchCases = async () => {
+  const fetchCases = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const res = await fetch(apiUrl(`/api/v1/cases`), {
         headers: { "X-Organization-Id": orgId }
       });
@@ -72,8 +74,10 @@ export default function ProcurementDashboard({
   };
 
   useEffect(() => {
-    fetchCases();
-  }, []);
+    if (isActive) {
+      fetchCases(cases.length > 0);
+    }
+  }, [orgId, isActive]);
 
   const lanes = [
     {

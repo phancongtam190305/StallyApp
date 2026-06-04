@@ -476,51 +476,56 @@ export function AppContent() {
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300">
-            {activeTab === "overview" && (
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
-                {currentRole === "requester" ? (
-                  <RequesterDashboard
-                    inventory={inventory}
-                    purchaseRequests={purchaseRequests}
-                    onCreatePr={handleCreatePr}
-                    currentRole={currentRole}
-                    setActiveTab={setActiveTab}
-                  />
-                ) : currentRole === "warehouse" ? (
-                  <WarehouseDashboard
-                    inventory={inventory}
-                    stockMovements={stockMovements}
-                    currentRole={currentRole}
-                    onReceiveGoods={handleReceiveGoods}
-                    onAdjustStock={handleAdjustStock}
-                    onCreatePrFromStock={handleCreatePrFromStock}
-                    setActiveTab={setActiveTab}
-                  />
-                ) : currentRole === "manager" ? (
-                  <ManagerDashboard
-                    purchaseRequests={purchaseRequests}
-                    rfqs={rfqs}
-                    quotes={quotes}
-                    suppliers={suppliers}
-                    onApproveQuote={handleApproveQuote}
-                    setActiveTab={setActiveTab}
-                  />
-                ) : (
-                  <StatsDashboard 
-                    purchaseRequests={purchaseRequests}
-                    rfqs={rfqs}
-                    quotes={quotes}
-                    inventory={inventory}
-                    onCreatePrFromStock={handleCreatePrFromStock}
-                    setActiveTab={setActiveTab}
-                  />
-                )
-              }
-              </div>
-            )}
+            {/* Overview Tab */}
+            <div 
+              className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6"
+              style={{ display: activeTab === "overview" ? "block" : "none" }}
+            >
+              {currentRole === "requester" ? (
+                <RequesterDashboard
+                  inventory={inventory}
+                  purchaseRequests={purchaseRequests}
+                  onCreatePr={handleCreatePr}
+                  currentRole={currentRole}
+                  setActiveTab={setActiveTab}
+                />
+              ) : currentRole === "warehouse" ? (
+                <WarehouseDashboard
+                  inventory={inventory}
+                  stockMovements={stockMovements}
+                  currentRole={currentRole}
+                  onReceiveGoods={handleReceiveGoods}
+                  onAdjustStock={handleAdjustStock}
+                  onCreatePrFromStock={handleCreatePrFromStock}
+                  setActiveTab={setActiveTab}
+                />
+              ) : currentRole === "manager" ? (
+                <ManagerDashboard
+                  purchaseRequests={purchaseRequests}
+                  rfqs={rfqs}
+                  quotes={quotes}
+                  suppliers={suppliers}
+                  onApproveQuote={handleApproveQuote}
+                  setActiveTab={setActiveTab}
+                />
+              ) : (
+                <StatsDashboard 
+                  purchaseRequests={purchaseRequests}
+                  rfqs={rfqs}
+                  quotes={quotes}
+                  inventory={inventory}
+                  onCreatePrFromStock={handleCreatePrFromStock}
+                  setActiveTab={setActiveTab}
+                />
+              )}
+            </div>
 
-            {activeTab === "cases" && (
-              selectedCaseId ? (
+            {/* Cases Tab */}
+            <div 
+              className="flex-1 min-h-0 flex flex-col overflow-hidden"
+              style={{ display: activeTab === "cases" ? "flex" : "none" }}
+            >
+              {selectedCaseId ? (
                 <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
                   <CaseDetailTimeline
                     caseId={selectedCaseId}
@@ -536,71 +541,83 @@ export function AppContent() {
                     currentRole={currentRole}
                     orgId={orgId}
                     onSelectCase={(caseId) => setSelectedCaseId(caseId)}
+                    isActive={activeTab === "cases"}
                   />
                 </div>
-              )
-            )}
+              )}
+            </div>
 
-            {activeTab === "pr" && (
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
-                <PurchaseRequestsList 
-                  purchaseRequests={purchaseRequests}
-                  currentRole={currentRole}
-                  onCreatePr={handleCreatePr}
-                  onSelectPrForSourcing={(pr) => {
-                    setSelectedPr(pr);
-                  }}
-                  setActiveTab={setActiveTab}
-                />
-              </div>
-            )}
+            {/* PR Tab */}
+            <div 
+              className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6"
+              style={{ display: activeTab === "pr" ? "block" : "none" }}
+            >
+              <PurchaseRequestsList 
+                purchaseRequests={purchaseRequests}
+                currentRole={currentRole}
+                onCreatePr={handleCreatePr}
+                onSelectPrForSourcing={(pr) => {
+                  setSelectedPr(pr);
+                }}
+                setActiveTab={setActiveTab}
+              />
+            </div>
 
-            {activeTab === "rfq" && (
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
-                <RfqComparison 
-                  selectedPr={selectedPr}
-                  rfqs={rfqs}
-                  quotes={quotes}
-                  suppliers={suppliers}
-                  currentRole={currentRole}
-                  onCreateRfq={handleCreateRfq}
-                  onApproveQuote={handleApproveQuote}
-                  onSimulateInboundEmail={handleSimulateInboundEmail}
-                />
-              </div>
-            )}
+            {/* RFQ Tab */}
+            <div 
+              className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6"
+              style={{ display: activeTab === "rfq" ? "block" : "none" }}
+            >
+              <RfqComparison 
+                selectedPr={selectedPr}
+                rfqs={rfqs}
+                quotes={quotes}
+                suppliers={suppliers}
+                currentRole={currentRole}
+                onCreateRfq={handleCreateRfq}
+                onApproveQuote={handleApproveQuote}
+                onSimulateInboundEmail={handleSimulateInboundEmail}
+              />
+            </div>
 
-            {activeTab === "suppliers" && (
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
-                <SupplierManagement 
-                  currentRole={currentRole}
-                  orgId={orgId}
-                  onSuppliersChanged={syncStateFromServer}
-                />
-              </div>
-            )}
+            {/* Suppliers Tab */}
+            <div 
+              className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6"
+              style={{ display: activeTab === "suppliers" ? "block" : "none" }}
+            >
+              <SupplierManagement 
+                currentRole={currentRole}
+                orgId={orgId}
+                onSuppliersChanged={syncStateFromServer}
+                isActive={activeTab === "suppliers"}
+              />
+            </div>
 
-            {activeTab === "inventory" && (
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
-                <InventoryManager 
-                  inventory={inventory}
-                  stockMovements={stockMovements}
-                  currentRole={currentRole}
-                  onReceiveGoods={handleReceiveGoods}
-                  onAdjustStock={handleAdjustStock}
-                  onCreatePrFromStock={handleCreatePrFromStock}
-                />
-              </div>
-            )}
+            {/* Inventory Tab */}
+            <div 
+              className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6"
+              style={{ display: activeTab === "inventory" ? "block" : "none" }}
+            >
+              <InventoryManager 
+                inventory={inventory}
+                stockMovements={stockMovements}
+                currentRole={currentRole}
+                onReceiveGoods={handleReceiveGoods}
+                onAdjustStock={handleAdjustStock}
+                onCreatePrFromStock={handleCreatePrFromStock}
+              />
+            </div>
 
-            {activeTab === "chatbot" && (
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6">
-                <ChatbotPanel 
-                  onCreatePr={handleCreatePr}
-                  setActiveTab={setActiveTab}
-                />
-              </div>
-            )}
+            {/* Chatbot Tab */}
+            <div 
+              className="flex-1 overflow-y-auto min-h-0 pr-1 pb-6"
+              style={{ display: activeTab === "chatbot" ? "block" : "none" }}
+            >
+              <ChatbotPanel 
+                onCreatePr={handleCreatePr}
+                setActiveTab={setActiveTab}
+              />
+            </div>
           </div>
         )}
       </main>

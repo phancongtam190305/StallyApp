@@ -25,9 +25,15 @@ interface SupplierManagementProps {
   currentRole: UserRole;
   orgId: string;
   onSuppliersChanged?: () => void;
+  isActive?: boolean;
 }
 
-export default function SupplierManagement({ currentRole, orgId, onSuppliersChanged }: SupplierManagementProps) {
+export default function SupplierManagement({ 
+  currentRole, 
+  orgId, 
+  onSuppliersChanged,
+  isActive = true
+}: SupplierManagementProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,9 +61,9 @@ export default function SupplierManagement({ currentRole, orgId, onSuppliersChan
 
   const hasAccessToModify = ["procurement", "manager"].includes(currentRole);
 
-  const fetchSuppliers = async () => {
-    setLoading(true);
+  const fetchSuppliers = async (isSilent = false) => {
     try {
+      if (!isSilent) setLoading(true);
       const res = await fetch(apiUrl("/api/suppliers"), {
         headers: { "X-Organization-Id": orgId }
       });
@@ -76,8 +82,10 @@ export default function SupplierManagement({ currentRole, orgId, onSuppliersChan
   };
 
   useEffect(() => {
-    fetchSuppliers();
-  }, [orgId]);
+    if (isActive) {
+      fetchSuppliers(suppliers.length > 0);
+    }
+  }, [orgId, isActive]);
 
   // Handle supplier select
   const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId) || null;
