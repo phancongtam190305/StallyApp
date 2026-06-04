@@ -2891,14 +2891,10 @@ apiV1Router.post("/purchase-orders/:poId/send", (req: Request, res: Response) =>
   
   // INVENTORY quantityOnOrder IMPACT
   po.items.forEach(poItem => {
-    const invItem = dbState.inventory_items.find(
-      it => it.name.trim().toLowerCase() === poItem.name.trim().toLowerCase() && it.organizationId === orgId
-    );
-    if (invItem) {
-      invItem.quantityOnOrder += poItem.quantity;
-      invItem.lastPurchasePrice = poItem.unitPrice;
-      invItem.updatedAt = new Date().toISOString();
-    }
+    const invItem = getOrCreateInventoryItemForPoItem(orgId, poItem);
+    invItem.quantityOnOrder += poItem.quantity;
+    invItem.lastPurchasePrice = poItem.unitPrice;
+    invItem.updatedAt = new Date().toISOString();
   });
   
   // Transition Case Status to po_sent
@@ -2941,6 +2937,49 @@ apiV1Router.get("/purchase-orders/:poId", (req: Request, res: Response) => {
 // ----------------------------------------------------
 // INVENTORY & WAREHOUSE LOGISTICS APIs
 // ----------------------------------------------------
+function normalizeInventoryName(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function buildInventorySku(orgId: string, name: string) {
+  const slug = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toUpperCase()
+    .slice(0, 24) || "ITEM";
+  return `PO-${orgId}-${slug}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function findInventoryItemByPoItem(orgId: string, poItem: PurchaseOrderItem) {
+  return dbState.inventory_items.find(
+    it => normalizeInventoryName(it.name) === normalizeInventoryName(poItem.name) && it.organizationId === orgId
+  );
+}
+
+function getOrCreateInventoryItemForPoItem(orgId: string, poItem: PurchaseOrderItem) {
+  const existingItem = findInventoryItemByPoItem(orgId, poItem);
+  if (existingItem) return existingItem;
+
+  const newItem: InventoryItem = {
+    id: `inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    organizationId: orgId,
+    sku: buildInventorySku(orgId, poItem.name),
+    name: poItem.name,
+    category: "PO Received",
+    unit: poItem.unit,
+    minStockLevel: 0,
+    quantityAvailable: 0,
+    quantityOnOrder: 0,
+    lastPurchasePrice: poItem.unitPrice,
+    updatedAt: new Date().toISOString()
+  };
+
+  dbState.inventory_items.push(newItem);
+  return newItem;
+}
+
 apiV1Router.get("/inventory/items", (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const items = dbState.inventory_items.filter(i => i.organizationId === orgId);
@@ -2967,30 +3006,60 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
   
   const po = dbState.purchase_orders.find(p => p.id === poId && p.organizationId === orgId);
   if (!po) return res.status(404).json({ error: "Không tìm thấy PO" });
+  if (po.status === "received") {
+    return res.status(409).json({ error: { code: "PO_ALREADY_RECEIVED", message: "PO này đã được nhập kho trước đó." } });
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: { code: "RECEIVE_ITEMS_REQUIRED", message: "Thiếu danh sách hàng hóa thực nhận." } });
+  }
   
   const caseObj = dbState.procurement_cases.find(c => c.id === po.caseId);
   if (!caseObj) return res.status(404).json({ error: "Không tìm thấy case" });
   
   let fullyReceived = true;
+  const inventoryUpdates: Array<{
+    itemId: string;
+    name: string;
+    quantityReceived: number;
+    quantityAvailableBefore: number;
+    quantityAvailableAfter: number;
+    quantityOnOrderBefore: number;
+    quantityOnOrderAfter: number;
+  }> = [];
   
   items.forEach((recItem: any) => {
-    const poItem = po.items.find(pi => pi.name.trim().toLowerCase() === recItem.name.trim().toLowerCase());
+    const poItem = po.items.find(pi => normalizeInventoryName(pi.name) === normalizeInventoryName(recItem.name || ""));
     if (!poItem) return;
     
     const qtyRec = Number(recItem.quantityReceived);
+    if (!Number.isFinite(qtyRec) || qtyRec < 0) {
+      fullyReceived = false;
+      return;
+    }
     
     // Decrement from quantityOnOrder, increment quantityAvailable
-    const invItem = dbState.inventory_items.find(
-      it => it.name.trim().toLowerCase() === poItem.name.trim().toLowerCase() && it.organizationId === orgId
-    );
+    const invItem = getOrCreateInventoryItemForPoItem(orgId, poItem);
     
-    if (invItem) {
-      const orderImpact = Math.min(invItem.quantityOnOrder, qtyRec);
-      invItem.quantityOnOrder = Math.max(0, invItem.quantityOnOrder - orderImpact);
-      invItem.quantityAvailable += qtyRec;
-      invItem.updatedAt = new Date().toISOString();
-      
-      // Stock movement log
+    const quantityAvailableBefore = invItem.quantityAvailable;
+    const quantityOnOrderBefore = invItem.quantityOnOrder;
+    const orderImpact = Math.min(invItem.quantityOnOrder, qtyRec);
+    invItem.quantityOnOrder = Math.max(0, invItem.quantityOnOrder - orderImpact);
+    invItem.quantityAvailable += qtyRec;
+    invItem.lastPurchasePrice = poItem.unitPrice;
+    invItem.updatedAt = receivedAt || new Date().toISOString();
+
+    inventoryUpdates.push({
+      itemId: invItem.id,
+      name: invItem.name,
+      quantityReceived: qtyRec,
+      quantityAvailableBefore,
+      quantityAvailableAfter: invItem.quantityAvailable,
+      quantityOnOrderBefore,
+      quantityOnOrderAfter: invItem.quantityOnOrder
+    });
+    
+    // Stock movement log
+    if (qtyRec > 0) {
       const mov: StockMovement = {
         id: `mov-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         organizationId: orgId,
@@ -3000,7 +3069,7 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
         referenceType: "purchase_order",
         referenceId: poId,
         createdBy: "Lý Văn Khoa (Thủ Kho)",
-        createdAt: new Date().toISOString()
+        createdAt: receivedAt || new Date().toISOString()
       };
       dbState.stock_movements.push(mov);
     }
@@ -3009,6 +3078,10 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
       fullyReceived = false;
     }
   });
+
+  if (inventoryUpdates.length === 0) {
+    return res.status(400).json({ error: { code: "NO_RECEIVABLE_ITEMS_MATCHED", message: "Không có dòng hàng nhận kho nào khớp với PO." } });
+  }
   
   if (fullyReceived) {
     po.status = "received";
@@ -3033,7 +3106,7 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
     });
   }
   
-  res.json({ message: "Nhập kho thành công", po });
+  res.json({ message: "Nhập kho thành công", po, inventoryUpdates });
 });
 
 apiV1Router.post("/inventory/adjustments", (req: Request, res: Response) => {

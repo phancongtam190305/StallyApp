@@ -253,6 +253,108 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
     });
   });
 
+  describe("POST /api/v1/purchase-orders/:poId/receive - Warehouse inventory receiving", () => {
+    beforeEach(() => {
+      dbState.inventory_items = [
+        {
+          id: "inv-existing-rice",
+          organizationId: "org-1",
+          sku: "SKU-RICE",
+          name: "Gạo ST25 Cao Cấp",
+          category: "Thực phẩm khô",
+          unit: "kg",
+          minStockLevel: 100,
+          quantityAvailable: 45,
+          quantityOnOrder: 150,
+          lastPurchasePrice: 28000,
+          updatedAt: new Date().toISOString()
+        }
+      ];
+      dbState.purchase_orders = [
+        {
+          id: "po-receive-test",
+          organizationId: "org-1",
+          caseId: "case-mock-1",
+          supplierId: "sup-1",
+          supplierName: "NCC Thực Phẩm Sạch Cầu Đất",
+          quoteId: "quote-receive-test",
+          items: [
+            { name: "Gạo ST25 Cao Cấp", quantity: 150, unit: "kg", unitPrice: 28000, totalPrice: 4200000 },
+            { name: "Muối hạt mới", quantity: 20, unit: "kg", unitPrice: 5000, totalPrice: 100000 }
+          ],
+          subtotal: 4300000,
+          taxAmount: 0,
+          shippingFee: 0,
+          totalAmount: 4300000,
+          status: "confirmed",
+          approvedBy: "manager",
+          approvedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        }
+      ];
+      const caseObj = dbState.procurement_cases.find((c: any) => c.id === "case-mock-1");
+      if (caseObj) {
+        caseObj.status = "receiving";
+      }
+      dbState.stock_movements = [];
+    });
+
+    it("updates existing inventory and creates missing inventory items from received PO lines", async () => {
+      const response = await request(app)
+        .post("/api/v1/purchase-orders/po-receive-test/receive")
+        .set("x-organization-id", "org-1")
+        .send({
+          receivedAt: "2026-06-04T05:00:00.000Z",
+          items: [
+            { name: "Gạo ST25 Cao Cấp", quantityReceived: 150 },
+            { name: "Muối hạt mới", quantityReceived: 20 }
+          ]
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.inventoryUpdates).toHaveLength(2);
+
+      const rice = dbState.inventory_items.find((item: any) => item.id === "inv-existing-rice");
+      expect(rice?.quantityAvailable).toBe(195);
+      expect(rice?.quantityOnOrder).toBe(0);
+      expect(rice?.lastPurchasePrice).toBe(28000);
+
+      const salt = dbState.inventory_items.find((item: any) => item.name === "Muối hạt mới");
+      expect(salt).toBeTruthy();
+      expect(salt?.quantityAvailable).toBe(20);
+      expect(salt?.quantityOnOrder).toBe(0);
+      expect(salt?.lastPurchasePrice).toBe(5000);
+      expect(dbState.stock_movements).toHaveLength(2);
+      expect(dbState.purchase_orders[0].status).toBe("received");
+      expect(dbState.procurement_cases.find((c: any) => c.id === "case-mock-1")?.status).toBe("closed");
+    });
+
+    it("does not receive the same PO twice", async () => {
+      await request(app)
+        .post("/api/v1/purchase-orders/po-receive-test/receive")
+        .set("x-organization-id", "org-1")
+        .send({
+          items: [
+            { name: "Gạo ST25 Cao Cấp", quantityReceived: 150 },
+            { name: "Muối hạt mới", quantityReceived: 20 }
+          ]
+        });
+
+      const duplicateResponse = await request(app)
+        .post("/api/v1/purchase-orders/po-receive-test/receive")
+        .set("x-organization-id", "org-1")
+        .send({
+          items: [
+            { name: "Gạo ST25 Cao Cấp", quantityReceived: 150 },
+            { name: "Muối hạt mới", quantityReceived: 20 }
+          ]
+        });
+
+      expect(duplicateResponse.status).toBe(409);
+      expect(duplicateResponse.body.error.code).toBe("PO_ALREADY_RECEIVED");
+    });
+  });
+
 describe("POST /api/v1/cases/:caseId/suppliers/discover - Supplier Discovery Crawler", () => {
     it("should not start a second discovery job when the case is already scanning", async () => {
       dbState.procurement_cases[0].isScanning = true;

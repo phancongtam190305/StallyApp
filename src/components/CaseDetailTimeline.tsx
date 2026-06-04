@@ -1035,9 +1035,12 @@ export default function CaseDetailTimeline({
         })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Nhập kho thất bại.");
+      }
 
-      showToast("Quy trình mua sắm thầu khép kín đã hoàn tất thành công. Toàn bộ nguyên liệu đã được nhập kho!", "success");
+      const updatedCount = data.inventoryUpdates?.length || itemsPayload.length;
+      showToast(`Đã nhập kho và cập nhật tồn cho ${updatedCount} dòng hàng. Hồ sơ mua sắm đã hoàn tất.`, "success");
 
       if (onStateChanged) onStateChanged();
       setTimeout(fetchData, 650);
