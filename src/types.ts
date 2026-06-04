@@ -87,6 +87,11 @@ export interface Quote {
   aiConfidenceScore: number;
   status: "draft" | "extracted" | "selected" | "rejected";
   originalFileUrl?: string;
+  negotiationStatus?: "none" | "sent" | "supplier_responded";
+  negotiationRound?: number;
+  lastNegotiatedAt?: string;
+  supplierReplyRaw?: string;
+  versionCount?: number;
   createdAt: string;
 }
 

@@ -444,6 +444,24 @@ describe("Email E2E desired behavior", () => {
     expect(dbState.procurement_cases.find((c: any) => c.id === caseId)?.status).toBe("comparison_ready");
     expect(dbState.ai_negotiation_logs.find((log: any) => log.id === "neg-log-guard")?.status).toBe("supplier_responded");
     expect(dbState.ai_negotiation_logs.find((log: any) => log.id === "neg-log-unsent-newer")?.status).toBe("draft");
+
+    const comparisonRes = await request(app)
+      .get(`/api/v1/cases/${caseId}/comparison`)
+      .set("x-organization-id", ORG_ID);
+    expect(comparisonRes.body.matrix[0]).toMatchObject({
+      negotiationStatus: "supplier_responded",
+      versionCount: 1,
+    });
+
+    const overviewStateRes = await request(app)
+      .get("/api/state")
+      .set("x-organization-id", ORG_ID);
+    const overviewQuote = overviewStateRes.body.quotes.find((q: any) => q.id === quoteId);
+    expect(overviewQuote).toMatchObject({
+      negotiationStatus: "supplier_responded",
+      versionCount: 1,
+      totalAmount: 950000,
+    });
   });
 
   it("does not mark negotiation as sent when Gmail send fails", async () => {

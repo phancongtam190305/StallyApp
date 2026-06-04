@@ -2340,6 +2340,13 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
         reason: `NCC ${finalQuote.supplierName} đã phản hồi đàm phán thương lượng. Đã cập nhật báo giá V${roundNum}.`,
         orgId
       });
+      broadcastRealtimeEvent("negotiation.updated", caseId, {
+        supplierId,
+        supplierName: finalQuote.supplierName,
+        quoteId: finalQuote.id,
+        totalAmount: finalQuote.totalAmount,
+        round: roundNum,
+      });
     }
   }
   
@@ -2411,6 +2418,26 @@ function simulateQuoteExtraction(caseObj: any, supplierObj: any, multiplier: num
   };
 }
 
+function enrichQuoteForComparison(quote: Quote, caseId: string) {
+  const negotiationLogs = dbState.ai_negotiation_logs
+    .filter(log => log.caseId === caseId && log.supplierId === quote.supplierId)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const latestNegotiation =
+    negotiationLogs.filter(log => log.status === "supplier_responded").at(-1) ||
+    negotiationLogs.filter(log => log.status === "sent").at(-1) ||
+    negotiationLogs.at(-1);
+  const versions = dbState.quote_versions.filter(version => version.quoteId === quote.id);
+
+  return {
+    ...quote,
+    negotiationStatus: latestNegotiation?.status || "none",
+    negotiationRound: latestNegotiation?.round,
+    lastNegotiatedAt: latestNegotiation?.createdAt,
+    supplierReplyRaw: latestNegotiation?.supplierReplyRaw,
+    versionCount: versions.length,
+  };
+}
+
 // ----------------------------------------------------
 // COMPARISON MATRIX GENERATOR
 // ----------------------------------------------------
@@ -2426,6 +2453,7 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
   const rfqId = caseObj.currentRfqId;
   const rfqCase = rfqId ? dbState.rfq_cases.find(r => r.id === rfqId && r.organizationId === orgId) : undefined;
   const quotesList = rfqId ? dbState.quotes.filter(q => q.rfqCaseId === rfqId && q.organizationId === orgId) : [];
+  const decoratedQuotesList = quotesList.map(quote => enrichQuoteForComparison(quote, caseId));
   const supplierById = new Map<string, Supplier>(dbState.suppliers.filter(s => s.organizationId === orgId).map(s => [s.id, s]));
   const negotiationSupplierById = new Map<string, {
     supplierId: string;
@@ -2449,7 +2477,7 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
     });
   }
 
-  for (const quote of quotesList) {
+  for (const quote of decoratedQuotesList) {
     if (!quote.supplierId) continue;
     const supplier = supplierById.get(quote.supplierId);
     negotiationSupplierById.set(quote.supplierId, {
@@ -2467,9 +2495,9 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
   let recommendedQuoteId = "";
   let recommendationReason = "Hãy nộp thêm báo giá của các bên để AI tính toán ma trận rủi ro.";
   
-  if (quotesList.length > 0) {
-    const sortedByPrice = [...quotesList].sort((a, b) => a.totalAmount - b.totalAmount);
-    const sortedByDelivery = [...quotesList].sort((a, b) => a.deliveryDays - b.deliveryDays);
+  if (decoratedQuotesList.length > 0) {
+    const sortedByPrice = [...decoratedQuotesList].sort((a, b) => a.totalAmount - b.totalAmount);
+    const sortedByDelivery = [...decoratedQuotesList].sort((a, b) => a.deliveryDays - b.deliveryDays);
     
     lowestTotalQuoteId = sortedByPrice[0].id;
     fastestDeliveryQuoteId = sortedByDelivery[0].id;
@@ -2483,7 +2511,7 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
     items: caseObj.items,
     suppliers: rfqCase?.suppliers || [],
     negotiationSuppliers: Array.from(negotiationSupplierById.values()),
-    matrix: quotesList,
+    matrix: decoratedQuotesList,
     summary: {
       lowestTotalQuoteId,
       fastestDeliveryQuoteId,

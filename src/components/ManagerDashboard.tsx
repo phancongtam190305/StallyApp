@@ -697,6 +697,11 @@ export default function ManagerDashboard({
                     <div>
                       <p className="text-[9px] uppercase font-extrabold text-slate-400">1. Đối Tác Khuyên Dùng</p>
                       <h4 className="text-xs font-black text-primary-dark mt-2">{recommendedQuote?.supplierName}</h4>
+                      {recommendedQuote?.negotiationStatus === "supplier_responded" && (
+                        <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-black uppercase tracking-wider">
+                          Đã đồng ý đàm phán V{recommendedQuote.versionCount || 2}
+                        </span>
+                      )}
                       <p className="text-[10.5px] text-emerald-700 font-extrabold mt-1.5">⭐️ Giá tốt nhất &amp; Điểm thầu 96%</p>
                     </div>
                     <div className="pt-2 text-[10px] text-slate-400 font-mono font-bold">
@@ -899,6 +904,11 @@ export default function ManagerDashboard({
                               <div className="space-y-0.5">
                                 <p className="font-extrabold">{q.supplierName}</p>
                                 <span className="text-[9px] font-mono text-slate-405 font-bold bg-[#E8F6F5] border border-primary-dark/20 px-2 py-0.5 rounded-full inline-block mt-1">Báo Giá Gốc OCR</span>
+                                {q.negotiationStatus === "supplier_responded" && (
+                                  <span className="text-[9px] font-mono text-emerald-700 font-black bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-block mt-1">
+                                    Đã đàm phán V{q.versionCount || 2}
+                                  </span>
+                                )}
                               </div>
                             </th>
                           ))}

@@ -79,6 +79,9 @@ export default function RfqComparison({
   // Find the associated RFQ Case for selected PR to show comparison matrix
   const currentRfq = selectedPr ? rfqs.find(r => r.purchaseRequestId === selectedPr.id) : null;
   const currentQuotes = currentRfq ? quotes.filter(q => q.rfqCaseId === currentRfq.id) : [];
+  const quoteOverviewSignature = currentQuotes
+    .map(q => `${q.id}:${q.totalAmount}:${q.deliveryDays}:${q.paymentTerms}:${q.negotiationStatus || "none"}:${q.versionCount || 0}`)
+    .join("|");
 
   // Auto trigger AI recommendation when quotes list details shift
   useEffect(() => {
@@ -116,7 +119,7 @@ Dựa trên dữ liệu tài chính bóc tách tự động bới AI đối chi�
     } else {
       setAiAdvice("");
     }
-  }, [currentQuotes.length, selectedPr?.id]);
+  }, [quoteOverviewSignature, selectedPr?.id]);
 
   const handleToggleSupplierCheckbox = (id: string) => {
     if (selectedSuppliers.includes(id)) {
@@ -340,6 +343,11 @@ Vận chuyển 80k. Giao hàng trong ngày.
                               <div className="space-y-0.5">
                                 <p className="font-extrabold text-slate-700">{q.supplierName}</p>
                                 <p className="text-[9.5px] text-slate-400 font-mono font-medium">{q.originalFileUrl}</p>
+                                {q.negotiationStatus === "supplier_responded" && (
+                                  <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-black uppercase tracking-wider">
+                                    Đã đồng ý đàm phán V{q.versionCount || 2}
+                                  </span>
+                                )}
                               </div>
                             </th>
                           ))}

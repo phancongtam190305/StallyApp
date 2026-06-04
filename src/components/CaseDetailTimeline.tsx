@@ -1921,6 +1921,11 @@ export default function CaseDetailTimeline({
                               <div className="space-y-1">
                                 <p className="font-black text-primary-dark text-xs uppercase tracking-wide">{q.supplierName}</p>
                                 <p className="text-[9px] font-mono text-primary-dark/50">ID: {q.id}</p>
+                                {q.negotiationStatus === "supplier_responded" && (
+                                  <span className="inline-flex w-fit px-2 py-0.5 rounded bg-emerald-50 border border-emerald-500 text-[8px] text-emerald-700 font-black uppercase tracking-wider">
+                                    Đã đồng ý đàm phán V{q.versionCount || 2}
+                                  </span>
+                                )}
                                 {q.id === comparison.summary.lowestTotalQuoteId && (
                                   <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-black uppercase tracking-wider shadow-sm">Tối ưu nhất</span>
                                 )}
@@ -1973,6 +1978,11 @@ export default function CaseDetailTimeline({
                               }`}>
                                 {q.status === "extracted" ? "Mới nhận" : q.status === "selected" ? "Được chọn" : "Đã loại"}
                               </span>
+                              {q.negotiationStatus === "supplier_responded" && (
+                                <p className="mt-1.5 text-[9px] font-black text-emerald-700">
+                                  NCC đã phản hồi đồng ý thương lượng
+                                </p>
+                              )}
                             </td>
                           ))}
                         </tr>

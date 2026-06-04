@@ -122,6 +122,10 @@ export function AppContent() {
           showToast("✨ AI đã trích xuất thành công báo giá mới!", "success");
           syncStateFromServer();
           setSseRefreshTrigger(prev => prev + 1);
+        } else if (data.type === "negotiation.updated") {
+          showToast(`🤝 NCC ${data.payload?.supplierName || ""} đã đồng ý đàm phán. Bảng so sánh đã cập nhật giá mới.`, "success");
+          syncStateFromServer();
+          setSseRefreshTrigger(prev => prev + 1);
         } else if (data.type === "case.updated") {
           const caseCode = data.caseId ? data.caseId.split('-')[1]?.toUpperCase() : "";
           showToast(`🔄 Hồ sơ thầu #${caseCode || ""} đã chuyển sang trạng thái mới!`, "info");

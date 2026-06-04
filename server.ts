@@ -21,6 +21,29 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(express.json());
 
+function enrichQuoteForOverview(quote: Quote) {
+  const caseObj = dbState.procurement_cases.find(c => c.currentRfqId === quote.rfqCaseId && c.organizationId === quote.organizationId);
+  const negotiationLogs = caseObj
+    ? dbState.ai_negotiation_logs
+      .filter(log => log.caseId === caseObj.id && log.supplierId === quote.supplierId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    : [];
+  const latestNegotiation =
+    negotiationLogs.filter(log => log.status === "supplier_responded").at(-1) ||
+    negotiationLogs.filter(log => log.status === "sent").at(-1) ||
+    negotiationLogs.at(-1);
+  const versions = dbState.quote_versions.filter(version => version.quoteId === quote.id);
+
+  return {
+    ...quote,
+    negotiationStatus: latestNegotiation?.status || "none",
+    negotiationRound: latestNegotiation?.round,
+    lastNegotiatedAt: latestNegotiation?.createdAt,
+    supplierReplyRaw: latestNegotiation?.supplierReplyRaw,
+    versionCount: versions.length,
+  };
+}
+
 // CORS: Allow cross-origin requests from frontend (Vercel) to backend (Railway)
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || "https://stally-app.vercel.app",
@@ -339,7 +362,7 @@ app.get("/api/state", (req, res) => {
     inventory: dbState.inventory_items.filter(i => i.organizationId === req.organizationId),
     purchaseRequests: dbState.purchase_requests.filter(pr => pr.organizationId === req.organizationId),
     rfqs: dbState.rfq_cases.filter(rfq => rfq.organizationId === req.organizationId),
-    quotes: dbState.quotes.filter(q => q.organizationId === req.organizationId),
+    quotes: dbState.quotes.filter(q => q.organizationId === req.organizationId).map(enrichQuoteForOverview),
     stockMovements: dbState.stock_movements.filter(m => m.organizationId === req.organizationId),
     cases: dbState.procurement_cases.filter(c => c.organizationId === req.organizationId),
     purchaseOrders: dbState.purchase_orders.filter(p => p.organizationId === req.organizationId)
