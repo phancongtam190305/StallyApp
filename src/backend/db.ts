@@ -619,6 +619,10 @@ export function loadDbStateQueue(): Promise<any> {
   return promise;
 }
 
+export async function persistUser(user: any) {
+  await upsert("users", user);
+}
+
 export async function persistDbStateNow(dbState: any) {
   const client = await db.connect();
   try {

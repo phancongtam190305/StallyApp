@@ -17,6 +17,7 @@ import {
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json());
 
 // CORS: Allow cross-origin requests from frontend (Vercel) to backend (Railway)
@@ -158,14 +159,20 @@ const organizationChecker = (req: express.Request, res: express.Response, next: 
 
 app.use(organizationChecker);
 
-// Intercept res.json to synchronously await database persistence on Vercel
-// before the serverless container is frozen upon sending the response
+const shouldAutoPersistRequest = (req: express.Request) => {
+  if (process.env.AUTO_PERSIST_ENABLED === "false") return false;
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return false;
+  if (req.path.startsWith("/api/v1/auth/")) return false;
+  return true;
+};
+
+// Auto-persist in-memory changes back to Supabase after mutating requests.
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const shouldPersist = shouldAutoPersistRequest(req);
   const originalJson = res.json;
   res.json = function (body) {
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
-      const p = persistDbState(dbState);
-      (p || Promise.resolve())
+    if (shouldPersist && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      persistDbState(dbState)
         .then(() => {
           console.log(`[Stally Sync] 💾 Synchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);
           originalJson.call(res, body);

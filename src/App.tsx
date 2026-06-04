@@ -390,6 +390,7 @@ export function AppContent() {
   };
 
   const handleLogout = () => {
+    fetch("/api/v1/auth/logout", { method: "POST" }).catch(() => {});
     setIsLoggedIn(false);
     setCurrentUser(null);
     setShowTutorial(false);

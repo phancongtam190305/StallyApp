@@ -1,7 +1,8 @@
 import express, { Router, Request, Response, NextFunction } from "express";
+import crypto from "node:crypto";
 import { GoogleGenAI, Type } from "@google/genai";
 import { dbState, ai } from "../../server.js";
-import { persistDbState } from "./db.js";
+import { persistDbState, persistUser } from "./db.js";
 import { sendRealEmail } from "./mailer.js";
 import { buildSupplierFromCandidate, discoverSuppliers } from "./supplier_discovery.js";
 import { 
@@ -26,6 +27,155 @@ import {
 } from "../types.js";
 
 export const apiV1Router = Router();
+
+interface AuthSession {
+  userId: string;
+  email: string;
+  createdAt: number;
+}
+
+const authSessions = new Map<string, AuthSession>();
+const oauthStates = new Map<string, number>();
+const sessionCookieName = "stally_session";
+const oauthStateCookieName = "stally_oauth_state";
+const sessionMaxAgeMs = 7 * 24 * 60 * 60 * 1000;
+
+function isGoogleOAuthConfigured() {
+  return Boolean(
+    process.env.GOOGLE_OAUTH_ENABLED === "true" &&
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    process.env.GOOGLE_CLIENT_ID.endsWith(".apps.googleusercontent.com")
+  );
+}
+
+function getGoogleOAuthConfigError() {
+  if (process.env.GOOGLE_OAUTH_ENABLED !== "true") return "Google OAuth đang tắt.";
+  if (!process.env.GOOGLE_CLIENT_ID) return "Thiếu GOOGLE_CLIENT_ID.";
+  if (!process.env.GOOGLE_CLIENT_SECRET) return "Thiếu GOOGLE_CLIENT_SECRET.";
+  if (!process.env.GOOGLE_CLIENT_ID.endsWith(".apps.googleusercontent.com")) {
+    return "GOOGLE_CLIENT_ID không hợp lệ. Client ID phải có dạng ...apps.googleusercontent.com.";
+  }
+  return "";
+}
+
+function isValidUserRole(role: string): role is UserRole {
+  return ["requester", "procurement", "manager", "warehouse", "admin"].includes(role);
+}
+
+function isEmailAllowedForAutoProvision(email: string) {
+  const rawAllowedDomains = process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS || "";
+  const allowedDomains = rawAllowedDomains
+    .split(",")
+    .map(domain => domain.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (allowedDomains.length === 0) return true;
+  const emailDomain = email.split("@")[1]?.toLowerCase() || "";
+  return allowedDomains.includes(emailDomain);
+}
+
+async function createAutoProvisionedGoogleUser(profile: any, orgId: string) {
+  const email = String(profile.email || "").trim().toLowerCase();
+  const defaultRoleRaw = process.env.GOOGLE_OAUTH_DEFAULT_ROLE || "requester";
+  const role: UserRole = isValidUserRole(defaultRoleRaw) ? defaultRoleRaw : "requester";
+  const displayName = String(profile.name || profile.given_name || email.split("@")[0] || "Google User").trim();
+  const user = {
+    id: `u-google-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+    organizationId: orgId,
+    email,
+    name: displayName,
+    role,
+    status: "active" as const,
+  };
+
+  dbState.users.push(user);
+  try {
+    await persistUser(user);
+  } catch (err) {
+    console.error("Failed to persist auto-provisioned Google user:", err);
+    dbState.users = dbState.users.filter(existingUser => existingUser.id !== user.id);
+    throw new Error("Không lưu được user Google mới vào Supabase.");
+  }
+
+  return user;
+}
+
+function getCookie(req: Request, name: string) {
+  const cookies = req.headers.cookie || "";
+  const found = cookies
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+  return found ? decodeURIComponent(found.slice(name.length + 1)) : "";
+}
+
+function setCookie(res: Response, name: string, value: string, maxAgeMs: number, httpOnly = true) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const httpOnlyPart = httpOnly ? "; HttpOnly" : "";
+  res.append(
+    "Set-Cookie",
+    `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${Math.floor(maxAgeMs / 1000)}; SameSite=Lax${httpOnlyPart}${secure}`
+  );
+}
+
+function clearCookie(res: Response, name: string) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.append("Set-Cookie", `${name}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly${secure}`);
+}
+
+function getRequestOrigin(req: Request) {
+  const configuredAppUrl = process.env.APP_URL && process.env.APP_URL !== "MY_APP_URL"
+    ? process.env.APP_URL.replace(/\/$/, "")
+    : "";
+  if (configuredAppUrl) return configuredAppUrl;
+
+  const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
+  const host = req.headers["x-forwarded-host"] || req.headers.host;
+  return `${proto}://${host}`;
+}
+
+function getGoogleRedirectUri(req: Request) {
+  return process.env.GOOGLE_REDIRECT_URI || `${getRequestOrigin(req)}/api/v1/auth/google/callback`;
+}
+
+function getFrontendRedirectUrl(req: Request, status: "success" | "error", message?: string) {
+  const configuredFrontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, "");
+  const baseUrl = configuredFrontendUrl || getRequestOrigin(req);
+  const url = new URL(baseUrl);
+  url.searchParams.set("oauth", status);
+  if (message) url.searchParams.set("message", message);
+  return url.toString();
+}
+
+function createAuthSession(res: Response, user: any) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  authSessions.set(token, {
+    userId: user.id,
+    email: user.email,
+    createdAt: Date.now(),
+  });
+  setCookie(res, sessionCookieName, token, sessionMaxAgeMs);
+}
+
+function getSessionUser(req: Request) {
+  const token = getCookie(req, sessionCookieName);
+  if (!token) return null;
+
+  const session = authSessions.get(token);
+  if (!session) return null;
+  if (Date.now() - session.createdAt > sessionMaxAgeMs) {
+    authSessions.delete(token);
+    return null;
+  }
+
+  return dbState.users.find(
+    u => u.id === session.userId &&
+      u.email.toLowerCase() === session.email.toLowerCase() &&
+      u.organizationId === req.organizationId &&
+      u.status === "active"
+  ) || null;
+}
 
 // ----------------------------------------------------
 // STATE MACHINE TRANSITION ENGINE (Strict transition logic)
@@ -171,12 +321,139 @@ apiV1Router.get("/events/stream", (req: Request, res: Response) => {
 // ----------------------------------------------------
 // AUTH & PERMISSIONS MOCK
 // ----------------------------------------------------
+apiV1Router.get("/auth/config", (_req: Request, res: Response) => {
+  res.json({
+    data: {
+      emailRoleAuthEnabled: process.env.EMAIL_ROLE_AUTH_ENABLED === "true",
+      googleOAuthEnabled: isGoogleOAuthConfigured(),
+      googleOAuthAutoProvisionEnabled: process.env.GOOGLE_OAUTH_AUTO_PROVISION === "true",
+      googleOAuthAllowedDomains: (process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS || "")
+        .split(",")
+        .map(domain => domain.trim())
+        .filter(Boolean),
+    }
+  });
+});
+
+apiV1Router.get("/auth/session", (req: Request, res: Response) => {
+  const user = getSessionUser(req);
+  if (!user) {
+    return res.json({ data: null, authenticated: false });
+  }
+  res.json({ data: user, authenticated: true, authMode: "google_oauth" });
+});
+
+apiV1Router.post("/auth/logout", (req: Request, res: Response) => {
+  const token = getCookie(req, sessionCookieName);
+  if (token) authSessions.delete(token);
+  clearCookie(res, sessionCookieName);
+  res.json({ message: "Đã đăng xuất." });
+});
+
+apiV1Router.get("/auth/google/start", (req: Request, res: Response) => {
+  if (!isGoogleOAuthConfigured()) {
+    return res.status(503).json({
+      error: { code: "GOOGLE_OAUTH_DISABLED", message: getGoogleOAuthConfigError() || "Google OAuth chưa được cấu hình." }
+    });
+  }
+
+  const state = crypto.randomBytes(24).toString("base64url");
+  oauthStates.set(state, Date.now());
+  setCookie(res, oauthStateCookieName, state, 10 * 60 * 1000);
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID || "",
+    redirect_uri: getGoogleRedirectUri(req),
+    response_type: "code",
+    scope: "openid email profile",
+    state,
+    prompt: "select_account",
+  });
+
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+apiV1Router.get("/auth/google/callback", async (req: Request, res: Response) => {
+  if (!isGoogleOAuthConfigured()) {
+    return res.redirect(getFrontendRedirectUrl(req, "error", getGoogleOAuthConfigError() || "Google OAuth chưa được cấu hình."));
+  }
+
+  const code = String(req.query.code || "");
+  const state = String(req.query.state || "");
+  const cookieState = getCookie(req, oauthStateCookieName);
+  clearCookie(res, oauthStateCookieName);
+
+  const stateCreatedAt = oauthStates.get(state);
+  oauthStates.delete(state);
+
+  if (!code || !state || !cookieState || state !== cookieState || !stateCreatedAt || Date.now() - stateCreatedAt > 10 * 60 * 1000) {
+    return res.redirect(getFrontendRedirectUrl(req, "error", "Phiên đăng nhập Google không hợp lệ."));
+  }
+
+  try {
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID || "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+        redirect_uri: getGoogleRedirectUri(req),
+        grant_type: "authorization_code",
+      }),
+    });
+
+    const tokenData: any = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token) {
+      throw new Error(tokenData.error_description || tokenData.error || "Không đổi được Google OAuth code.");
+    }
+
+    const profileRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const profile: any = await profileRes.json();
+    if (!profileRes.ok || !profile.email) {
+      throw new Error("Không lấy được Google profile.");
+    }
+    if (profile.email_verified === false) {
+      throw new Error("Email Google chưa được xác minh.");
+    }
+
+    const email = String(profile.email).trim().toLowerCase();
+    let user = dbState.users.find(
+      u => u.organizationId === req.organizationId && u.email.toLowerCase() === email && u.status === "active"
+    );
+
+    if (!user) {
+      const autoProvisionEnabled = process.env.GOOGLE_OAUTH_AUTO_PROVISION === "true";
+      if (!autoProvisionEnabled) {
+        return res.redirect(getFrontendRedirectUrl(req, "error", "Email Google này chưa được cấp quyền trong Stally."));
+      }
+      if (!isEmailAllowedForAutoProvision(email)) {
+        return res.redirect(getFrontendRedirectUrl(req, "error", "Domain email này chưa được phép tự đăng ký."));
+      }
+      user = await createAutoProvisionedGoogleUser(profile, req.organizationId);
+    }
+
+    createAuthSession(res, user);
+    return res.redirect(getFrontendRedirectUrl(req, "success"));
+  } catch (err: any) {
+    console.error("Google OAuth callback failed:", err);
+    return res.redirect(getFrontendRedirectUrl(req, "error", err.message || "Đăng nhập Google thất bại."));
+  }
+});
+
 apiV1Router.get("/me", (req: Request, res: Response) => {
   const emailRoleAuthEnabled = process.env.EMAIL_ROLE_AUTH_ENABLED === "true";
   const requestedEmail = String(req.query.email || "").trim().toLowerCase();
   const requestedRole = (req.query.role as UserRole) || "procurement";
 
   if (emailRoleAuthEnabled) {
+    const sessionUser = getSessionUser(req);
+    if (sessionUser) {
+      return res.json({ data: sessionUser, authMode: "google_oauth" });
+    }
+
     if (!requestedEmail) {
       return res.status(401).json({
         error: { code: "EMAIL_REQUIRED", message: "Cần email để xác định phân quyền." }
@@ -196,14 +473,6 @@ apiV1Router.get("/me", (req: Request, res: Response) => {
 
   const user = dbState.users.find(u => u.role === requestedRole && u.organizationId === req.organizationId) || dbState.users[0];
   res.json({ data: user, authMode: "role_switch" });
-});
-
-apiV1Router.get("/auth/config", (_req: Request, res: Response) => {
-  res.json({
-    data: {
-      emailRoleAuthEnabled: process.env.EMAIL_ROLE_AUTH_ENABLED === "true",
-    }
-  });
 });
 
 apiV1Router.get("/permissions", (req: Request, res: Response) => {
