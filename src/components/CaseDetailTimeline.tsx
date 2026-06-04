@@ -96,6 +96,7 @@ export default function CaseDetailTimeline({
   const [activeMilestone, setActiveMilestone] = useState<number>(1);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const { showToast } = useToast();
+  const [showDiscoverModal, setShowDiscoverModal] = useState(false);
 
   // Intake States
   const [newItemName, setNewItemName] = useState("");
@@ -445,12 +446,22 @@ export default function CaseDetailTimeline({
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      const reviewCount = data.summary?.reviewRequiredCount || 0;
-      setDiscoveryCandidates(data.candidates || []);
-      showToast(
-        data.message || `Crawl xong: ${reviewCount} NCC chờ bạn chọn đưa vào danh sách chính.`,
-        "info"
-      );
+      
+      if (data.status === "processing") {
+        setShowDiscoverModal(false);
+        showToast("AI đang tiến hành tìm kiếm nhà cung cấp dưới nền...", "info");
+      } else if (data.cached === true) {
+        setShowDiscoverModal(false);
+        showToast("Đã tải danh sách nhà cung cấp từ bộ nhớ đệm!", "success");
+        if (onStateChanged) onStateChanged();
+      } else {
+        const reviewCount = data.summary?.reviewRequiredCount || 0;
+        setDiscoveryCandidates(data.candidates || []);
+        showToast(
+          data.message || `Crawl xong: ${reviewCount} NCC chờ bạn chọn đưa vào danh sách chính.`,
+          "info"
+        );
+      }
       fetchData();
     } catch (e: any) {
       showToast(e.message || "Cào tìm kiếm nhà cung cấp thất bại.", "error");
