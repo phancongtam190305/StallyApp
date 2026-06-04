@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import dotenv from "dotenv";
 import { createTraceId, logFlow, maskEmails, safeError, subjectSummary, textSummary } from "./logger.js";
 
@@ -11,13 +12,32 @@ const smtpPass = process.env.SMTP_PASS;
 const smtpSecure = process.env.SMTP_SECURE === "true";
 const smtpFromEmail = process.env.SMTP_FROM_EMAIL || smtpUser || "no-reply@stally.com";
 const smtpFromName = process.env.SMTP_FROM_NAME || "Stally B2B Sourcing";
+const smtpNetworkFamily = process.env.SMTP_NETWORK_FAMILY === "6" ? 6 : 4;
+
+function positiveIntEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const smtpDnsTimeoutMs = positiveIntEnv("SMTP_DNS_TIMEOUT_MS", 10000);
+const smtpConnectionTimeoutMs = positiveIntEnv("SMTP_CONNECTION_TIMEOUT_MS", 15000);
+const smtpGreetingTimeoutMs = positiveIntEnv("SMTP_GREETING_TIMEOUT_MS", 15000);
+const smtpSocketTimeoutMs = positiveIntEnv("SMTP_SOCKET_TIMEOUT_MS", 45000);
 
 let transporter: nodemailer.Transporter | null = null;
+
+type SmtpTransportOptionsWithNetwork = SMTPTransport.Options & {
+  family?: 4 | 6;
+  dnsTimeout?: number;
+  connectionTimeout?: number;
+  greetingTimeout?: number;
+  socketTimeout?: number;
+};
 
 // Initialize Nodemailer transporter if config is present
 if (smtpHost && smtpUser && smtpPass) {
   try {
-    transporter = nodemailer.createTransport({
+    const smtpOptions: SmtpTransportOptionsWithNetwork = {
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
@@ -25,11 +45,22 @@ if (smtpHost && smtpUser && smtpPass) {
         user: smtpUser,
         pass: smtpPass,
       },
-    });
+      family: smtpNetworkFamily,
+      dnsTimeout: smtpDnsTimeoutMs,
+      connectionTimeout: smtpConnectionTimeoutMs,
+      greetingTimeout: smtpGreetingTimeoutMs,
+      socketTimeout: smtpSocketTimeoutMs,
+    };
+    transporter = nodemailer.createTransport(smtpOptions);
     logFlow("info", "smtp.transporter.initialized", {
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
+      networkFamily: smtpNetworkFamily,
+      dnsTimeoutMs: smtpDnsTimeoutMs,
+      connectionTimeoutMs: smtpConnectionTimeoutMs,
+      greetingTimeoutMs: smtpGreetingTimeoutMs,
+      socketTimeoutMs: smtpSocketTimeoutMs,
       userConfigured: Boolean(smtpUser),
       fromEmail: maskEmails(smtpFromEmail),
       fromName: smtpFromName,
