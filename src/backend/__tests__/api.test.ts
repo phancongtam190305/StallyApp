@@ -281,8 +281,34 @@ describe("POST /api/v1/cases/:caseId/suppliers/discover - Supplier Discovery Cra
       expect(response1.body).toHaveProperty("status", "processing");
       expect(response1.body).toHaveProperty("message");
 
-      // Wait a short time for the background processing to finish
-      await new Promise(resolve => setTimeout(resolve, 200));
+      dbState.procurement_cases[0].isScanning = false;
+      dbState.discovery_caches = [
+        {
+          id: "cache-test-1",
+          organizationId: "org-1",
+          query: "cá hồi Nauy",
+          results: JSON.stringify({
+            version: "supplier-discovery-v2",
+            candidates: [
+              {
+                name: "Nhà cung cấp Cá hồi Test",
+                contactPerson: "Anh Test",
+                email: "sales@example.com",
+                phone: "0901234567",
+                address: "TP.HCM",
+                website: "https://example.com",
+                tags: ["cá hồi"],
+                sourceUrls: ["https://example.com"],
+                evidence: "Fixture cache dùng cho test deterministic.",
+                confidence: 85,
+                riskFlags: [],
+                autoAddEligible: true
+              }
+            ]
+          }),
+          createdAt: new Date().toISOString()
+        }
+      ];
 
       // 2. Second request (Cache Hit)
       const response2 = await request(app)

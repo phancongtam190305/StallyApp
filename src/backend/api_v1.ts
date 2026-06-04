@@ -906,6 +906,7 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
   const cleanText = (val: any) => String(val || "").replace(/\s+/g, " ").trim();
   const normalizedQuery = cleanText(query).toLowerCase();
   const effectiveLimit = Number(limit) || 5;
+  const DISCOVERY_CACHE_VERSION = "supplier-discovery-v2";
 
   logFlow("info", "supplier.discovery.requested", {
     traceId,
@@ -942,7 +943,11 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
   if (cache && (Date.now() - new Date(cache.createdAt).getTime() < CACHE_EXPIRY_MS)) {
     try {
       console.log(`Cache HIT for query="${query}" under organizationId="${orgId}"`);
-      const candidates = JSON.parse(cache.results);
+      const cachedPayload = JSON.parse(cache.results);
+      if (!cachedPayload || cachedPayload.version !== DISCOVERY_CACHE_VERSION || !Array.isArray(cachedPayload.candidates)) {
+        throw new Error("Stale supplier discovery cache version.");
+      }
+      const candidates = cachedPayload.candidates;
       const now = new Date().toISOString();
       const storedCandidates: SupplierDiscoveryCandidate[] = candidates.map((candidate: any, index: number) => ({
         id: `supdisc-${Date.now()}-${index}`,
@@ -1050,7 +1055,7 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
         id: existingCacheIdx >= 0 ? dbState.discovery_caches[existingCacheIdx].id : `cache-${Date.now()}`,
         organizationId: orgId,
         query,
-        results: JSON.stringify(candidates),
+        results: JSON.stringify({ version: DISCOVERY_CACHE_VERSION, candidates }),
         createdAt: nowStr
       };
 
@@ -1472,7 +1477,11 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
       html: d.bodyHtml
     });
 
-    if (!sendResult.success && sendResult.error?.includes("SMTP_NOT_CONFIGURED")) {
+    if (
+      process.env.EMAIL_ALLOW_SIMULATOR === "true" &&
+      !sendResult.success &&
+      sendResult.error?.includes("SMTP_NOT_CONFIGURED")
+    ) {
       console.warn(`[Stally SMTP Simulator] ✉️ Mock sending RFQ email to ${d.supplierEmail} (SMTP not configured)`);
       sendResult = { success: true, messageId: `mock-smtp-out-${Date.now()}-${d.supplierId}` };
       logFlow("warn", "rfq.send.email.smtp_simulated", {

@@ -117,14 +117,8 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
   if (!name) return null;
 
   let email = normalizeEmail(raw.email);
-  if (!email) {
-    email = `${normalizeName(name).substring(0, 15)}@gmail.com`;
-  }
   const phoneRaw = cleanText(raw.phone || raw.hotline || raw.telephone);
   let phone = PHONE_RE.test(phoneRaw) ? phoneRaw : "";
-  if (!phone) {
-    phone = "0900000000";
-  }
   const sourceUrls = uniqueStrings([raw.sourceUrl, raw.website, ...(Array.isArray(raw.sourceUrls) ? raw.sourceUrls : [])])
     .map(normalizeWebsite)
     .filter(Boolean);
@@ -150,7 +144,7 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
       ? Math.max(confidence, Math.min(95, Math.max(10, aiConfidence)))
       : confidence,
     riskFlags: risks,
-    autoAddEligible: true,
+    autoAddEligible: false,
   };
 
   const duplicate = duplicateSupplier(candidate, existingSuppliers);
@@ -159,7 +153,13 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
     candidate.riskFlags.push(`Trùng với NCC hiện có: ${duplicate.name}`);
   }
 
-  candidate.autoAddEligible = true;
+  candidate.autoAddEligible = Boolean(
+    candidate.email &&
+      candidate.phone &&
+      (candidate.website || candidate.sourceUrls.length > 0) &&
+      candidate.confidence >= 60 &&
+      !candidate.duplicateOfSupplierId
+  );
 
   return candidate;
 }

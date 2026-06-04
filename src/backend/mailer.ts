@@ -14,6 +14,11 @@ const smtpFromEmail = process.env.SMTP_FROM_EMAIL || smtpUser || "no-reply@stall
 const smtpFromName = process.env.SMTP_FROM_NAME || "Stally B2B Sourcing";
 const smtpNetworkFamily = process.env.SMTP_NETWORK_FAMILY === "6" ? 6 : 4;
 const emailRecipientOverride = (process.env.EMAIL_RECIPIENT_OVERRIDE || "").trim();
+const emailProvider = (process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
+const gmailApiClientId = process.env.GMAIL_API_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
+const gmailApiClientSecret = process.env.GMAIL_API_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || "";
+const gmailApiRefreshToken = process.env.GMAIL_API_REFRESH_TOKEN || "";
+const gmailApiSenderEmail = process.env.GMAIL_API_SENDER_EMAIL || smtpFromEmail;
 
 function positiveIntEnv(name: string, fallback: number): number {
   const parsed = Number.parseInt(process.env[name] || "", 10);
@@ -94,39 +99,164 @@ interface EmailInput {
   text?: string;
 }
 
-export async function sendRealEmail(input: EmailInput): Promise<{ success: boolean; messageId?: string; error?: any }> {
-  const { to, subject, html, text } = input;
-  const traceId = createTraceId("smtp");
-  const startedAt = Date.now();
-  const toList = emailRecipientOverride || to;
-  const actualToText = Array.isArray(toList) ? toList.join(",") : toList;
-  logFlow("info", "smtp.send.start", {
-    traceId,
-    requestedTo: maskEmails(to),
-    actualTo: maskEmails(toList),
-    recipientOverrideEnabled: Boolean(emailRecipientOverride),
-    fromEmail: maskEmails(smtpFromEmail),
-    subject: subjectSummary(subject),
-    html: textSummary(html),
-    text: textSummary(text),
-    configured: Boolean(transporter),
+function normalizeRecipients(to: string | string[]) {
+  return (Array.isArray(to) ? to : String(to || "").split(","))
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function headerSafe(value: string) {
+  return String(value || "").replace(/[\r\n]+/g, " ").trim();
+}
+
+function encodeMimeHeader(value: string) {
+  const safe = headerSafe(value);
+  return /^[\x00-\x7F]*$/.test(safe)
+    ? safe
+    : `=?UTF-8?B?${Buffer.from(safe, "utf8").toString("base64")}?=`;
+}
+
+function toBase64Url(value: string) {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function buildGmailRawMessage(input: EmailInput, actualTo: string | string[]) {
+  const recipients = normalizeRecipients(actualTo);
+  if (recipients.length === 0) {
+    throw new Error("GMAIL_API_NO_RECIPIENTS: Email cần ít nhất một người nhận.");
+  }
+
+  const fromHeader = `"${headerSafe(smtpFromName)}" <${headerSafe(gmailApiSenderEmail)}>`;
+  const commonHeaders = [
+    `From: ${fromHeader}`,
+    `To: ${recipients.map(headerSafe).join(", ")}`,
+    `Subject: ${encodeMimeHeader(input.subject)}`,
+    "MIME-Version: 1.0",
+  ];
+
+  if (input.text) {
+    const boundary = `stally-alt-${Date.now()}`;
+    const mime = [
+      ...commonHeaders,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      input.text,
+      "",
+      `--${boundary}`,
+      "Content-Type: text/html; charset=UTF-8",
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      input.html,
+      "",
+      `--${boundary}--`,
+      "",
+    ].join("\r\n");
+    return toBase64Url(mime);
+  }
+
+  const mime = [
+    ...commonHeaders,
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    input.html,
+    "",
+  ].join("\r\n");
+  return toBase64Url(mime);
+}
+
+function isGmailApiConfigured() {
+  return Boolean(gmailApiClientId && gmailApiClientSecret && gmailApiRefreshToken && gmailApiSenderEmail);
+}
+
+async function getGmailApiAccessToken() {
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: gmailApiClientId,
+      client_secret: gmailApiClientSecret,
+      refresh_token: gmailApiRefreshToken,
+      grant_type: "refresh_token",
+    }),
   });
+
+  const tokenData: any = await tokenRes.json().catch(() => ({}));
+  if (!tokenRes.ok || !tokenData.access_token) {
+    throw new Error(tokenData.error_description || tokenData.error || "GMAIL_API_TOKEN_FAILED");
+  }
+  return tokenData.access_token as string;
+}
+
+async function sendViaGmailApi(input: EmailInput, actualTo: string | string[], traceId: string) {
+  if (!isGmailApiConfigured()) {
+    return {
+      success: false,
+      error: "GMAIL_API_NOT_CONFIGURED: Set GMAIL_API_CLIENT_ID, GMAIL_API_CLIENT_SECRET, GMAIL_API_REFRESH_TOKEN, and GMAIL_API_SENDER_EMAIL.",
+    };
+  }
+
+  try {
+    const accessToken = await getGmailApiAccessToken();
+    const raw = buildGmailRawMessage(input, actualTo);
+    const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw }),
+    });
+    const sendData: any = await sendRes.json().catch(() => ({}));
+    if (!sendRes.ok || !sendData.id) {
+      throw new Error(sendData.error?.message || sendData.error || `GMAIL_API_SEND_FAILED_${sendRes.status}`);
+    }
+
+    logFlow("info", "gmail_api.send.success", {
+      traceId,
+      messageId: sendData.id,
+      threadId: sendData.threadId,
+      actualTo: maskEmails(actualTo),
+      senderEmail: maskEmails(gmailApiSenderEmail),
+    });
+    return { success: true, messageId: sendData.id };
+  } catch (err: any) {
+    logFlow("error", "gmail_api.send.failed", {
+      traceId,
+      actualTo: maskEmails(actualTo),
+      senderEmail: maskEmails(gmailApiSenderEmail),
+      err: safeError(err),
+    });
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+async function sendViaSmtp(input: EmailInput, actualTo: string | string[], traceId: string, startedAt: number) {
+  const { subject, html, text } = input;
+  const actualToText = Array.isArray(actualTo) ? actualTo.join(",") : actualTo;
 
   if (transporter) {
     try {
       const info = await transporter.sendMail({
         from: `"${smtpFromName}" <${smtpFromEmail}>`,
-        to: toList,
-        subject: subject,
+        to: actualTo,
+        subject,
         text: text || "Vui lòng xem nội dung email HTML đính kèm.",
-        html: html,
+        html,
       });
       console.log(`✉️ Real Email sent successfully! MessageID: ${info.messageId} to [${actualToText}]`);
       logFlow("info", "smtp.send.success", {
         traceId,
         messageId: info.messageId,
-        requestedTo: maskEmails(to),
-        actualTo: maskEmails(toList),
+        actualTo: maskEmails(actualTo),
         recipientOverrideEnabled: Boolean(emailRecipientOverride),
         subject: subjectSummary(subject),
         durationMs: Date.now() - startedAt,
@@ -136,8 +266,7 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
       console.error(`❌ Failed to send real email to [${actualToText}]:`, err);
       logFlow("error", "smtp.send.failed", {
         traceId,
-        requestedTo: maskEmails(to),
-        actualTo: maskEmails(toList),
+        actualTo: maskEmails(actualTo),
         recipientOverrideEnabled: Boolean(emailRecipientOverride),
         subject: subjectSummary(subject),
         durationMs: Date.now() - startedAt,
@@ -149,8 +278,7 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
 
   logFlow("warn", "smtp.send.not_configured", {
     traceId,
-    requestedTo: maskEmails(to),
-    actualTo: maskEmails(toList),
+    actualTo: maskEmails(actualTo),
     recipientOverrideEnabled: Boolean(emailRecipientOverride),
     subject: subjectSummary(subject),
     durationMs: Date.now() - startedAt,
@@ -159,4 +287,51 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
     success: false,
     error: "SMTP_NOT_CONFIGURED: Set SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, and SMTP_SECURE before sending RFQ emails.",
   };
+}
+
+export function getEmailProviderStatus() {
+  return {
+    provider: emailProvider,
+    recipientOverrideEnabled: Boolean(emailRecipientOverride),
+    smtp: {
+      configured: Boolean(transporter),
+      host: smtpHost || null,
+      port: smtpPort,
+      secure: smtpSecure,
+      networkFamily: smtpNetworkFamily,
+      fromEmailConfigured: Boolean(smtpFromEmail),
+    },
+    gmailApi: {
+      configured: isGmailApiConfigured(),
+      clientConfigured: Boolean(gmailApiClientId && gmailApiClientSecret),
+      refreshTokenConfigured: Boolean(gmailApiRefreshToken),
+      senderEmailConfigured: Boolean(gmailApiSenderEmail),
+      senderEmail: gmailApiSenderEmail ? maskEmails(gmailApiSenderEmail) : [],
+    },
+  };
+}
+
+export async function sendRealEmail(input: EmailInput): Promise<{ success: boolean; messageId?: string; error?: any }> {
+  const { to, subject, html, text } = input;
+  const traceId = createTraceId("smtp");
+  const startedAt = Date.now();
+  const toList = emailRecipientOverride || to;
+  logFlow("info", "email.send.start", {
+    traceId,
+    provider: emailProvider,
+    requestedTo: maskEmails(to),
+    actualTo: maskEmails(toList),
+    recipientOverrideEnabled: Boolean(emailRecipientOverride),
+    fromEmail: maskEmails(emailProvider === "gmail_api" ? gmailApiSenderEmail : smtpFromEmail),
+    subject: subjectSummary(subject),
+    html: textSummary(html),
+    text: textSummary(text),
+    configured: emailProvider === "gmail_api" ? isGmailApiConfigured() : Boolean(transporter),
+  });
+
+  if (emailProvider === "gmail_api") {
+    return sendViaGmailApi(input, toList, traceId);
+  }
+
+  return sendViaSmtp(input, toList, traceId, startedAt);
 }

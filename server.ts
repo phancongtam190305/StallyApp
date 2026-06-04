@@ -6,7 +6,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { apiV1Router } from "./src/backend/api_v1.ts";
-import { sendRealEmail } from "./src/backend/mailer.ts";
+import { getEmailProviderStatus, sendRealEmail } from "./src/backend/mailer.ts";
 import { startImapPolling } from "./src/backend/imap_poller.ts";
 import { createTraceId, logFlow, safeError, summarizeRequestBody } from "./src/backend/logger.ts";
 import { 
@@ -272,14 +272,19 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.get("/api/email/status", (_req, res) => {
+  const providerStatus = getEmailProviderStatus();
   res.json({
+    provider: providerStatus.provider,
+    recipientOverrideEnabled: providerStatus.recipientOverrideEnabled,
     smtp: {
       configured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
       host: process.env.SMTP_HOST || null,
       port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : null,
       secure: process.env.SMTP_SECURE === "true",
       fromEmailConfigured: Boolean(process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER),
+      activeTransporter: providerStatus.smtp.configured,
     },
+    gmailApi: providerStatus.gmailApi,
     imap: {
       enabled: process.env.IMAP_POLL_ENABLED === "true",
       configured: Boolean(
@@ -552,7 +557,11 @@ app.post("/api/rfq", async (req, res) => {
       html: emailBody
     });
 
-    if (!sendResult.success && sendResult.error?.includes("SMTP_NOT_CONFIGURED")) {
+    if (
+      process.env.EMAIL_ALLOW_SIMULATOR === "true" &&
+      !sendResult.success &&
+      sendResult.error?.includes("SMTP_NOT_CONFIGURED")
+    ) {
       console.warn(`[Stally SMTP Simulator] ✉️ Mock sending RFQ email to ${sup.email} (SMTP not configured)`);
       sendResult = { success: true, messageId: `mock-smtp-out-${Date.now()}-${sup.supplierId}` };
     }

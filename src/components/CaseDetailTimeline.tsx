@@ -1448,9 +1448,9 @@ export default function CaseDetailTimeline({
                                 <input
                                   type="checkbox"
                                   checked={selectedDiscoveryCandidateIds.includes(candidate.id || "")}
-                                  disabled={!candidate.id || !canEditSourcing}
+                                  disabled={!candidate.id || !canEditSourcing || !candidate.autoAddEligible}
                                   onChange={() => {
-                                    if (!candidate.id) return;
+                                    if (!candidate.id || !candidate.autoAddEligible) return;
                                     setSelectedDiscoveryCandidateIds(prev =>
                                       prev.includes(candidate.id!)
                                         ? prev.filter(id => id !== candidate.id)

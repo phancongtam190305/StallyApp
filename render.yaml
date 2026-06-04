@@ -22,6 +22,10 @@ services:
         sync: false
       - key: APP_URL
         sync: false
+      - key: EMAIL_PROVIDER
+        value: gmail_api
+      - key: EMAIL_ALLOW_SIMULATOR
+        value: "false"
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
@@ -48,6 +52,14 @@ services:
         value: "15000"
       - key: SMTP_SOCKET_TIMEOUT_MS
         value: "45000"
+      - key: GMAIL_API_CLIENT_ID
+        sync: false
+      - key: GMAIL_API_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_API_REFRESH_TOKEN
+        sync: false
+      - key: GMAIL_API_SENDER_EMAIL
+        sync: false
       - key: IMAP_POLL_ENABLED
         value: "true"
       - key: IMAP_HOST

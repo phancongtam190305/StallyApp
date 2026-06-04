@@ -29,11 +29,29 @@ Important production defaults:
 AUTO_PERSIST_ENABLED=true
 RELOAD_DB_ON_EVERY_REQUEST=false
 SUPPLIER_DISCOVERY_ALLOW_SIMULATOR=false
+EMAIL_PROVIDER=gmail_api
+EMAIL_ALLOW_SIMULATOR=false
 EMAIL_RECIPIENT_OVERRIDE=
 VITE_ENABLE_DEV_TOOLS=false
 ```
 
 Use `EMAIL_RECIPIENT_OVERRIDE` only for safe email testing. Leave it empty when sending RFQ to real suppliers.
+
+For production email sending, prefer Gmail API because SMTP port `465/587` can time out on cloud hosts:
+
+```env
+EMAIL_PROVIDER=gmail_api
+GMAIL_API_CLIENT_ID=...
+GMAIL_API_CLIENT_SECRET=...
+GMAIL_API_REFRESH_TOKEN=...
+GMAIL_API_SENDER_EMAIL=your_gmail@gmail.com
+```
+
+The refresh token must be authorized with:
+
+```text
+https://www.googleapis.com/auth/gmail.send
+```
 
 ## Frontend
 
