@@ -178,6 +178,7 @@ export interface ProcurementCase {
   organizationId: string;
   title: string;
   status: CaseStatus;
+  isScanning?: boolean;
   priority: "low" | "medium" | "high" | "urgent";
   createdFrom: "web" | "gmail" | "chatbot" | "inventory_alert";
   requesterId?: string;

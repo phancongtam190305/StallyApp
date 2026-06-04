@@ -814,15 +814,21 @@ apiV1Router.post("/cases/:caseId/suppliers/select", (req: Request, res: Response
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy case" } });
   }
   
-  // Transition to rfq_draft phase
-  transitionCaseStatus({
-    caseId,
-    toStatus: "rfq_draft",
-    actorId: "u-1",
-    actorRole: "procurement",
-    reason: `Đã chọn các NCC gửi thư thầu: ${supplierIds.join(", ")}`,
-    orgId
-  });
+  // Transition to rfq_draft phase if not already there
+  if (caseObj.status !== "rfq_draft") {
+    transitionCaseStatus({
+      caseId,
+      toStatus: "rfq_draft",
+      actorId: "u-1",
+      actorRole: "procurement",
+      reason: `Đã chọn các NCC gửi thư thầu: ${supplierIds.join(", ")}`,
+      orgId
+    });
+  } else {
+    // Just update timestamp if already in rfq_draft
+    caseObj.updatedAt = new Date().toISOString();
+    persistDbState(dbState).catch(() => {});
+  }
   
   res.json({ message: "Đã chọn nhà cung cấp gửi báo giá thầu", data: caseObj });
 });
@@ -898,7 +904,10 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
     }
   }
 
-  // Cache Miss or Expired: Return processing status immediately to client
+  // Cache Miss or Expired: Set scanning flag and Return processing status immediately to client
+  caseObj.isScanning = true;
+  await persistDbState(dbState);
+
   res.json({
     status: "processing",
     message: "Đang tiến hành tìm kiếm nhà cung cấp bằng AI dưới nền..."
@@ -972,6 +981,9 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
         dbState.supplier_discovery_candidates.push(...storedCandidates);
       }
 
+      // Reset scanning flag
+      caseObj.isScanning = false;
+
       // Persist state to Supabase
       await persistDbState(dbState);
 
@@ -985,6 +997,9 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
       console.log(`Background AI supplier discovery completed successfully. case=${caseId} query="${query}" count=${candidates.length}`);
     } catch (bgErr: any) {
       console.error(`Background AI supplier discovery failed for case=${caseId}: `, bgErr);
+      // Reset scanning flag on error
+      caseObj.isScanning = false;
+      await persistDbState(dbState).catch(() => {});
     }
   })();
 });
@@ -997,6 +1012,15 @@ apiV1Router.get("/cases/:caseId/suppliers/discovery-candidates", (req: Request, 
     .sort((a: SupplierDiscoveryCandidate, b: SupplierDiscoveryCandidate) => b.confidence - a.confidence);
 
   res.json({ data: candidates });
+});
+
+apiV1Router.get("/cases/:caseId/rfq-drafts", (req: Request, res: Response) => {
+  const orgId = req.organizationId;
+  const { caseId } = req.params;
+  const drafts = (dbState.rfq_email_drafts || [])
+    .filter((draft: any) => draft.caseId === caseId);
+
+  res.json({ data: drafts });
 });
 
 apiV1Router.post("/cases/:caseId/suppliers/promote-candidates", (req: Request, res: Response) => {

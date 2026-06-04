@@ -38,6 +38,7 @@ interface CaseDetailTimelineProps {
   currentRole: UserRole;
   orgId: string;
   onStateChanged?: () => void;
+  refreshTrigger?: number;
 }
 
 interface SupplierMatch {
@@ -82,7 +83,8 @@ export default function CaseDetailTimeline({
   onBackToList, 
   currentRole, 
   orgId, 
-  onStateChanged 
+  onStateChanged,
+  refreshTrigger
 }: CaseDetailTimelineProps) {
   const showDevTools = import.meta.env.VITE_ENABLE_DEV_TOOLS === "true";
   
@@ -149,18 +151,21 @@ export default function CaseDetailTimeline({
     discoverySteps.length - 1,
     Math.floor(discoveryElapsedSec / 7)
   );
-  const discoveryProgress = loadingAction === "discover_suppliers"
+  const isCurrentlyScanning = loadingAction === "discover_suppliers" || Boolean(caseObj?.isScanning);
+  const discoveryProgress = isCurrentlyScanning
     ? Math.min(94, 12 + discoveryElapsedSec * 3)
     : 0;
 
   useEffect(() => {
-    if (loadingAction !== "discover_suppliers") return;
-    setDiscoveryElapsedSec(0);
+    if (!isCurrentlyScanning) {
+      setDiscoveryElapsedSec(0);
+      return;
+    }
     const timer = window.setInterval(() => {
       setDiscoveryElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [loadingAction]);
+  }, [isCurrentlyScanning]);
 
 
 
@@ -240,6 +245,24 @@ export default function CaseDetailTimeline({
         });
         const matchesData = await matchesRes.json();
         setMatchedSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(matchesData.data || []) ? (matchesData.data || []) : prev);
+
+        // Fetch discovery candidates
+        const candRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/suppliers/discovery-candidates`), {
+          headers: { "X-Organization-Id": orgId }
+        });
+        const candData = await candRes.json();
+        if (!candData.error) {
+          setDiscoveryCandidates(prev => JSON.stringify(prev) !== JSON.stringify(candData.data || []) ? (candData.data || []) : prev);
+        }
+
+        // Fetch RFQ drafts
+        const draftsRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq-drafts`), {
+          headers: { "X-Organization-Id": orgId }
+        });
+        const draftsData = await draftsRes.json();
+        if (!draftsData.error) {
+          setRfqDrafts(prev => JSON.stringify(prev) !== JSON.stringify(draftsData.data || []) ? (draftsData.data || []) : prev);
+        }
       }
 
       if (!isBackground) {
@@ -264,7 +287,7 @@ export default function CaseDetailTimeline({
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [caseId]);
+  }, [caseId, refreshTrigger]);
 
   useEffect(() => {
     if (!caseObj) return;
@@ -1070,14 +1093,14 @@ export default function CaseDetailTimeline({
                     />
                     <button
                       onClick={handleSupplierDiscover}
-                      disabled={loadingAction !== null || !aiSearchQuery}
+                      disabled={isCurrentlyScanning || !aiSearchQuery}
                       className="px-5 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-xl flex items-center gap-1.5 shadow-teal-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
                     >
-                      {loadingAction === "discover_suppliers" ? <RefreshCw className="w-4.5 h-4.5 animate-spin" /> : <Search className="w-4 h-4" />}
+                      {isCurrentlyScanning ? <RefreshCw className="w-4.5 h-4.5 animate-spin" /> : <Search className="w-4 h-4" />}
                       AI quét thầu
                     </button>
                   </div>
-                  {loadingAction === "discover_suppliers" && (
+                  {isCurrentlyScanning && (
                     <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 space-y-3 animate-fade-slide-up">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">

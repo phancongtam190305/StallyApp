@@ -67,6 +67,7 @@ export function AppContent() {
 
   //Sourcing flow selection helpers
   const [selectedPr, setSelectedPr] = useState<PurchaseRequest | null>(null);
+  const [sseRefreshTrigger, setSseRefreshTrigger] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -116,16 +117,20 @@ export function AppContent() {
         if (data.type === "email.received") {
           showToast("📬 Nhận email phản hồi mới từ nhà cung cấp!", "info");
           syncStateFromServer();
+          setSseRefreshTrigger(prev => prev + 1);
         } else if (data.type === "quote.extracted") {
           showToast("✨ AI đã trích xuất thành công báo giá mới!", "success");
           syncStateFromServer();
+          setSseRefreshTrigger(prev => prev + 1);
         } else if (data.type === "case.updated") {
           const caseCode = data.caseId ? data.caseId.split('-')[1]?.toUpperCase() : "";
           showToast(`🔄 Hồ sơ thầu #${caseCode || ""} đã chuyển sang trạng thái mới!`, "info");
           syncStateFromServer();
+          setSseRefreshTrigger(prev => prev + 1);
         } else if (data.type === "supplier.discovery_completed") {
           showToast("📬 AI đã quét xong nhà cung cấp cho mặt hàng: " + (data.payload?.query || "") + "!", "success");
           syncStateFromServer();
+          setSseRefreshTrigger(prev => prev + 1);
         }
       } catch (err) {
         console.error("Failed to parse realtime event:", err);
@@ -536,6 +541,7 @@ export function AppContent() {
                     currentRole={currentRole}
                     orgId={orgId}
                     onStateChanged={syncStateFromServer}
+                    refreshTrigger={sseRefreshTrigger}
                   />
                 </div>
               ) : (
