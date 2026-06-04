@@ -465,26 +465,53 @@ async function seedIfEmpty() {
 }
 
 export async function loadDbState() {
-  const rows = async (table: string) => (await db.query(`SELECT * FROM ${quoteIdent(table)}`)).rows;
+  const tables = [
+    "organizations",
+    "users",
+    "suppliers",
+    "supplier_discovery_candidates",
+    "inventory_items",
+    "procurement_cases",
+    "case_transitions",
+    "purchase_requests",
+    "rfq_cases",
+    "quotes",
+    "quote_versions",
+    "purchase_orders",
+    "email_accounts",
+    "email_messages",
+    "ai_negotiation_logs",
+    "rfq_email_drafts",
+    "stock_movements",
+  ];
+
+  const results = await Promise.all(
+    tables.map((table) => db.query(`SELECT * FROM ${quoteIdent(table)}`))
+  );
+
+  const data: Record<string, any[]> = {};
+  tables.forEach((table, idx) => {
+    data[table] = results[idx].rows;
+  });
 
   return {
-    organizations: await rows("organizations"),
-    users: await rows("users"),
-    suppliers: (await rows("suppliers")).map(parseSupplier),
-    supplier_discovery_candidates: (await rows("supplier_discovery_candidates")).map(parseSupplierDiscoveryCandidate),
-    inventory_items: await rows("inventory_items"),
-    procurement_cases: (await rows("procurement_cases")).map(parseProcurementCase),
-    case_transitions: await rows("case_transitions"),
-    purchase_requests: (await rows("purchase_requests")).map(parsePurchaseRequest),
-    rfq_cases: (await rows("rfq_cases")).map(parseRfqCase),
-    quotes: (await rows("quotes")).map(parseQuote),
-    quote_versions: (await rows("quote_versions")).map(parseQuoteVersion),
-    purchase_orders: (await rows("purchase_orders")).map(parsePurchaseOrder),
-    email_accounts: await rows("email_accounts"),
-    email_messages: (await rows("email_messages")).map(parseEmailMessage),
-    ai_negotiation_logs: await rows("ai_negotiation_logs"),
-    rfq_email_drafts: await rows("rfq_email_drafts"),
-    stock_movements: await rows("stock_movements"),
+    organizations: data.organizations,
+    users: data.users,
+    suppliers: data.suppliers.map(parseSupplier),
+    supplier_discovery_candidates: data.supplier_discovery_candidates.map(parseSupplierDiscoveryCandidate),
+    inventory_items: data.inventory_items,
+    procurement_cases: data.procurement_cases.map(parseProcurementCase),
+    case_transitions: data.case_transitions,
+    purchase_requests: data.purchase_requests.map(parsePurchaseRequest),
+    rfq_cases: data.rfq_cases.map(parseRfqCase),
+    quotes: data.quotes.map(parseQuote),
+    quote_versions: data.quote_versions.map(parseQuoteVersion),
+    purchase_orders: data.purchase_orders.map(parsePurchaseOrder),
+    email_accounts: data.email_accounts,
+    email_messages: data.email_messages.map(parseEmailMessage),
+    ai_negotiation_logs: data.ai_negotiation_logs,
+    rfq_email_drafts: data.rfq_email_drafts,
+    stock_movements: data.stock_movements,
   };
 }
 
@@ -571,16 +598,25 @@ export function parseEmailMessage(row: any): EmailMessage {
   };
 }
 
-let persistChain = Promise.resolve();
+let persistChain = Promise.resolve<any>(null);
 
-export function persistDbState(dbState: any) {
-  if (!dbState) return;
+export function persistDbState(dbState: any): Promise<void> {
+  if (!dbState) return Promise.resolve();
 
-  persistChain = persistChain
+  const promise = persistChain
     .then(() => persistDbStateNow(dbState))
     .catch((err) => {
       console.error("Failed to persist database state to Supabase:", err);
+      throw err;
     });
+  persistChain = promise.catch(() => {});
+  return promise;
+}
+
+export function loadDbStateQueue(): Promise<any> {
+  const promise = persistChain.then(() => loadDbState());
+  persistChain = promise.catch(() => {});
+  return promise;
 }
 
 export async function persistDbStateNow(dbState: any) {

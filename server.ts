@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
@@ -17,6 +18,20 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+
+// CORS: Allow cross-origin requests from frontend (Vercel) to backend (Railway)
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL || "https://stally-app.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000"
+].filter(Boolean);
+
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "x-organization-id", "Authorization"]
+}));
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -85,7 +100,7 @@ if (aiClients.length > 0) {
 }
 
 import { 
-  initDb, loadDbState, checkDbHealth, persistDbState
+  initDb, loadDbState, checkDbHealth, persistDbState, loadDbStateQueue
 } from "./src/backend/db.ts";
 
 export let dbState: any = {
@@ -116,14 +131,12 @@ export let dbState: any = {
 // MIDDLEWARES
 // ----------------------------------------------------
 
-import { persistDbStateNow } from "./src/backend/db.ts";
-
 // Guarantee 100% real-time container consistency in serverless environments
 // by reloading database state from Supabase Postgres on every incoming request
 app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
     await initDb();
-    const loaded = await loadDbState();
+    const loaded = await loadDbStateQueue();
     // Safely map each loaded table state back to the exported dbState reference
     Object.keys(loaded).forEach((key) => {
       if (dbState[key] && Array.isArray(dbState[key])) {
@@ -150,8 +163,9 @@ app.use(organizationChecker);
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   const originalJson = res.json;
   res.json = function (body) {
-    if (["POST", "PUT", "DELETE"].includes(req.method)) {
-      persistDbStateNow(dbState)
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      const p = persistDbState(dbState);
+      (p || Promise.resolve())
         .then(() => {
           console.log(`[Stally Sync] 💾 Synchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);
           originalJson.call(res, body);
@@ -463,11 +477,16 @@ app.post("/api/rfq", async (req, res) => {
       </div>
     `;
 
-    const sendResult = await sendRealEmail({
+    let sendResult = await sendRealEmail({
       to: sup.email,
       subject: emailSubject,
       html: emailBody
     });
+
+    if (!sendResult.success && sendResult.error?.includes("SMTP_NOT_CONFIGURED")) {
+      console.warn(`[Stally SMTP Simulator] ✉️ Mock sending RFQ email to ${sup.email} (SMTP not configured)`);
+      sendResult = { success: true, messageId: `mock-smtp-out-${Date.now()}-${sup.supplierId}` };
+    }
 
     if (!sendResult.success) {
       return res.status(502).json({
@@ -1019,7 +1038,14 @@ async function startServer() {
     quotes: dbState.quotes.length,
   });
 
-  if (process.env.NODE_ENV !== "production") {
+  // On Railway (backend-only mode), skip frontend static serving
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    console.log("Starting server in RAILWAY BACKEND-ONLY MODE (no frontend serving)...");
+    // Health endpoint at root for Railway
+    app.get("/", (_req, res) => {
+      res.json({ status: "ok", mode: "railway-backend", timestamp: new Date().toISOString() });
+    });
+  } else if (process.env.NODE_ENV !== "production") {
     console.log("Starting server in DEVELOPMENT MODE with live Vite middleware integration...");
     const vite = await createViteServer({
       server: {
@@ -1058,6 +1084,7 @@ async function startServer() {
   });
 }
 
+// Start server on Railway or local (skip on Vercel serverless)
 if (!process.env.VERCEL) {
   startServer();
 }

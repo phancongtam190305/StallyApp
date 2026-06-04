@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../config";
 import { 
   ChevronLeft, 
   Sparkles, 
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { UserRole, ProcurementCase, PurchaseRequestItem, Supplier, Quote, CaseTransition, PurchaseOrder } from "../types";
 import ItemIcon from "./ItemIcon";
+import { useToast } from "../context/ToastContext";
 
 interface CaseDetailTimelineProps {
   caseId: string;
@@ -93,7 +95,7 @@ export default function CaseDetailTimeline({
   const [rfqDrafts, setRfqDrafts] = useState<RfqDraft[]>([]);
   const [activeMilestone, setActiveMilestone] = useState<number>(1);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const { showToast } = useToast();
 
   // Intake States
   const [newItemName, setNewItemName] = useState("");
@@ -159,10 +161,7 @@ export default function CaseDetailTimeline({
     return () => window.clearInterval(timer);
   }, [loadingAction]);
 
-  const showToast = (text: string, type: "success" | "error" | "info" = "success") => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 5000);
-  };
+
 
   const fetchData = async (isBackground = false) => {
     try {
@@ -170,32 +169,32 @@ export default function CaseDetailTimeline({
         setLoading(true);
       }
       // Fetch Case Details
-      const caseRes = await fetch(`/api/v1/cases/${caseId}`, {
+      const caseRes = await fetch(apiUrl(`/api/v1/cases/${caseId}`), {
         headers: { "X-Organization-Id": orgId }
       });
       const caseData = await caseRes.json();
       if (caseData.error) throw new Error(caseData.error.message);
       setCaseObj(prev => JSON.stringify(prev) !== JSON.stringify(caseData.data) ? caseData.data : prev);
 
-      const timelineRes = await fetch(`/api/v1/cases/${caseId}/timeline`, {
+      const timelineRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/timeline`), {
         headers: { "X-Organization-Id": orgId }
       });
       const timelineData = await timelineRes.json();
       setTimeline(prev => JSON.stringify(prev) !== JSON.stringify(timelineData.data || []) ? (timelineData.data || []) : prev);
 
-      const supRes = await fetch(`/api/suppliers`, {
+      const supRes = await fetch(apiUrl(`/api/suppliers`), {
         headers: { "X-Organization-Id": orgId }
       });
       const supData = await supRes.json();
       setSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(supData || []) ? (supData || []) : prev);
 
-      const compRes = await fetch(`/api/v1/cases/${caseId}/comparison`, {
+      const compRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/comparison`), {
         headers: { "X-Organization-Id": orgId }
       });
       const compData = await compRes.json();
       setComparison(prev => JSON.stringify(prev) !== JSON.stringify(compData) ? compData : prev);
 
-      const poRes = await fetch(`/api/v1/purchase-orders`, {
+      const poRes = await fetch(apiUrl(`/api/v1/purchase-orders`), {
         headers: { "X-Organization-Id": orgId }
       });
       const poData = await poRes.json().catch(() => ({ data: [] }));
@@ -234,7 +233,7 @@ export default function CaseDetailTimeline({
 
       // Always fetch matched suppliers if status is step 2
       if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
-        const matchesRes = await fetch(`/api/v1/cases/${caseId}/supplier-matches`, {
+        const matchesRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/supplier-matches`), {
           method: "POST",
           headers: { "X-Organization-Id": orgId }
         });
@@ -353,16 +352,23 @@ export default function CaseDetailTimeline({
   const handleIntakeSubmit = async () => {
     setLoadingAction("submit_intake");
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/submit`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/submit`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ reason: "Ban Mua Sắm chuẩn hóa xong danh mục nguyên liệu." })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
+      
+      // Immediately update caseObj from response to avoid race condition
+      if (data.data) {
+        setCaseObj(data.data);
+      }
+      
       showToast("Đã chuẩn hóa yêu cầu và chuyển sang khâu mời thầu!", "success");
       if (onStateChanged) onStateChanged();
-      setTimeout(fetchData, 650);
+      // Fetch remaining data (timeline, suppliers etc.) after a short delay
+      setTimeout(() => fetchData(true), 800);
     } catch (e: any) {
       showToast(e.message, "error");
     } finally {
@@ -374,7 +380,7 @@ export default function CaseDetailTimeline({
     if (!window.confirm("Bạn có chắc chắn muốn hủy bỏ quy trình mua sắm này?")) return;
     setLoadingAction("cancel_case");
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/cancel`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/cancel`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ reason: "Hủy bỏ quy trình thầu sắm theo nhu cầu thực tế." })
@@ -394,7 +400,7 @@ export default function CaseDetailTimeline({
   const handleAddItem = async () => {
     if (!newItemName) return;
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/items`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/items`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ name: newItemName, quantity: newItemQty, unit: newItemUnit, notes: newItemNotes })
@@ -412,7 +418,7 @@ export default function CaseDetailTimeline({
 
   const handleDeleteItem = async (index: number) => {
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/items/${index}`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/items/${index}`), {
         method: "DELETE",
         headers: { "X-Organization-Id": orgId }
       });
@@ -432,7 +438,7 @@ export default function CaseDetailTimeline({
     setDiscoveryCandidates([]);
     setSelectedDiscoveryCandidateIds([]);
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/suppliers/discover`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/suppliers/discover`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ query: aiSearchQuery })
@@ -462,7 +468,7 @@ export default function CaseDetailTimeline({
 
     setLoadingAction("promote_discovery_candidates");
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/suppliers/promote-candidates`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/suppliers/promote-candidates`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ candidateIds: selectedDiscoveryCandidateIds })
@@ -489,13 +495,13 @@ export default function CaseDetailTimeline({
     }
     setLoadingAction("draft_rfq");
     try {
-      await fetch(`/api/v1/cases/${caseId}/suppliers/select`, {
+      await fetch(apiUrl(`/api/v1/cases/${caseId}/suppliers/select`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ supplierIds: selectedSuppliers })
       });
 
-      const draftRes = await fetch(`/api/v1/cases/${caseId}/rfq-draft`, {
+      const draftRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq-draft`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ supplierIds: selectedSuppliers, dueDate: customRfqDueDate })
@@ -521,7 +527,7 @@ export default function CaseDetailTimeline({
     if (rfqDrafts.length === 0) return;
     setLoadingAction("send_rfqs");
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/rfq/send`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq/send`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ draftIds: rfqDrafts.map(d => d.id) })
@@ -546,7 +552,7 @@ export default function CaseDetailTimeline({
     setLoadingAction("simulate_quote");
     try {
       const rfqId = caseObj.currentRfqId || `rfq-${Date.now()}`;
-      const res = await fetch(`/api/webhooks/inbound-email`, {
+      const res = await fetch(apiUrl(`/api/webhooks/inbound-email`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({
@@ -577,7 +583,7 @@ export default function CaseDetailTimeline({
     }
     setNegLoading(true);
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/negotiations/${selectedNegSupplier}/draft`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/negotiations/${selectedNegSupplier}/draft`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ goal: negGoal })
@@ -597,7 +603,7 @@ export default function CaseDetailTimeline({
     if (!negDraft) return;
     setLoadingAction("send_neg");
     try {
-      const res = await fetch(`/api/v1/negotiation-drafts/${negDraft.id}/send`, {
+      const res = await fetch(apiUrl(`/api/v1/negotiation-drafts/${negDraft.id}/send`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ editedBody: negEditedBody })
@@ -617,7 +623,7 @@ export default function CaseDetailTimeline({
   const handleRequestApproval = async (quoteId: string) => {
     setLoadingAction("request_app");
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/approval/request`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/approval/request`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ selectedQuoteId: quoteId, comment: "Đề xuất lựa chọn nhà cung cấp tối ưu nhất về chi phí." })
@@ -636,7 +642,7 @@ export default function CaseDetailTimeline({
   const handleApprove = async () => {
     setLoadingAction("approve_po");
     try {
-      const res = await fetch(`/api/v1/approval-requests/${caseId}/approve`, {
+      const res = await fetch(apiUrl(`/api/v1/approval-requests/${caseId}/approve`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ comment: approvalComment })
@@ -655,7 +661,7 @@ export default function CaseDetailTimeline({
   const handleReject = async () => {
     setLoadingAction("reject_po");
     try {
-      const res = await fetch(`/api/v1/approval-requests/${caseId}/reject`, {
+      const res = await fetch(apiUrl(`/api/v1/approval-requests/${caseId}/reject`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ comment: approvalComment })
@@ -674,7 +680,7 @@ export default function CaseDetailTimeline({
   const handleCreatePoDraft = async () => {
     setLoadingAction("po_draft");
     try {
-      const res = await fetch(`/api/v1/cases/${caseId}/po-draft`, {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/po-draft`), {
         method: "POST",
         headers: { "X-Organization-Id": orgId }
       });
@@ -691,7 +697,7 @@ export default function CaseDetailTimeline({
   const handleSendPo = async (poId: string) => {
     setLoadingAction("send_po");
     try {
-      const res = await fetch(`/api/v1/purchase-orders/${poId}/send`, {
+      const res = await fetch(apiUrl(`/api/v1/purchase-orders/${poId}/send`), {
         method: "POST",
         headers: { "X-Organization-Id": orgId }
       });
@@ -717,7 +723,7 @@ export default function CaseDetailTimeline({
 
     setLoadingAction("receive_all");
     try {
-      const res = await fetch(`/api/v1/purchase-orders/${poId}/receive`, {
+      const res = await fetch(apiUrl(`/api/v1/purchase-orders/${poId}/receive`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({

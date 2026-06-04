@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { apiUrl } from "../config";
 import { User as AppUser, UserRole } from "../types";
 import { 
   Utensils, 
@@ -27,7 +28,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [checkingLogin, setCheckingLogin] = useState(false);
 
   useEffect(() => {
-    fetch("/api/v1/auth/config")
+    fetch(apiUrl("/api/v1/auth/config"))
       .then(res => res.json())
       .then(data => setEmailRoleAuthEnabled(Boolean(data.data?.emailRoleAuthEnabled)))
       .catch(() => setEmailRoleAuthEnabled(false));
@@ -102,7 +103,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
       setCheckingLogin(true);
       try {
-        const res = await fetch(`/api/v1/me?email=${encodeURIComponent(loginEmail.trim())}`, {
+        const res = await fetch(apiUrl(`/api/v1/me?email=${encodeURIComponent(loginEmail.trim())}`), {
           headers: { "X-Organization-Id": "org-1" }
         });
         const data = await res.json();

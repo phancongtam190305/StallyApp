@@ -63,8 +63,18 @@ async function runTests() {
       },
       body: JSON.stringify({ reason: "Duyệt yêu cầu hợp lệ để khớp NCC", role: "procurement" })
     });
-    const submitData = await submitRes.json();
-    console.log(`- Trạng thái duyệt chuyển tiếp: ${submitData.data.status}`);
+    const submitText = await submitRes.text();
+    let submitData: any = {};
+    try {
+      submitData = JSON.parse(submitText);
+    } catch (e) {
+      console.error(`Failed to parse JSON. Response was: ${submitText}`);
+      throw e;
+    }
+    if (!submitData.data) {
+      console.error("No data in submit response:", submitData);
+    }
+    console.log(`- Trạng thái duyệt chuyển tiếp: ${submitData.data?.status}`);
     
     // Đợi 600ms để hệ thống auto-chuyển sang supplier_matching
     await sleep(600);
@@ -152,9 +162,9 @@ async function runTests() {
     const inboundData = await inboundRes.json();
     console.log(`- Webhook email tiếp nhận thành công. Gán chính xác hòm thư vào: ${inboundData.linkedCaseId}`);
     
-    // Đợi 1.2 giây để AI bóc tách tài liệu và cập nhật ma trận so sánh
+    // Đợi 6 giây để AI bóc tách tài liệu và cập nhật ma trận so sánh
     console.log("- Đang đợi AI bóc tách dữ liệu PDF không cấu trúc...");
-    await sleep(1500);
+    await sleep(6000);
     
     // 7. Xem ma trận so sánh tài chính
     console.log("\n7. Tra cứu ma trận đối chiếu bảng báo giá...");
@@ -162,7 +172,10 @@ async function runTests() {
       headers: { "X-Organization-Id": ORG_ID }
     });
     const compData = await compRes.json();
-    console.log(`- Tổng số báo giá đã bóc tách: ${compData.matrix.length}`);
+    console.log(`- Tổng số báo giá đã bóc tách: ${compData.matrix ? compData.matrix.length : 0}`);
+    if (!compData.matrix || compData.matrix.length === 0) {
+      console.error("Diagnostic - Full comparison response:", JSON.stringify(compData, null, 2));
+    }
     const activeQuote = compData.matrix[0];
     console.log(`  * NCC chào thầu: ${activeQuote.supplierName}`);
     console.log(`  * Đơn giá Gạo trích xuất: ${activeQuote.items[0].unitPrice.toLocaleString()} đ/kg`);
@@ -192,8 +205,8 @@ async function runTests() {
     });
     console.log("- Đã gửi email đàm phán. Hệ thống đang lắng nghe NCC phản hồi...");
     
-    // Đợi 1.5 giây để NCC phản hồi đồng ý chiết khấu và tự cập nhật Quote v2
-    await sleep(1800);
+    // Đợi 6 giây để NCC phản hồi đồng ý chiết khấu và tự cập nhật Quote v2
+    await sleep(6000);
     
     const compRes2 = await fetch(`${BASE_URL}/cases/${caseId}/comparison`, {
       headers: { "X-Organization-Id": ORG_ID }

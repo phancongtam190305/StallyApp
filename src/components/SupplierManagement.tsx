@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../config";
 import { 
   Building2, 
   Plus, 
@@ -57,7 +58,7 @@ export default function SupplierManagement({ currentRole, orgId, onSuppliersChan
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/suppliers", {
+      const res = await fetch(apiUrl("/api/suppliers"), {
         headers: { "X-Organization-Id": orgId }
       });
       if (!res.ok) throw new Error("Không thể tải danh sách nhà cung ứng.");
@@ -148,7 +149,7 @@ export default function SupplierManagement({ currentRole, orgId, onSuppliersChan
     };
 
     try {
-      const url = isEditing ? `/api/suppliers/${selectedSupplierId}` : "/api/suppliers";
+      const url = isEditing ? apiUrl(`/api/suppliers/${selectedSupplierId}`) : apiUrl("/api/suppliers");
       const method = isEditing ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -187,7 +188,7 @@ export default function SupplierManagement({ currentRole, orgId, onSuppliersChan
     setDeleteConfId(null);
 
     try {
-      const res = await fetch(`/api/suppliers/${id}`, {
+      const res = await fetch(apiUrl(`/api/suppliers/${id}`), {
         method: "DELETE",
         headers: { "X-Organization-Id": orgId }
       });

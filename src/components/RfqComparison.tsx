@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../config";
 import { 
   Building2, 
   Send, 
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { PurchaseRequest, RfqCase, Quote, Supplier, UserRole } from "../types";
 import ItemIcon from "./ItemIcon";
+import MarkdownText from "./MarkdownText";
 
 interface RfqComparisonProps {
   selectedPr: PurchaseRequest | null;
@@ -57,7 +59,7 @@ export default function RfqComparison({
   useEffect(() => {
     if (selectedPr) {
       setLoadingMatches(true);
-      fetch(`/api/purchase-requests/${selectedPr.id}/match-suppliers`)
+      fetch(apiUrl(`/api/purchase-requests/${selectedPr.id}/match-suppliers`))
         .then(res => res.json())
         .then(data => {
           setMatches(data);
@@ -491,15 +493,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                         </div>
                         <div className="text-xs text-slate-600 leading-relaxed font-sans space-y-3">
                           <div className="prose prose-xs">
-                            {aiAdvice.split("\n").map((line, idx) => {
-                              if (line.startsWith("###")) {
-                                return <h4 key={idx} className="text-xs font-extrabold text-teal-800 font-display mt-2 mb-1.5 uppercase tracking-wide">{line.replace("###", "")}</h4>;
-                              }
-                              if (line.startsWith("- **") || line.startsWith("1. **") || line.startsWith("2. **")) {
-                                return <p key={idx} className="pl-3 py-0.5 text-slate-600 font-medium">{line}</p>;
-                              }
-                              return <p key={idx} className="my-1 text-slate-500">{line}</p>;
-                            })}
+                            <MarkdownText text={aiAdvice} />
                           </div>
                         </div>
                       </div>

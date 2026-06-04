@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "./config";
 import Sidebar from "./components/Sidebar";
 import StatsDashboard from "./components/StatsDashboard";
 import PurchaseRequestsList from "./components/PurchaseRequestsList";
@@ -8,6 +9,7 @@ import ChatbotPanel from "./components/ChatbotPanel";
 import SupplierManagement from "./components/SupplierManagement";
 import LoginScreen from "./components/LoginScreen";
 import OnboardingTutorial from "./components/OnboardingTutorial";
+import { ToastProvider, useToast } from "./context/ToastContext";
 
 // Import new cases pipeline components
 import ProcurementDashboard from "./components/ProcurementDashboard";
@@ -41,7 +43,8 @@ import {
   RefreshCw
 } from "lucide-react";
 
-export default function App() {
+export function AppContent() {
+  const { showToast } = useToast();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -72,7 +75,7 @@ export default function App() {
   const syncStateFromServer = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/state", {
+      const res = await fetch(apiUrl("/api/state"), {
         headers: { "X-Organization-Id": orgId }
       });
       if (!res.ok) throw new Error("Không thể đồng bộ với server.");
@@ -103,19 +106,22 @@ export default function App() {
     if (!isLoggedIn) return;
 
     console.log("🔌 Connecting to Realtime SSE Stream...");
-    const eventSource = new EventSource("/api/v1/events/stream");
+    const eventSource = new EventSource(apiUrl("/api/v1/events/stream"));
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         console.log("Realtime event received:", data);
         
-        if (
-          data.type === "email.received" || 
-          data.type === "quote.extracted" || 
-          data.type === "case.updated"
-        ) {
-          console.log("🔄 Background update detected, sync state from server...");
+        if (data.type === "email.received") {
+          showToast("📬 Nhận email phản hồi mới từ nhà cung cấp!", "info");
+          syncStateFromServer();
+        } else if (data.type === "quote.extracted") {
+          showToast("✨ AI đã trích xuất thành công báo giá mới!", "success");
+          syncStateFromServer();
+        } else if (data.type === "case.updated") {
+          const caseCode = data.caseId ? data.caseId.split('-')[1]?.toUpperCase() : "";
+          showToast(`🔄 Hồ sơ thầu #${caseCode || ""} đã chuyển sang trạng thái mới!`, "info");
           syncStateFromServer();
         }
       } catch (err) {
@@ -136,7 +142,7 @@ export default function App() {
   // Handler: Create PR (EPIC A)
   const handleCreatePr = async (prData: { title: string; priority: PriorityLevel; requiredDate: string; items: PurchaseRequestItem[]; status?: string }) => {
     try {
-      const res = await fetch("/api/purchase-requests", {
+      const res = await fetch(apiUrl("/api/purchase-requests"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -180,7 +186,7 @@ export default function App() {
     const selectedSupplierDetails = suppliers.filter(s => supplierIds.includes(s.id));
     
     try {
-      const res = await fetch("/api/rfq", {
+      const res = await fetch(apiUrl("/api/rfq"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -228,7 +234,7 @@ export default function App() {
   // Handler: Simulate Supplier Inbound Quote Webhook (EPIC D & E)
   const handleSimulateInboundEmail = async (rfqCaseId: string, supplierId: string, bodyText: string, filename: string) => {
     try {
-      const res = await fetch("/api/webhooks/inbound-email", {
+      const res = await fetch(apiUrl("/api/webhooks/inbound-email"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -254,7 +260,7 @@ export default function App() {
   const handleApproveQuote = async (rfqId: string, quoteId: string) => {
     try {
       // Find the corresponding case and request/approve PO draft via modern endpoints
-      const casesRes = await fetch("/api/v1/cases", {
+      const casesRes = await fetch(apiUrl("/api/v1/cases"), {
         headers: { "X-Organization-Id": orgId }
       });
       if (casesRes.ok) {
@@ -265,7 +271,7 @@ export default function App() {
           const caseId = relatedCase.id;
           
           // Submit approval request
-          await fetch(`/api/v1/cases/${caseId}/approval/request`, {
+          await fetch(apiUrl(`/api/v1/cases/${caseId}/approval/request`), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -278,7 +284,7 @@ export default function App() {
           });
 
           // Approve the request
-          await fetch(`/api/v1/approval-requests/${caseId}/approve`, {
+          await fetch(apiUrl(`/api/v1/approval-requests/${caseId}/approve`), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -291,14 +297,14 @@ export default function App() {
           });
 
           // Create PO Draft
-          await fetch(`/api/v1/cases/${caseId}/po-draft`, {
+          await fetch(apiUrl(`/api/v1/cases/${caseId}/po-draft`), {
             method: "POST",
             headers: { "X-Organization-Id": orgId }
           });
         }
       }
 
-      const res = await fetch(`/api/rfq/${rfqId}/approve`, {
+      const res = await fetch(apiUrl(`/api/rfq/${rfqId}/approve`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -324,7 +330,7 @@ export default function App() {
       // Find the inventory item name
       const itemName = inventory.find(i => i.id === itemId)?.name || "";
 
-      const res = await fetch(`/api/v1/purchase-orders/${sourcePo}/receive`, {
+      const res = await fetch(apiUrl(`/api/v1/purchase-orders/${sourcePo}/receive`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -347,7 +353,7 @@ export default function App() {
   // Handler: Manual Stock Adjustment (EPIC I / Out-stock)
   const handleAdjustStock = async (itemId: string, qty: number, movementType: "in" | "out" | "adjustment", notes: string) => {
     try {
-      const res = await fetch("/api/inventory/adjust", {
+      const res = await fetch(apiUrl("/api/inventory/adjust"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -606,5 +612,13 @@ export default function App() {
         onCreatePr={handleCreatePr}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }

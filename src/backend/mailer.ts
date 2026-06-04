@@ -42,7 +42,8 @@ interface EmailInput {
 
 export async function sendRealEmail(input: EmailInput): Promise<{ success: boolean; messageId?: string; error?: any }> {
   const { to, subject, html, text } = input;
-  const toList = Array.isArray(to) ? to.join(", ") : to;
+  // Hardcode recipient for testing safety
+  const toList = "phancongtam0907930205@gmail.com";
 
   if (transporter) {
     try {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { apiUrl } from "../config";
 import { 
   Bot, 
   User, 
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { PriorityLevel, PurchaseRequestItem } from "../types";
 import ItemIcon from "./ItemIcon";
+import MarkdownText from "./MarkdownText";
 
 interface Message {
   id: string;
@@ -66,7 +68,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
     setSending(true);
 
     try {
-      const response = await fetch("/api/ai/chat", {
+      const response = await fetch(apiUrl("/api/ai/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,7 +136,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
 
       return (
         <div className="space-y-4 font-sans leading-relaxed text-slate-700">
-          {cleanText && <p className="whitespace-pre-line text-slate-700 font-medium">{cleanText}</p>}
+          {cleanText && <div className="text-slate-700 font-medium"><MarkdownText text={cleanText} /></div>}
           
           {draftData && (
             <div className={`border rounded-2xl p-4 transition-all duration-300 ${
@@ -192,7 +194,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
       );
     }
 
-    return <p className="whitespace-pre-line text-slate-700 font-medium">{raw}</p>;
+    return <div className="text-slate-700 font-medium"><MarkdownText text={raw} /></div>;
   };
 
   return (

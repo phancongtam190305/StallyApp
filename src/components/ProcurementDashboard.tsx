@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../config";
 import { 
   Plus, 
   Search, 
@@ -22,6 +23,7 @@ import {
   FolderOpen
 } from "lucide-react";
 import { UserRole, ProcurementCase, PurchaseRequestItem } from "../types";
+import { useToast } from "../context/ToastContext";
 
 interface ProcurementDashboardProps {
   currentRole: UserRole;
@@ -35,13 +37,16 @@ export default function ProcurementDashboard({
   onSelectCase 
 }: ProcurementDashboardProps) {
 
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [cases, setCases] = useState<ProcurementCase[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  
-  // Creation modal states
+  const [priorityFilter, setPriorityFilter] = useState("all");
+
+  // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // Form fields for new thầu
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState<"low" | "medium" | "high" | "urgent">("medium");
   const [newRequiredDate, setNewRequiredDate] = useState("");
@@ -49,17 +54,11 @@ export default function ProcurementDashboard({
     { name: "", quantity: 1, unit: "kg", notes: "" }
   ]);
   const [creating, setCreating] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  const showToast = (text: string, type: "success" | "error" = "success") => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 4000);
-  };
 
   const fetchCases = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/v1/cases`, {
+      const res = await fetch(apiUrl(`/api/v1/cases`), {
         headers: { "X-Organization-Id": orgId }
       });
       const data = await res.json();
@@ -160,7 +159,7 @@ export default function ProcurementDashboard({
 
     setCreating(true);
     try {
-      const res = await fetch(`/api/v1/cases`, {
+      const res = await fetch(apiUrl(`/api/v1/cases`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({
@@ -232,16 +231,6 @@ export default function ProcurementDashboard({
 
   return (
     <div className="flex-1 flex flex-col space-y-5 select-none overflow-hidden h-full">
-      
-      {/* Toast popup */}
-      {toastMessage && (
-        <div className={`fixed top-5 right-5 z-50 p-4 rounded-2xl shadow-xl flex items-center gap-3 border-2 text-xs max-w-sm transition-all duration-300 ${
-          toastMessage.type === "success" ? "bg-white border-success text-success" : "bg-white border-error text-error"
-        }`}>
-          {toastMessage.type === "success" ? <CheckCircle2 className="w-5 h-5 text-success shrink-0" /> : <AlertTriangle className="w-5 h-5 text-error shrink-0" />}
-          <span className="font-black uppercase tracking-wider">{toastMessage.text}</span>
-        </div>
-      )}
 
       {/* KPI summaries in Flip7 Bubble Style */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
@@ -351,7 +340,18 @@ export default function ProcurementDashboard({
       </div>
 
       {/* 5-Lane Kanban Board Layout (Responsive smooth-scrolling Board) */}
-      <div className="flex flex-row gap-5 overflow-x-auto flex-1 pb-4 w-full select-none scroll-smooth min-h-0">
+      <div className="flex flex-row gap-5 overflow-x-auto flex-1 pb-4 w-full select-none scroll-smooth min-h-0 relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 bg-slate-900/10 backdrop-blur-[1px] flex items-center justify-center rounded-3xl border-3 border-primary-dark">
+            <div className="bg-cream border-3 border-primary-dark p-6 rounded-2xl shadow-card flex flex-col items-center gap-4 animate-scale-up">
+              <div className="relative w-12 h-12 flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-accent-dark animate-spin" />
+                <Sparkles className="w-4 h-4 text-accent-gold absolute top-0 right-0 animate-bounce" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary-dark font-mono">Đang nạp dữ liệu thầu...</span>
+            </div>
+          </div>
+        )}
         {lanes.map((lane) => {
           const laneCases = filteredCases.filter(c => lane.statuses.includes(c.status));
           

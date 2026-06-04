@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { apiUrl } from "../config";
 import { 
   Bot, 
   User, 
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { PriorityLevel, PurchaseRequestItem, UserRole } from "../types";
 import ItemIcon from "./ItemIcon";
+import MarkdownText from "./MarkdownText";
 
 interface Message {
   id: string;
@@ -196,7 +198,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
     setSending(true);
 
     try {
-      const response = await fetch("/api/ai/chat", {
+      const response = await fetch(apiUrl("/api/ai/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -261,7 +263,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
 
       return (
         <div className="space-y-3">
-          {cleanText && <p className="whitespace-pre-line text-primary-dark font-bold text-xs leading-relaxed">{cleanText}</p>}
+          {cleanText && <div className="text-primary-dark font-bold text-xs leading-relaxed"><MarkdownText text={cleanText} /></div>}
           {draftData && (
             <div className={`border-2 rounded-[16px] p-3.5 transition-all duration-300 text-xs ${
               msg.isDraftConfirmed 
@@ -317,7 +319,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
       );
     }
 
-    return <p className="whitespace-pre-line text-primary-dark font-bold text-xs leading-relaxed">{raw}</p>;
+    return <div className="text-primary-dark font-bold text-xs leading-relaxed"><MarkdownText text={raw} /></div>;
   };
 
   // --- CONTEXT CLICK TRIGGER ---
@@ -537,8 +539,8 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                           </div>
 
                           {isExpanded && (
-                            <div className="p-3 pt-0 border-t-2 border-dashed border-primary-dark/20 text-[10.5px] text-slate-600 leading-relaxed whitespace-pre-line bg-white/20 font-bold font-sans">
-                              {faq.a}
+                            <div className="p-3 pt-0 border-t-2 border-dashed border-primary-dark/20 text-[10.5px] text-slate-600 leading-relaxed bg-white/20 font-bold font-sans">
+                              <MarkdownText text={faq.a} />
                             </div>
                           )}
                         </div>

@@ -14,7 +14,8 @@ vi.mock("../db.ts", () => {
     },
     initDb: vi.fn().mockResolvedValue(undefined),
     loadDbState: vi.fn().mockResolvedValue({}),
-    persistDbState: vi.fn(),
+    loadDbStateQueue: vi.fn().mockResolvedValue({}),
+    persistDbState: vi.fn().mockResolvedValue(undefined),
     persistDbStateNow: vi.fn().mockResolvedValue(undefined),
     checkDbHealth: vi.fn().mockResolvedValue(undefined),
     parseSupplier: (r: any) => r,
@@ -182,14 +183,15 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
   });
 
   describe("POST /api/v1/cases/:caseId/submit - Transition Validation", () => {
-    it("should successfully submit the request to 'request_validating' state", async () => {
+    it("should successfully submit and auto-transition to 'supplier_matching' state", async () => {
       const response = await request(app)
         .post("/api/v1/cases/case-mock-1/submit")
         .set("x-organization-id", "org-1")
         .send({ role: "procurement", reason: "Phê duyệt nhanh" });
 
       expect(response.status).toBe(200);
-      expect(response.body.data).toHaveProperty("status", "request_validating");
+      // Submit now synchronously transitions: draft_request -> request_validating -> supplier_matching
+      expect(response.body.data).toHaveProperty("status", "supplier_matching");
     });
 
     it("should block invalid transitions that violate the strict Kanban state engine rules", async () => {
