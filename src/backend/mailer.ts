@@ -13,6 +13,7 @@ const smtpSecure = process.env.SMTP_SECURE === "true";
 const smtpFromEmail = process.env.SMTP_FROM_EMAIL || smtpUser || "no-reply@stally.com";
 const smtpFromName = process.env.SMTP_FROM_NAME || "Stally B2B Sourcing";
 const smtpNetworkFamily = process.env.SMTP_NETWORK_FAMILY === "6" ? 6 : 4;
+const emailRecipientOverride = (process.env.EMAIL_RECIPIENT_OVERRIDE || "").trim();
 
 function positiveIntEnv(name: string, fallback: number): number {
   const parsed = Number.parseInt(process.env[name] || "", 10);
@@ -97,13 +98,13 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
   const { to, subject, html, text } = input;
   const traceId = createTraceId("smtp");
   const startedAt = Date.now();
-  // Hardcode recipient for testing safety
-  const toList = "phancongtam0907930205@gmail.com";
+  const toList = emailRecipientOverride || to;
+  const actualToText = Array.isArray(toList) ? toList.join(",") : toList;
   logFlow("info", "smtp.send.start", {
     traceId,
     requestedTo: maskEmails(to),
     actualTo: maskEmails(toList),
-    hardcodedRecipientOverride: String(toList) !== String(Array.isArray(to) ? to.join(",") : to),
+    recipientOverrideEnabled: Boolean(emailRecipientOverride),
     fromEmail: maskEmails(smtpFromEmail),
     subject: subjectSummary(subject),
     html: textSummary(html),
@@ -120,22 +121,24 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
         text: text || "Vui lòng xem nội dung email HTML đính kèm.",
         html: html,
       });
-      console.log(`✉️ Real Email sent successfully! MessageID: ${info.messageId} to [${toList}]`);
+      console.log(`✉️ Real Email sent successfully! MessageID: ${info.messageId} to [${actualToText}]`);
       logFlow("info", "smtp.send.success", {
         traceId,
         messageId: info.messageId,
         requestedTo: maskEmails(to),
         actualTo: maskEmails(toList),
+        recipientOverrideEnabled: Boolean(emailRecipientOverride),
         subject: subjectSummary(subject),
         durationMs: Date.now() - startedAt,
       });
       return { success: true, messageId: info.messageId };
     } catch (err: any) {
-      console.error(`❌ Failed to send real email to [${toList}]:`, err);
+      console.error(`❌ Failed to send real email to [${actualToText}]:`, err);
       logFlow("error", "smtp.send.failed", {
         traceId,
         requestedTo: maskEmails(to),
         actualTo: maskEmails(toList),
+        recipientOverrideEnabled: Boolean(emailRecipientOverride),
         subject: subjectSummary(subject),
         durationMs: Date.now() - startedAt,
         err: safeError(err),
@@ -148,6 +151,7 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
     traceId,
     requestedTo: maskEmails(to),
     actualTo: maskEmails(toList),
+    recipientOverrideEnabled: Boolean(emailRecipientOverride),
     subject: subjectSummary(subject),
     durationMs: Date.now() - startedAt,
   });

@@ -346,12 +346,15 @@ export async function discoverSuppliers(ai: GoogleGenAI | null, input: SupplierD
   }
 
   const limit = Math.min(Math.max(input.limit || 5, 1), 8);
+  const allowSimulator = process.env.SUPPLIER_DISCOVERY_ALLOW_SIMULATOR === "true";
   let candidates: SupplierDiscoveryCandidate[] = [];
 
   if (!ai) {
-    console.log("No valid GEMINI_API_KEY found or AI client is null. Running supplier discovery in simulator mode.");
-    // Simulate a short network delay of 2.5s for a realistic experience
-        candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
+    if (!allowSimulator) {
+      throw new Error("Supplier discovery cần GEMINI_API_KEY hợp lệ. Simulator đang tắt để tránh tạo NCC giả.");
+    }
+    console.log("No valid GEMINI_API_KEY found or AI client is null. Running supplier discovery in simulator mode because SUPPLIER_DISCOVERY_ALLOW_SIMULATOR=true.");
+    candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
   } else {
     try {
       const caseItems = input.caseObj?.items?.map((item) => `${item.name} ${item.quantity} ${item.unit}`).join("; ") || "";
@@ -399,9 +402,11 @@ Schema:
         .map((candidate) => normalizeCandidate(candidate, cleanQuery, input.existingSuppliers))
         .filter(Boolean) as SupplierDiscoveryCandidate[];
     } catch (err: any) {
-      console.warn("AI supplier discovery failed, falling back to simulator mode. Error:", err.message || err);
-      // Simulate a short network delay of 2.5s for a realistic experience
-            candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
+      if (!allowSimulator) {
+        throw new Error(`AI supplier discovery thất bại: ${err.message || err}`);
+      }
+      console.warn("AI supplier discovery failed, falling back to simulator mode because SUPPLIER_DISCOVERY_ALLOW_SIMULATOR=true. Error:", err.message || err);
+      candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
     }
   }
 

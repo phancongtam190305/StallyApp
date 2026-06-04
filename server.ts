@@ -130,15 +130,12 @@ export let dbState: any = {
 // MIDDLEWARES
 // ----------------------------------------------------
 
-// ----------------------------------------------------
-// MIDDLEWARES
-// ----------------------------------------------------
+const shouldReloadDbOnEveryRequest = () => process.env.RELOAD_DB_ON_EVERY_REQUEST === "true";
 
-// Guarantee 100% real-time container consistency in serverless environments
-// by reloading database state from Supabase Postgres on every incoming request.
-// Skip this reload on Railway (always-on container) to prevent high-latency connection queuing.
+// Optional serverless consistency mode. Keep disabled on long-running deploys
+// because loading Supabase state before every request adds visible latency.
 app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (process.env.RAILWAY_ENVIRONMENT) {
+  if (!shouldReloadDbOnEveryRequest()) {
     return next();
   }
   try {

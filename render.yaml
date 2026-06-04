@@ -3,7 +3,7 @@ services:
     name: stally-backend
     env: node
     plan: starter
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
@@ -14,7 +14,13 @@ services:
         sync: false
       - key: DATABASE_POOL_MAX
         value: "5"
+      - key: AUTO_PERSIST_ENABLED
+        value: "true"
+      - key: RELOAD_DB_ON_EVERY_REQUEST
+        value: "false"
       - key: GEMINI_API_KEY
+        sync: false
+      - key: APP_URL
         sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
@@ -30,6 +36,18 @@ services:
         value: Stally B2B Sourcing
       - key: SMTP_FROM_EMAIL
         sync: false
+      - key: EMAIL_RECIPIENT_OVERRIDE
+        sync: false
+      - key: SMTP_NETWORK_FAMILY
+        value: "4"
+      - key: SMTP_DNS_TIMEOUT_MS
+        value: "10000"
+      - key: SMTP_CONNECTION_TIMEOUT_MS
+        value: "15000"
+      - key: SMTP_GREETING_TIMEOUT_MS
+        value: "15000"
+      - key: SMTP_SOCKET_TIMEOUT_MS
+        value: "45000"
       - key: IMAP_POLL_ENABLED
         value: "true"
       - key: IMAP_HOST
@@ -45,7 +63,7 @@ services:
       - key: IMAP_MAILBOX
         value: INBOX
       - key: IMAP_POLL_INTERVAL_MS
-        value: "10000"
+        value: "60000"
       - key: EMAIL_ROLE_AUTH_ENABLED
         value: "true"
       - key: VITE_EMAIL_ROLE_AUTH_ENABLED
@@ -61,10 +79,12 @@ services:
       - key: FRONTEND_URL
         sync: false
       - key: GOOGLE_OAUTH_AUTO_PROVISION
-        value: "false"
+        value: "true"
       - key: GOOGLE_OAUTH_ALLOWED_DOMAINS
         value: "gmail.com"
       - key: GOOGLE_OAUTH_DEFAULT_ROLE
         value: "requester"
+      - key: SUPPLIER_DISCOVERY_ALLOW_SIMULATOR
+        value: "false"
       - key: VITE_ENABLE_DEV_TOOLS
         value: "false"
