@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { apiUrl } from "../config";
 import { 
   ChevronLeft, 
@@ -97,6 +97,7 @@ export default function CaseDetailTimeline({
   const [rfqDrafts, setRfqDrafts] = useState<RfqDraft[]>([]);
   const [activeMilestone, setActiveMilestone] = useState<number>(1);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const fetchInFlightRef = useRef(false);
   const { showToast } = useToast();
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
 
@@ -169,9 +170,15 @@ export default function CaseDetailTimeline({
 
 
 
-  const fetchData = async (isBackground = false) => {
+  const fetchData = async (isBackground: boolean | React.MouseEvent = false) => {
+    const background = isBackground === true;
+    if (fetchInFlightRef.current) {
+      return;
+    }
+    fetchInFlightRef.current = true;
+
     try {
-      if (!isBackground) {
+      if (!background) {
         setLoading(true);
       }
       // Fetch Case Details
@@ -223,7 +230,7 @@ export default function CaseDetailTimeline({
       
       // Determine Milestone
       const status = caseData.data.status;
-      if (!isBackground) {
+      if (!background) {
         if (["draft_request", "request_submitted", "request_validating"].includes(status)) {
           setActiveMilestone(1);
         } else if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
@@ -240,7 +247,6 @@ export default function CaseDetailTimeline({
       // Always fetch matched suppliers if status is step 2
       if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
         const matchesRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/supplier-matches`), {
-          method: "POST",
           headers: { "X-Organization-Id": orgId }
         });
         const matchesData = await matchesRes.json();
@@ -265,15 +271,17 @@ export default function CaseDetailTimeline({
         }
       }
 
-      if (!isBackground) {
+      if (!background) {
         setLoading(false);
       }
     } catch (err: any) {
       console.error(err);
-      if (!isBackground) {
+      if (!background) {
         showToast(err.message || "Không thể đồng bộ dữ liệu hồ sơ thầu.", "error");
         setLoading(false);
       }
+    } finally {
+      fetchInFlightRef.current = false;
     }
   };
 

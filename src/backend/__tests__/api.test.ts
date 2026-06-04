@@ -32,6 +32,7 @@ vi.mock("../db.ts", () => {
 
 // Import app and dbState from server.ts
 import { app, dbState } from "../../../server.ts";
+import { persistDbState } from "../db.ts";
 
 describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
   beforeEach(() => {
@@ -91,6 +92,9 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
 
     dbState.case_transitions = [];
     dbState.purchase_requests = [];
+    dbState.supplier_discovery_candidates = [];
+    dbState.discovery_caches = [];
+    vi.mocked(persistDbState).mockClear();
   });
 
   describe("GET /api/health - Diagnostics Health Check", () => {
@@ -208,7 +212,64 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
     });
   });
 
+  describe("GET/POST /api/v1/cases/:caseId/supplier-matches - Read-only supplier matching", () => {
+    it("GET should return tenant-scoped supplier matches without persisting state", async () => {
+      dbState.suppliers.push({
+        id: "sup-org-2",
+        organizationId: "org-2",
+        name: "Branch B Supplier",
+        contactPerson: "B",
+        email: "branch-b@example.com",
+        phone: "0900000000",
+        address: "District 3",
+        rating: 4.9,
+        tags: ["Gao ST25"],
+        historicalPricing: "",
+        source: "crm"
+      });
+
+      const response = await request(app)
+        .get("/api/v1/cases/case-mock-1/supplier-matches")
+        .set("x-organization-id", "org-1");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0]).toMatchObject({
+        supplierId: "sup-1"
+      });
+      expect(response.body.data.some((match: any) => match.supplierId === "sup-org-2")).toBe(false);
+      expect(persistDbState).not.toHaveBeenCalled();
+    });
+
+    it("legacy POST should remain compatible but not trigger auto-persist", async () => {
+      const response = await request(app)
+        .post("/api/v1/cases/case-mock-1/supplier-matches")
+        .set("x-organization-id", "org-1");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0]).toHaveProperty("supplierId", "sup-1");
+      expect(persistDbState).not.toHaveBeenCalled();
+    });
+  });
+
 describe("POST /api/v1/cases/:caseId/suppliers/discover - Supplier Discovery Crawler", () => {
+    it("should not start a second discovery job when the case is already scanning", async () => {
+      dbState.procurement_cases[0].isScanning = true;
+
+      const response = await request(app)
+        .post("/api/v1/cases/case-mock-1/suppliers/discover")
+        .set("x-organization-id", "org-1")
+        .send({ query: "gao ST25", limit: 3 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        status: "processing",
+        alreadyRunning: true
+      });
+      expect(persistDbState).not.toHaveBeenCalled();
+    });
+
     it("should return processing status on cache miss and load candidates from cache on hit", async () => {
       // 1. Initial request (Cache Miss)
       const response1 = await request(app)

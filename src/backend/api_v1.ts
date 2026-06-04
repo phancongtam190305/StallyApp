@@ -802,7 +802,7 @@ apiV1Router.delete("/cases/:caseId/items/:itemIndex", (req: Request, res: Respon
 // ----------------------------------------------------
 // SUPPLIER MATCHING & CRM APIs
 // ----------------------------------------------------
-apiV1Router.post("/cases/:caseId/supplier-matches", (req: Request, res: Response) => {
+const handleSupplierMatchesList = (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;
   
@@ -849,8 +849,19 @@ apiV1Router.post("/cases/:caseId/supplier-matches", (req: Request, res: Response
     })
     .sort((a, b) => b.score - a.score);
     
+  logFlow("info", "supplier.matches.list", {
+    traceId: req.traceId || createTraceId("supplier-matches"),
+    caseId,
+    orgId,
+    method: req.method,
+    matchesCount: matches.length,
+  });
+
   res.json({ data: matches });
-});
+};
+
+apiV1Router.get("/cases/:caseId/supplier-matches", handleSupplierMatchesList);
+apiV1Router.post("/cases/:caseId/supplier-matches", handleSupplierMatchesList);
 
 apiV1Router.post("/cases/:caseId/suppliers/select", (req: Request, res: Response) => {
   const orgId = req.organizationId;
@@ -885,6 +896,7 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
   const orgId = req.organizationId;
   const { caseId } = req.params;
   const { query, limit, dryRun } = req.body;
+  const traceId = req.traceId || createTraceId("supplier-discovery");
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
   
   if (!caseObj) {
@@ -893,6 +905,31 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
 
   const cleanText = (val: any) => String(val || "").replace(/\s+/g, " ").trim();
   const normalizedQuery = cleanText(query).toLowerCase();
+  const effectiveLimit = Number(limit) || 5;
+
+  logFlow("info", "supplier.discovery.requested", {
+    traceId,
+    caseId,
+    orgId,
+    queryLength: cleanText(query).length,
+    limit: effectiveLimit,
+    dryRun: Boolean(dryRun),
+    alreadyScanning: Boolean(caseObj.isScanning),
+  });
+
+  if (caseObj.isScanning) {
+    logFlow("info", "supplier.discovery.already_running", {
+      traceId,
+      caseId,
+      orgId,
+    });
+
+    return res.json({
+      status: "processing",
+      alreadyRunning: true,
+      message: "Đang có một lần tìm kiếm nhà cung cấp đang chạy nền..."
+    });
+  }
 
   // Check Cache Hit
   const cache = (dbState.discovery_caches || []).find((c: any) => 
@@ -929,6 +966,14 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
         createdAt: now,
       }));
 
+      logFlow("info", "supplier.discovery.cache_hit", {
+        traceId,
+        caseId,
+        orgId,
+        candidatesCount: storedCandidates.length,
+        dryRun: Boolean(dryRun),
+      });
+
       if (!dryRun) {
         dbState.supplier_discovery_candidates = (dbState.supplier_discovery_candidates || [])
           .filter((candidate: SupplierDiscoveryCandidate) => !(candidate.caseId === caseId && candidate.query === query && candidate.status === "review"));
@@ -954,7 +999,14 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
 
   // Cache Miss or Expired: Set scanning flag and Return processing status immediately to client
   caseObj.isScanning = true;
-  await persistDbState(dbState);
+  persistDbState(dbState).catch((err) => {
+    logFlow("error", "supplier.discovery.scan_flag_persist_failed", {
+      traceId,
+      caseId,
+      orgId,
+      err: safeError(err),
+    });
+  });
 
   res.json({
     status: "processing",
@@ -963,14 +1015,22 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
 
   // Launch background asynchronous task (Promise without await)
   (async () => {
+    const startedAt = Date.now();
     try {
+      logFlow("info", "supplier.discovery.started", {
+        traceId,
+        caseId,
+        orgId,
+        limit: effectiveLimit,
+        dryRun: Boolean(dryRun),
+      });
       console.log(`Background AI supplier discovery started. case=${caseId} query="${query}"`);
       const candidates = await discoverSuppliers(ai, {
         query,
         orgId,
         caseObj,
         existingSuppliers: dbState.suppliers.filter(s => s.organizationId === orgId),
-        limit: Number(limit) || 5,
+        limit: effectiveLimit,
       });
 
       const nowStr = new Date().toISOString();
@@ -1042,8 +1102,24 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
         dryRun: Boolean(dryRun)
       });
 
+      logFlow("info", "supplier.discovery.completed", {
+        traceId,
+        caseId,
+        orgId,
+        candidatesCount: candidates.length,
+        dryRun: Boolean(dryRun),
+        durationMs: Date.now() - startedAt,
+      });
+
       console.log(`Background AI supplier discovery completed successfully. case=${caseId} query="${query}" count=${candidates.length}`);
     } catch (bgErr: any) {
+      logFlow("error", "supplier.discovery.failed", {
+        traceId,
+        caseId,
+        orgId,
+        durationMs: Date.now() - startedAt,
+        err: safeError(bgErr),
+      });
       console.error(`Background AI supplier discovery failed for case=${caseId}: `, bgErr);
       // Reset scanning flag on error
       caseObj.isScanning = false;

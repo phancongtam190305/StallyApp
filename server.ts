@@ -207,10 +207,26 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   next();
 });
 
+const isSupplierMatchesRequest = (req: express.Request) =>
+  req.method === "POST" && /^\/api\/v1\/cases\/[^/]+\/supplier-matches\/?$/.test(req.path);
+
+const isSelfPersistingRequest = (req: express.Request) =>
+  req.method === "POST" && /^\/api\/v1\/cases\/[^/]+\/suppliers\/discover\/?$/.test(req.path);
+
 const shouldAutoPersistRequest = (req: express.Request) => {
   if (process.env.AUTO_PERSIST_ENABLED === "false") return false;
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return false;
   if (req.path.startsWith("/api/v1/auth/")) return false;
+  if (isSupplierMatchesRequest(req)) {
+    logFlow("info", "api.persist.skipped_readonly_post", {
+      traceId: (req as any).traceId,
+      method: req.method,
+      path: req.originalUrl,
+      orgId: req.organizationId,
+    });
+    return false;
+  }
+  if (isSelfPersistingRequest(req)) return false;
   return true;
 };
 
