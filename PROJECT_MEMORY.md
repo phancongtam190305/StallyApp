@@ -90,3 +90,12 @@ To eliminate the confusing double vertical scrollbars and layout squeezing on va
 * **Build Check**: Before commits, run `npx tsc --noEmit` and `npm run build` to verify that there are zero TypeScript compiler warnings or bundle errors.
 * **Local Run**: `npm run dev` starts the application on port `3000` (`http://localhost:3000`).
 * **Git Status**: Currently clean on branch `main` and fully pushed to the remote repository.
+
+---
+
+## 7. Production RFQ/Email Debug Context - 2026-06-04
+* **RFQ sourcing loop fix shipped**: Frontend now prefers `GET /api/v1/cases/:caseId/supplier-matches`; legacy POST is read-only and skipped by auto-persist. Supplier discovery guards against duplicate in-flight scans.
+* **RFQ draft UX shipped**: The draft editor is preview-first, uses friendly fields (subject, greeting, notes, due date, signature), hides raw HTML by default, and persists edits through `PATCH /api/v1/cases/:caseId/rfq-drafts/:draftId`.
+* **Current outbound mail technology**: `src/backend/mailer.ts` uses Nodemailer with Gmail SMTP (`SMTP_HOST=smtp.gmail.com`). The code currently overrides real delivery to `phancongtam0907930205@gmail.com` for MVP test safety.
+* **Production issue observed on Railway**: Gmail SMTP connect times out from Railway before authentication (`ETIMEDOUT Connection timeout`, `sentCountBeforeFailure=0`) on both 465/SSL and 587/STARTTLS. Local SMTP quick tests can still pass because local network egress is different.
+* **Recommended next fix when quota is available**: Keep `sendRealEmail(input)` as the stable internal interface, but add a Gmail API OAuth provider over HTTPS port 443. Use env-driven provider selection and keep the test-recipient override in env, not hardcoded.
