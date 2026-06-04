@@ -134,8 +134,12 @@ export let dbState: any = {
 // ----------------------------------------------------
 
 // Guarantee 100% real-time container consistency in serverless environments
-// by reloading database state from Supabase Postgres on every incoming request
+// by reloading database state from Supabase Postgres on every incoming request.
+// Skip this reload on Railway (always-on container) to prevent high-latency connection queuing.
 app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    return next();
+  }
   try {
     await initDb();
     const loaded = await loadDbStateQueue();
