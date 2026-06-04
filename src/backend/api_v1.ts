@@ -837,67 +837,156 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy case" } });
   }
 
-  try {
-    console.log(`AI supplier discovery started. case=${caseId} query="${query}"`);
-    const candidates = await discoverSuppliers(ai, {
-      query,
-      orgId,
-      caseObj,
-      existingSuppliers: dbState.suppliers.filter(s => s.organizationId === orgId),
-      limit: Number(limit) || 5,
-    });
+  const cleanText = (val: any) => String(val || "").replace(/\s+/g, " ").trim();
+  const normalizedQuery = cleanText(query).toLowerCase();
 
-    const now = new Date().toISOString();
-    const storedCandidates: SupplierDiscoveryCandidate[] = candidates.map((candidate, index) => ({
-      id: `supdisc-${Date.now()}-${index}`,
-      organizationId: orgId,
-      caseId,
-      query,
-      name: candidate.name,
-      contactPerson: candidate.contactPerson,
-      email: candidate.email,
-      phone: candidate.phone,
-      address: candidate.address,
-      website: candidate.website,
-      tags: candidate.tags,
-      sourceUrls: candidate.sourceUrls,
-      evidence: candidate.evidence,
-      confidence: candidate.confidence,
-      riskFlags: candidate.riskFlags,
-      autoAddEligible: candidate.autoAddEligible,
-      duplicateOfSupplierId: candidate.duplicateOfSupplierId,
-      status: "review",
-      createdAt: now,
-    }));
+  // Check Cache Hit
+  const cache = (dbState.discovery_caches || []).find((c: any) => 
+    c.organizationId === orgId && 
+    cleanText(c.query).toLowerCase() === normalizedQuery
+  );
 
-    if (!dryRun) {
-      dbState.supplier_discovery_candidates = (dbState.supplier_discovery_candidates || [])
-        .filter((candidate: SupplierDiscoveryCandidate) => !(candidate.caseId === caseId && candidate.query === query && candidate.status === "review"));
-      dbState.supplier_discovery_candidates.push(...storedCandidates);
+  const CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  if (cache && (Date.now() - new Date(cache.createdAt).getTime() < CACHE_EXPIRY_MS)) {
+    try {
+      console.log(`Cache HIT for query="${query}" under organizationId="${orgId}"`);
+      const candidates = JSON.parse(cache.results);
+      const now = new Date().toISOString();
+      const storedCandidates: SupplierDiscoveryCandidate[] = candidates.map((candidate: any, index: number) => ({
+        id: `supdisc-${Date.now()}-${index}`,
+        organizationId: orgId,
+        caseId,
+        query,
+        name: candidate.name,
+        contactPerson: candidate.contactPerson || "",
+        email: candidate.email || "",
+        phone: candidate.phone || "",
+        address: candidate.address || "",
+        website: candidate.website || "",
+        tags: candidate.tags || [],
+        sourceUrls: candidate.sourceUrls || [],
+        evidence: candidate.evidence || "",
+        confidence: candidate.confidence || 0,
+        riskFlags: candidate.riskFlags || [],
+        autoAddEligible: candidate.autoAddEligible !== undefined ? candidate.autoAddEligible : true,
+        duplicateOfSupplierId: candidate.duplicateOfSupplierId || undefined,
+        status: "review",
+        createdAt: now,
+      }));
+
+      if (!dryRun) {
+        dbState.supplier_discovery_candidates = (dbState.supplier_discovery_candidates || [])
+          .filter((candidate: SupplierDiscoveryCandidate) => !(candidate.caseId === caseId && candidate.query === query && candidate.status === "review"));
+        dbState.supplier_discovery_candidates.push(...storedCandidates);
+        await persistDbState(dbState);
+      }
+
+      return res.json({
+        message: "Đã tải danh sách nhà cung cấp từ bộ nhớ đệm!",
+        candidates: dryRun ? candidates : storedCandidates,
+        cached: true,
+        summary: {
+          totalCandidates: storedCandidates.length,
+          addedCount: 0,
+          reviewRequiredCount: storedCandidates.length,
+          dryRun: Boolean(dryRun),
+        }
+      });
+    } catch (cacheErr: any) {
+      console.warn("Failed to parse cache results, proceeding with live discovery:", cacheErr);
     }
-
-    return res.json({
-      message: dryRun
-        ? "Dry-run crawl xong. Chưa ghi NCC nào vào CRM."
-        : `Đã crawl ${storedCandidates.length} NCC. Vui lòng chọn NCC muốn thêm vào danh sách chính.`,
-      data: [],
-      candidates: dryRun ? candidates : storedCandidates,
-      summary: {
-        totalCandidates: storedCandidates.length,
-        addedCount: 0,
-        reviewRequiredCount: storedCandidates.length,
-        dryRun: Boolean(dryRun),
-      }
-    });
-  } catch (err: any) {
-    console.error("Supplier discovery failed:", err);
-    return res.status(502).json({
-      error: {
-        code: "SUPPLIER_DISCOVERY_FAILED",
-        message: err.message || "Không crawl được nhà cung cấp lúc này.",
-      }
-    });
   }
+
+  // Cache Miss or Expired: Return processing status immediately to client
+  res.json({
+    status: "processing",
+    message: "Đang tiến hành tìm kiếm nhà cung cấp bằng AI dưới nền..."
+  });
+
+  // Launch background asynchronous task (Promise without await)
+  (async () => {
+    try {
+      console.log(`Background AI supplier discovery started. case=${caseId} query="${query}"`);
+      const candidates = await discoverSuppliers(ai, {
+        query,
+        orgId,
+        caseObj,
+        existingSuppliers: dbState.suppliers.filter(s => s.organizationId === orgId),
+        limit: Number(limit) || 5,
+      });
+
+      const nowStr = new Date().toISOString();
+      const cleanQuery = cleanText(query).toLowerCase();
+      
+      if (!dbState.discovery_caches) {
+        dbState.discovery_caches = [];
+      }
+
+      // Save cache entry
+      const existingCacheIdx = dbState.discovery_caches.findIndex((c: any) =>
+        c.organizationId === orgId &&
+        cleanText(c.query).toLowerCase() === cleanQuery
+      );
+
+      const newCacheRecord = {
+        id: existingCacheIdx >= 0 ? dbState.discovery_caches[existingCacheIdx].id : `cache-${Date.now()}`,
+        organizationId: orgId,
+        query,
+        results: JSON.stringify(candidates),
+        createdAt: nowStr
+      };
+
+      if (existingCacheIdx >= 0) {
+        dbState.discovery_caches[existingCacheIdx] = newCacheRecord;
+      } else {
+        dbState.discovery_caches.push(newCacheRecord);
+      }
+
+      // Map candidates to storedCandidates
+      const storedCandidates: SupplierDiscoveryCandidate[] = candidates.map((candidate, index) => ({
+        id: `supdisc-${Date.now()}-${index}`,
+        organizationId: orgId,
+        caseId,
+        query,
+        name: candidate.name,
+        contactPerson: candidate.contactPerson || "",
+        email: candidate.email || "",
+        phone: candidate.phone || "",
+        address: candidate.address || "",
+        website: candidate.website || "",
+        tags: candidate.tags || [],
+        sourceUrls: candidate.sourceUrls || [],
+        evidence: candidate.evidence || "",
+        confidence: candidate.confidence || 0,
+        riskFlags: candidate.riskFlags || [],
+        autoAddEligible: candidate.autoAddEligible !== undefined ? candidate.autoAddEligible : true,
+        duplicateOfSupplierId: candidate.duplicateOfSupplierId || undefined,
+        status: "review",
+        createdAt: nowStr,
+      }));
+
+      if (!dryRun) {
+        dbState.supplier_discovery_candidates = (dbState.supplier_discovery_candidates || [])
+          .filter((candidate: SupplierDiscoveryCandidate) => !(candidate.caseId === caseId && candidate.query === query && candidate.status === "review"));
+        dbState.supplier_discovery_candidates.push(...storedCandidates);
+      }
+
+      // Persist state to Supabase
+      await persistDbState(dbState);
+
+      // Broadcast completed event via SSE
+      broadcastRealtimeEvent("supplier.discovery_completed", caseId, {
+        query,
+        candidatesCount: candidates.length,
+        dryRun: Boolean(dryRun)
+      });
+
+      console.log(`Background AI supplier discovery completed successfully. case=${caseId} query="${query}" count=${candidates.length}`);
+    } catch (bgErr: any) {
+      console.error(`Background AI supplier discovery failed for case=${caseId}: `, bgErr);
+    }
+  })();
 });
 
 apiV1Router.get("/cases/:caseId/suppliers/discovery-candidates", (req: Request, res: Response) => {

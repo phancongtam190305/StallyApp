@@ -351,8 +351,7 @@ export async function discoverSuppliers(ai: GoogleGenAI | null, input: SupplierD
   if (!ai) {
     console.log("No valid GEMINI_API_KEY found or AI client is null. Running supplier discovery in simulator mode.");
     // Simulate a short network delay of 2.5s for a realistic experience
-    await new Promise((resolve) => setTimeout(resolve, 2500));
-    candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
+        candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
   } else {
     try {
       const caseItems = input.caseObj?.items?.map((item) => `${item.name} ${item.quantity} ${item.unit}`).join("; ") || "";
@@ -402,8 +401,7 @@ Schema:
     } catch (err: any) {
       console.warn("AI supplier discovery failed, falling back to simulator mode. Error:", err.message || err);
       // Simulate a short network delay of 2.5s for a realistic experience
-      await new Promise((resolve) => setTimeout(resolve, 2500));
-      candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
+            candidates = runDiscoverySimulation(cleanQuery, limit, input.existingSuppliers);
     }
   }
 

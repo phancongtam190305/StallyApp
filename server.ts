@@ -122,6 +122,7 @@ export let dbState: any = {
   ai_negotiation_logs: [],
   rfq_email_drafts: [],
   stock_movements: [],
+  discovery_caches: [],
 };
 
 // ----------------------------------------------------

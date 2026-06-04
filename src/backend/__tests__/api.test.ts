@@ -208,20 +208,35 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
     });
   });
 
-  describe("POST /api/v1/cases/:caseId/suppliers/discover - Supplier Discovery Crawler", () => {
-    it("should successfully return high-fidelity simulated candidates if AI is null or query is searched", async () => {
-      const response = await request(app)
+describe("POST /api/v1/cases/:caseId/suppliers/discover - Supplier Discovery Crawler", () => {
+    it("should return processing status on cache miss and load candidates from cache on hit", async () => {
+      // 1. Initial request (Cache Miss)
+      const response1 = await request(app)
         .post("/api/v1/cases/case-mock-1/suppliers/discover")
         .set("x-organization-id", "org-1")
         .send({ query: "cá hồi Nauy", limit: 3 });
 
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty("message");
-      expect(response.body.candidates).toBeInstanceOf(Array);
-      expect(response.body.candidates.length).toBeGreaterThan(0);
-      expect(response.body.candidates[0]).toHaveProperty("name");
-      expect(response.body.candidates[0]).toHaveProperty("email");
-      expect(response.body.candidates[0]).toHaveProperty("phone");
+      expect(response1.status).toBe(200);
+      expect(response1.body).toHaveProperty("status", "processing");
+      expect(response1.body).toHaveProperty("message");
+
+      // Wait a short time for the background processing to finish
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 2. Second request (Cache Hit)
+      const response2 = await request(app)
+        .post("/api/v1/cases/case-mock-1/suppliers/discover")
+        .set("x-organization-id", "org-1")
+        .send({ query: "cá hồi Nauy", limit: 3 });
+
+      expect(response2.status).toBe(200);
+      expect(response2.body).toHaveProperty("cached", true);
+      expect(response2.body).toHaveProperty("message", "Đã tải danh sách nhà cung cấp từ bộ nhớ đệm!");
+      expect(response2.body.candidates).toBeInstanceOf(Array);
+      expect(response2.body.candidates.length).toBeGreaterThan(0);
+      expect(response2.body.candidates[0]).toHaveProperty("name");
+      expect(response2.body.candidates[0]).toHaveProperty("email");
+      expect(response2.body.candidates[0]).toHaveProperty("phone");
     });
   });
 });

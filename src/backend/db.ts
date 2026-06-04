@@ -58,6 +58,7 @@ const tableNames = [
   "ai_negotiation_logs",
   "rfq_email_drafts",
   "stock_movements",
+  "discovery_caches",
 ];
 
 function quoteIdent(identifier: string) {
@@ -378,6 +379,14 @@ export async function initDb() {
       "createdBy" TEXT NOT NULL,
       "createdAt" TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS "discovery_caches" (
+      "id" TEXT PRIMARY KEY,
+      "organizationId" TEXT NOT NULL,
+      "query" TEXT NOT NULL,
+      "results" TEXT NOT NULL,
+      "createdAt" TEXT NOT NULL
+    );
   `);
 
   await seedIfEmpty();
@@ -483,6 +492,7 @@ export async function loadDbState() {
     "ai_negotiation_logs",
     "rfq_email_drafts",
     "stock_movements",
+    "discovery_caches",
   ];
 
   const results = await Promise.all(
@@ -512,6 +522,7 @@ export async function loadDbState() {
     ai_negotiation_logs: data.ai_negotiation_logs,
     rfq_email_drafts: data.rfq_email_drafts,
     stock_movements: data.stock_movements,
+    discovery_caches: data.discovery_caches || [],
   };
 }
 
@@ -655,6 +666,7 @@ export async function persistDbStateNow(dbState: any) {
     await saveAll("ai_negotiation_logs", dbState.ai_negotiation_logs);
     await saveAll("rfq_email_drafts", dbState.rfq_email_drafts);
     await saveAll("stock_movements", dbState.stock_movements);
+    await saveAll("discovery_caches", dbState.discovery_caches);
 
     await client.query("COMMIT");
   } catch (err) {
