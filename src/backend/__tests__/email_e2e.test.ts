@@ -330,6 +330,7 @@ describe("Email E2E desired behavior", () => {
   it("scans an unread IMAP RFQ reply and marks the message as seen after ingestion", async () => {
     const { caseId } = await createCaseReadyForRfq();
 
+    vi.stubEnv("EMAIL_INBOUND_PROVIDER", "imap");
     vi.stubEnv("IMAP_POLL_ENABLED", "true");
     vi.stubEnv("IMAP_HOST", "imap.example.test");
     vi.stubEnv("IMAP_USER", "buyer@stally.test");

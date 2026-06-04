@@ -59,7 +59,7 @@ describe("Stally SMTP Mailer & IMAP Poller Test Suite", () => {
       });
 
       expect(response.success).toBe(false);
-      expect(response.error).toContain("SMTP_NOT_CONFIGURED");
+      expect(response.error).toContain("EMAIL_SEND_DISABLED_IN_TEST");
 
       // Restore environment
       process.env.SMTP_HOST = oldHost;
@@ -68,6 +68,7 @@ describe("Stally SMTP Mailer & IMAP Poller Test Suite", () => {
 
   describe("Inbound IMAP Poller service", () => {
     it("should start IMAP polling successfully when configured", () => {
+      process.env.EMAIL_INBOUND_PROVIDER = "imap";
       process.env.IMAP_POLL_ENABLED = "true";
       process.env.IMAP_HOST = "imap.gmail.com";
       process.env.IMAP_USER = "test@gmail.com";
@@ -78,6 +79,7 @@ describe("Stally SMTP Mailer & IMAP Poller Test Suite", () => {
     });
 
     it("should skip polling silently if disabled in settings", () => {
+      process.env.EMAIL_INBOUND_PROVIDER = "imap";
       process.env.IMAP_POLL_ENABLED = "false";
       expect(() => startImapPolling()).not.toThrow();
     });

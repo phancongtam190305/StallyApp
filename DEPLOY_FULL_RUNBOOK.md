@@ -41,16 +41,19 @@ For production email sending, prefer Gmail API because SMTP port `465/587` can t
 
 ```env
 EMAIL_PROVIDER=gmail_api
+EMAIL_INBOUND_PROVIDER=gmail_api
+EMAIL_INBOUND_POLL_ENABLED=true
 GMAIL_API_CLIENT_ID=...
 GMAIL_API_CLIENT_SECRET=...
 GMAIL_API_REFRESH_TOKEN=...
 GMAIL_API_SENDER_EMAIL=your_gmail@gmail.com
 ```
 
-The refresh token must be authorized with:
+The refresh token must be authorized with both scopes:
 
 ```text
 https://www.googleapis.com/auth/gmail.send
+https://www.googleapis.com/auth/gmail.modify
 ```
 
 ## Frontend

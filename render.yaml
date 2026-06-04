@@ -60,8 +60,18 @@ services:
         sync: false
       - key: GMAIL_API_SENDER_EMAIL
         sync: false
-      - key: IMAP_POLL_ENABLED
+      - key: EMAIL_INBOUND_PROVIDER
+        value: gmail_api
+      - key: EMAIL_INBOUND_POLL_ENABLED
         value: "true"
+      - key: EMAIL_INBOUND_POLL_INTERVAL_MS
+        value: "60000"
+      - key: GMAIL_API_INBOUND_QUERY
+        value: "is:unread (subject:\"STALLY RFQ\" OR subject:\"STALLY NEGOTIATION\")"
+      - key: GMAIL_API_INBOUND_MAX_RESULTS
+        value: "10"
+      - key: IMAP_POLL_ENABLED
+        value: "false"
       - key: IMAP_HOST
         value: imap.gmail.com
       - key: IMAP_PORT

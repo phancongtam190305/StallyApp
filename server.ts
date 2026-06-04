@@ -285,6 +285,18 @@ app.get("/api/email/status", (_req, res) => {
       activeTransporter: providerStatus.smtp.configured,
     },
     gmailApi: providerStatus.gmailApi,
+    inbound: {
+      provider: process.env.EMAIL_INBOUND_PROVIDER || "imap",
+      enabled: (process.env.EMAIL_INBOUND_POLL_ENABLED || process.env.IMAP_POLL_ENABLED) === "true",
+      pollIntervalMs: Number(process.env.EMAIL_INBOUND_POLL_INTERVAL_MS || process.env.IMAP_POLL_INTERVAL_MS || 60000),
+      gmailApiConfigured: Boolean(
+        (process.env.GMAIL_API_CLIENT_ID || process.env.GOOGLE_CLIENT_ID) &&
+        (process.env.GMAIL_API_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET) &&
+        process.env.GMAIL_API_REFRESH_TOKEN &&
+        (process.env.GMAIL_API_SENDER_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER)
+      ),
+      gmailApiQuery: process.env.GMAIL_API_INBOUND_QUERY || 'is:unread (subject:"STALLY RFQ" OR subject:"STALLY NEGOTIATION")',
+    },
     imap: {
       enabled: process.env.IMAP_POLL_ENABLED === "true",
       configured: Boolean(

@@ -312,6 +312,13 @@ export function getEmailProviderStatus() {
 }
 
 export async function sendRealEmail(input: EmailInput): Promise<{ success: boolean; messageId?: string; error?: any }> {
+  if (process.env.NODE_ENV === "test" && process.env.EMAIL_TEST_ALLOW_REAL_SEND !== "true") {
+    return {
+      success: false,
+      error: "EMAIL_SEND_DISABLED_IN_TEST: Set EMAIL_TEST_ALLOW_REAL_SEND=true only for explicit live email tests.",
+    };
+  }
+
   const { to, subject, html, text } = input;
   const traceId = createTraceId("smtp");
   const startedAt = Date.now();
