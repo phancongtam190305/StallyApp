@@ -86,7 +86,7 @@ if (aiClients.length > 0) {
 }
 
 import { 
-  initDb, loadDbState, checkDbHealth, persistDbState
+  initDb, loadDbState, checkDbHealth, persistDbStateNow
 } from "./src/backend/db.ts";
 
 export let dbState: any = {
@@ -117,11 +117,13 @@ export let dbState: any = {
 // MIDDLEWARES
 // ----------------------------------------------------
 
-import { persistDbStateNow } from "./src/backend/db.ts";
-
 // Guarantee 100% real-time container consistency in serverless environments
 // by reloading database state from Supabase Postgres on every incoming request
 app.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (process.env.RELOAD_DB_ON_EVERY_REQUEST !== "true") {
+    return next();
+  }
+
   try {
     await initDb();
     const loaded = await loadDbState();
@@ -158,8 +160,8 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   const shouldPersist = shouldAutoPersistRequest(req);
   const originalJson = res.json;
   res.json = function (body) {
-    if (!shouldPersist) return;
-    if (["POST", "PUT", "DELETE"].includes(req.method)) {
+    if (!shouldPersist) return originalJson.call(res, body);
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
       persistDbStateNow(dbState)
         .then(() => {
           console.log(`[Stally Sync] 💾 Synchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);

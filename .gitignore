@@ -6,10 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+!.env.production.example
 *.db
 *.db-shm
 *.db-wal
 *.md
+!DEPLOY_FULL_RUNBOOK.md
 chrome-profile/
 chrome_log.txt
 chrome_error.log
