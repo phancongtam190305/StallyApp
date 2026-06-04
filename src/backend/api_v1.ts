@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { dbState, ai } from "../../server.js";
 import { persistDbState, persistUser } from "./db.js";
 import { sendRealEmail } from "./mailer.js";
+import { createTraceId, logFlow, maskEmail, maskEmails, safeError, subjectSummary, textSummary } from "./logger.js";
 import { buildSupplierFromCandidate, discoverSuppliers } from "./supplier_discovery.js";
 import { 
   ProcurementCase, 
@@ -215,14 +216,44 @@ export function transitionCaseStatus(input: TransitionInput): ProcurementCase {
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
   if (!caseObj) {
+    logFlow("warn", "case.transition.not_found", {
+      caseId,
+      toStatus,
+      actorId,
+      actorRole,
+      orgId,
+      reason,
+    });
     throw new Error("Không tìm thấy Procurement Case.");
   }
   
   const fromStatus = caseObj.status;
+  const traceId = createTraceId("case");
+  logFlow("info", "case.transition.request", {
+    traceId,
+    caseId,
+    fromStatus,
+    toStatus,
+    actorId,
+    actorRole,
+    orgId,
+    reason,
+  });
   
   // Guard transitions
   const allowed = VALID_TRANSITIONS[fromStatus] || [];
   if (!allowed.includes(toStatus) && toStatus !== "cancelled") {
+    logFlow("warn", "case.transition.rejected", {
+      traceId,
+      caseId,
+      fromStatus,
+      toStatus,
+      allowed,
+      actorId,
+      actorRole,
+      orgId,
+      reason,
+    });
     throw new Error(`Bước chuyển trạng thái từ '${fromStatus}' sang '${toStatus}' không được phép.`);
   }
   
@@ -246,16 +277,33 @@ export function transitionCaseStatus(input: TransitionInput): ProcurementCase {
   };
   
   dbState.case_transitions.push(transitionLog);
+  logFlow("info", "case.transition.committed", {
+    traceId,
+    transitionId: transitionLog.id,
+    caseId,
+    fromStatus,
+    toStatus,
+    actorId,
+    actorRole,
+    orgId,
+    reason: transitionLog.reason,
+  });
   
   // Broadcast Realtime SSE Event
   broadcastRealtimeEvent("case.updated", caseId, { fromStatus, toStatus, actorId, reason });
   
   // Persist State to SQLite
-  try {
-    persistDbState(dbState);
-  } catch (err) {
+  persistDbState(dbState).catch((err) => {
+    logFlow("error", "case.transition.persist_failed", {
+      traceId,
+      transitionId: transitionLog.id,
+      caseId,
+      fromStatus,
+      toStatus,
+      err: safeError(err),
+    });
     console.error("Failed to persist database state in transitionCaseStatus:", err);
-  }
+  });
   
   return caseObj;
 }
@@ -1020,6 +1068,13 @@ apiV1Router.get("/cases/:caseId/rfq-drafts", (req: Request, res: Response) => {
   const drafts = (dbState.rfq_email_drafts || [])
     .filter((draft: any) => draft.caseId === caseId);
 
+  logFlow("info", "rfq.draft.list", {
+    traceId: req.traceId || createTraceId("rfq-draft-list"),
+    caseId,
+    orgId,
+    draftCount: drafts.length,
+    draftIds: drafts.map(d => d.id),
+  });
   res.json({ data: drafts });
 });
 
@@ -1134,9 +1189,17 @@ apiV1Router.delete("/suppliers/:supplierId", (req: Request, res: Response) => {
 // RFQ DRAFT & SENDING APIs
 // ----------------------------------------------------
 apiV1Router.post("/cases/:caseId/rfq-draft", async (req: Request, res: Response) => {
+  const traceId = req.traceId || createTraceId("rfq-draft");
   const orgId = req.organizationId;
   const { caseId } = req.params;
   const { supplierIds, dueDate } = req.body;
+  logFlow("info", "rfq.draft.request", {
+    traceId,
+    caseId,
+    orgId,
+    supplierIds,
+    dueDate,
+  });
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
   if (!caseObj) {
@@ -1144,6 +1207,14 @@ apiV1Router.post("/cases/:caseId/rfq-draft", async (req: Request, res: Response)
   }
   
   const selectedSuppliers = dbState.suppliers.filter(s => supplierIds.includes(s.id));
+  logFlow("info", "rfq.draft.suppliers_resolved", {
+    traceId,
+    caseId,
+    orgId,
+    requestedCount: supplierIds?.length || 0,
+    resolvedCount: selectedSuppliers.length,
+    suppliers: selectedSuppliers.map(s => ({ supplierId: s.id, email: maskEmail(s.email), name: s.name })),
+  });
   const prItemsText = caseObj.items.map(it => `- ${it.name}: ${it.quantity} ${it.unit} (${it.notes || "không có ghi chú"})`).join("\n");
   
   const drafts = [];
@@ -1198,13 +1269,27 @@ Yêu cầu trả về định dạng HTML trong hòm thư điện tử. Chỉ tr
     drafts.push(draft);
   }
   
+  logFlow("info", "rfq.draft.created", {
+    traceId,
+    caseId,
+    orgId,
+    draftCount: drafts.length,
+    draftIds: drafts.map(d => d.id),
+  });
   res.json({ data: drafts });
 });
 
 apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) => {
+  const traceId = req.traceId || createTraceId("rfq-send");
   const orgId = req.organizationId;
   const { caseId } = req.params;
   const { draftIds } = req.body;
+  logFlow("info", "rfq.send.request", {
+    traceId,
+    caseId,
+    orgId,
+    draftIds,
+  });
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
   if (!caseObj) {
@@ -1213,6 +1298,21 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
   
   const rfqId = `rfq-${Date.now()}`;
   const matchedDrafts = dbState.rfq_email_drafts.filter(d => draftIds.includes(d.id));
+  logFlow("info", "rfq.send.drafts_resolved", {
+    traceId,
+    caseId,
+    rfqId,
+    orgId,
+    requestedCount: draftIds?.length || 0,
+    resolvedCount: matchedDrafts.length,
+    drafts: matchedDrafts.map(d => ({
+      draftId: d.id,
+      supplierId: d.supplierId,
+      supplierEmail: maskEmail(d.supplierEmail),
+      subject: subjectSummary(d.subject),
+      status: d.status,
+    })),
+  });
   
   const rfqCase = {
     id: rfqId,
@@ -1234,6 +1334,17 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
 
   // Create actual email logs and send real emails. This endpoint must fail if SMTP cannot send.
   for (const d of matchedDrafts) {
+    const sendStartedAt = Date.now();
+    logFlow("info", "rfq.send.email.start", {
+      traceId,
+      caseId,
+      rfqId,
+      draftId: d.id,
+      supplierId: d.supplierId,
+      supplierEmail: maskEmail(d.supplierEmail),
+      subject: subjectSummary(d.subject),
+      body: textSummary(d.bodyHtml),
+    });
     let sendResult = await sendRealEmail({
       to: d.supplierEmail,
       subject: d.subject,
@@ -1243,9 +1354,29 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
     if (!sendResult.success && sendResult.error?.includes("SMTP_NOT_CONFIGURED")) {
       console.warn(`[Stally SMTP Simulator] ✉️ Mock sending RFQ email to ${d.supplierEmail} (SMTP not configured)`);
       sendResult = { success: true, messageId: `mock-smtp-out-${Date.now()}-${d.supplierId}` };
+      logFlow("warn", "rfq.send.email.smtp_simulated", {
+        traceId,
+        caseId,
+        rfqId,
+        draftId: d.id,
+        supplierId: d.supplierId,
+        supplierEmail: maskEmail(d.supplierEmail),
+        messageId: sendResult.messageId,
+      });
     }
 
     if (!sendResult.success) {
+      logFlow("error", "rfq.send.email.failed", {
+        traceId,
+        caseId,
+        rfqId,
+        draftId: d.id,
+        supplierId: d.supplierId,
+        supplierEmail: maskEmail(d.supplierEmail),
+        durationMs: Date.now() - sendStartedAt,
+        error: sendResult.error,
+        sentCountBeforeFailure: sentEmails.length,
+      });
       return res.status(502).json({
         error: {
           code: "EMAIL_SEND_FAILED",
@@ -1255,6 +1386,17 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
         sentEmails,
       });
     }
+
+    logFlow("info", "rfq.send.email.success", {
+      traceId,
+      caseId,
+      rfqId,
+      draftId: d.id,
+      supplierId: d.supplierId,
+      supplierEmail: maskEmail(d.supplierEmail),
+      messageId: sendResult.messageId,
+      durationMs: Date.now() - sendStartedAt,
+    });
 
     sentEmails.push({
       supplierId: d.supplierId,
@@ -1289,6 +1431,15 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
   dbState.rfq_cases.push(rfqCase);
   dbState.email_messages.push(...pendingEmailLogs);
   caseObj.currentRfqId = rfqId;
+  logFlow("info", "rfq.send.persisted", {
+    traceId,
+    caseId,
+    rfqId,
+    orgId,
+    sentCount: sentEmails.length,
+    emailLogCount: pendingEmailLogs.length,
+    supplierCount: rfqCase.suppliers.length,
+  });
   
   // Transition status
   transitionCaseStatus({
@@ -1311,6 +1462,18 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
     });
   }, 300);
   
+  logFlow("info", "rfq.send.response", {
+    traceId,
+    caseId,
+    rfqId,
+    orgId,
+    sentCount: sentEmails.length,
+    sent: sentEmails.map(item => ({
+      supplierId: item.supplierId,
+      email: maskEmail(item.email),
+      messageId: item.messageId,
+    })),
+  });
   res.json({
     message: "RFQ emails sent successfully.",
     rfqId,
@@ -1391,7 +1554,28 @@ function createLegacyCaseFromRfq(rfqObj: any, orgId: string) {
 }
 
 export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "org-1") {
+  const traceId = createTraceId("inbound");
+  const startedAt = Date.now();
   const { fromEmail, fromName, subject, bodyText, bodyHtml, rfqCaseId, supplierId, fileName, fileContentBase64 } = payload;
+  logFlow("info", "inbound.email.received", {
+    traceId,
+    orgId,
+    fromEmail: maskEmail(fromEmail),
+    fromName,
+    subject: subjectSummary(subject),
+    bodyText: textSummary(bodyText),
+    rfqCaseId,
+    supplierId,
+    fileName,
+    mimeType: payload.mimeType,
+    sizeBytes: payload.sizeBytes,
+    messageId: payload.messageId,
+    internetMessageId: payload.internetMessageId,
+    threadId: payload.threadId,
+    inReplyTo: payload.inReplyTo,
+    referencesCount: payload.references?.length || 0,
+    receivedAt: payload.receivedAt,
+  });
 
   // GMAIL THREAD LINKING ENGINE RULES
   let resolvedCaseId = "";
@@ -1416,6 +1600,13 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
         }
       }
     }
+    logFlow(resolvedCaseId ? "info" : "warn", "inbound.resolve.subject_code", {
+      traceId,
+      orgId,
+      code,
+      resolvedCaseId,
+      resolvedSupplierId,
+    });
   }
   
   // Rule 2: ThreadId match or direct RFQ case linking
@@ -1424,6 +1615,12 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
     if (caseObj) {
       resolvedCaseId = caseObj.id;
     }
+    logFlow(resolvedCaseId ? "info" : "warn", "inbound.resolve.rfq_case_id", {
+      traceId,
+      orgId,
+      rfqCaseId,
+      resolvedCaseId,
+    });
   }
   
   // Rule 3: Sender matching
@@ -1432,9 +1629,27 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
     if (matchedSup) {
       resolvedSupplierId = matchedSup.id;
     }
+    logFlow(resolvedSupplierId ? "info" : "warn", "inbound.resolve.sender", {
+      traceId,
+      orgId,
+      fromEmail: maskEmail(fromEmail),
+      resolvedSupplierId,
+    });
   }
   
   if (!resolvedCaseId) {
+    logFlow("error", "inbound.resolve.unresolvable", {
+      traceId,
+      orgId,
+      fromEmail: maskEmail(fromEmail),
+      subject: subjectSummary(subject),
+      rfqCaseId,
+      supplierId,
+      resolvedSupplierId,
+      messageId: payload.messageId,
+      internetMessageId: payload.internetMessageId,
+      durationMs: Date.now() - startedAt,
+    });
     // Look for active collecting case with that supplier
     const activeCase = dbState.procurement_cases.find(c => 
       c.status === "collecting_quotes" && 
@@ -1442,6 +1657,12 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
       dbState.rfq_cases.find(r => r.id === c.currentRfqId)?.suppliers.some(s => s.supplierId === resolvedSupplierId)
     );
     if (activeCase) resolvedCaseId = activeCase.id;
+    logFlow(resolvedCaseId ? "info" : "warn", "inbound.resolve.active_case", {
+      traceId,
+      orgId,
+      resolvedSupplierId,
+      resolvedCaseId,
+    });
   }
   
   if (!resolvedCaseId) {
@@ -1483,11 +1704,37 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
     createdAt: new Date().toISOString()
   };
   
+  logFlow("info", "inbound.email.linked", {
+    traceId,
+    orgId,
+    emailMessageId: emailMsg.id,
+    gmailMessageId: emailMsg.gmailMessageId,
+    internetMessageId: emailMsg.internetMessageId,
+    threadId: emailMsg.gmailThreadId,
+    linkedCaseId: resolvedCaseId,
+    linkedSupplierId: resolvedSupplierId,
+    fromEmail: maskEmail(fromEmail),
+    subject: subjectSummary(emailMsg.subject),
+    attachmentCount: emailMsg.attachments.length,
+    attachments: emailMsg.attachments.map(att => ({
+      fileName: att.fileName,
+      mimeType: att.mimeType,
+      sizeBytes: att.sizeBytes,
+    })),
+  });
   dbState.email_messages.push(emailMsg);
   broadcastRealtimeEvent("email.received", resolvedCaseId, emailMsg);
   
   await triggerQuoteExtractionPipeline(resolvedCaseId, resolvedSupplierId, emailMsg, fileName, fileContentBase64, orgId);
 
+  logFlow("info", "inbound.email.processed", {
+    traceId,
+    orgId,
+    emailMessageId: emailMsg.id,
+    linkedCaseId: resolvedCaseId,
+    linkedSupplierId: resolvedSupplierId,
+    durationMs: Date.now() - startedAt,
+  });
   return { linkedCaseId: resolvedCaseId, linkedSupplierId: resolvedSupplierId, emailMessageId: emailMsg.id };
 }
 
@@ -1496,6 +1743,15 @@ apiV1Router.post("/webhooks/inbound-email", async (req: Request, res: Response) 
     const result = await ingestInboundEmail(req.body, req.organizationId || "org-1");
     res.json({ message: "Email received. Quote extraction queued.", ...result });
   } catch (err: any) {
+    logFlow("error", "inbound.webhook.failed", {
+      traceId: req.traceId || createTraceId("inbound-webhook"),
+      orgId: req.organizationId || "org-1",
+      fromEmail: maskEmail(req.body?.fromEmail),
+      subject: subjectSummary(req.body?.subject),
+      messageId: req.body?.messageId,
+      internetMessageId: req.body?.internetMessageId,
+      err: safeError(err),
+    });
     res.status(400).json({
       error: {
         code: err.code || "INBOUND_EMAIL_ERROR",
@@ -1509,10 +1765,40 @@ apiV1Router.post("/webhooks/inbound-email", async (req: Request, res: Response) 
 // DOCUMENT QUOTE EXTRACTION PIPELINE
 // ----------------------------------------------------
 async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string, email: EmailMessage, fileName: string, fileContentBase64: string, orgId: string) {
+  const traceId = createTraceId("quote-extract");
+  const startedAt = Date.now();
+  logFlow("info", "quote.extraction.start", {
+    traceId,
+    caseId,
+    supplierId,
+    orgId,
+    emailMessageId: email.id,
+    gmailMessageId: email.gmailMessageId,
+    internetMessageId: email.internetMessageId,
+    subject: subjectSummary(email.subject),
+    fromEmail: maskEmail(String(email.from || "").match(/<([^>]+)>/)?.[1] || email.from),
+    bodyText: textSummary(email.bodyText),
+    fileName,
+    hasFileContent: Boolean(fileContentBase64),
+    aiEnabled: Boolean(ai),
+  });
   broadcastRealtimeEvent("quote.extraction_started", caseId, { supplierId, emailMessageId: email.id });
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId);
   const supplierObj = dbState.suppliers.find(s => s.id === supplierId);
+  logFlow("info", "quote.extraction.context", {
+    traceId,
+    caseId,
+    supplierId,
+    orgId,
+    emailMessageId: email.id,
+    caseFound: Boolean(caseObj),
+    caseStatus: caseObj?.status,
+    currentRfqId: caseObj?.currentRfqId,
+    itemCount: caseObj?.items?.length || 0,
+    supplierFound: Boolean(supplierObj),
+    supplierEmail: maskEmail(supplierObj?.email),
+  });
   
   let extractedQuote = {
     items: caseObj ? caseObj.items.map(it => ({
@@ -1583,10 +1869,23 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
       }
     } catch (e) {
       console.error("❌ Lỗi AI trích xuất báo giá thực tế:", e);
+      logFlow("error", "quote.extraction.ai_failed", {
+        traceId,
+        caseId,
+        supplierId,
+        emailMessageId: email.id,
+        err: safeError(e),
+      });
       isFallback = true;
       extractedQuote = simulateQuoteExtraction(caseObj, supplierObj, multiplier);
     }
   } else {
+    logFlow("warn", "quote.extraction.ai_unavailable_fallback", {
+      traceId,
+      caseId,
+      supplierId,
+      emailMessageId: email.id,
+    });
     extractedQuote = simulateQuoteExtraction(caseObj, supplierObj, multiplier);
   }
 
@@ -1605,6 +1904,21 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
   const normalizedTaxAmount = Number(extractedQuote.taxAmount) || Math.round(normalizedSubtotal * 0.1);
   const normalizedShippingFee = Number(extractedQuote.shippingFee) || 0;
   const normalizedTotalAmount = Number(extractedQuote.totalAmount) || normalizedSubtotal + normalizedTaxAmount + normalizedShippingFee;
+  logFlow("info", "quote.extraction.normalized", {
+    traceId,
+    caseId,
+    supplierId,
+    orgId,
+    emailMessageId: email.id,
+    isFallback,
+    itemCount: normalizedItems.length,
+    subtotal: normalizedSubtotal,
+    taxAmount: normalizedTaxAmount,
+    shippingFee: normalizedShippingFee,
+    totalAmount: normalizedTotalAmount,
+    deliveryDays: Number(extractedQuote.deliveryDays) || 3,
+    aiConfidenceScore: isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70),
+  });
   
   // Save or update quote, and log quote version
   const targetRfqCaseId = caseObj?.currentRfqId || "rfq-1";
@@ -1677,6 +1991,21 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
   };
   
   dbState.quote_versions.push(quoteVer);
+  logFlow("info", "quote.extraction.saved", {
+    traceId,
+    caseId,
+    supplierId,
+    orgId,
+    emailMessageId: email.id,
+    rfqCaseId: targetRfqCaseId,
+    quoteId,
+    quoteVersionId: quoteVer.id,
+    round: roundNum,
+    createdNewQuote: !existingQuote,
+    totalAmount: finalQuote.totalAmount,
+    itemCount: finalQuote.items.length,
+    isFallback,
+  });
   
   // Link quote back to RFQ Case Suppliers status
   if (caseObj && caseObj.currentRfqId) {
@@ -1688,6 +2017,16 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
         rsup.quoteId = quoteId;
       }
       rfqObj.status = "quotes_received";
+      logFlow("info", "quote.extraction.rfq_supplier_updated", {
+        traceId,
+        caseId,
+        supplierId,
+        orgId,
+        rfqCaseId: rfqObj.id,
+        rfqStatus: rfqObj.status,
+        supplierFoundInRfq: Boolean(rsup),
+        quoteId,
+      });
     }
     
     if (["collecting_quotes"].includes(caseObj.status)) {
@@ -1702,6 +2041,14 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     }
 
     if (["quote_review", "collecting_quotes"].includes(caseObj.status)) {
+      logFlow("info", "quote.extraction.comparison_transition_scheduled", {
+        traceId,
+        caseId,
+        supplierId,
+        orgId,
+        currentStatus: caseObj.status,
+        delayMs: 400,
+      });
       setTimeout(() => {
         try {
           transitionCaseStatus({
@@ -1713,6 +2060,13 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
             orgId
           });
         } catch (err) {
+          logFlow("warn", "quote.extraction.comparison_transition_skipped", {
+            traceId,
+            caseId,
+            supplierId,
+            orgId,
+            err: safeError(err),
+          });
           console.error("Case comparison transition skipped:", err);
         }
       }, 400);
@@ -1726,6 +2080,14 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
       if (activeLogs.length > 0) {
         const latestLog = activeLogs[activeLogs.length - 1];
         latestLog.status = "supplier_responded";
+        logFlow("info", "quote.extraction.negotiation_log_updated", {
+          traceId,
+          caseId,
+          supplierId,
+          orgId,
+          negotiationLogId: latestLog.id,
+          round: latestLog.round,
+        });
         latestLog.supplierReplyRaw = email.bodyText || email.snippet || "Phản hồi qua email";
       }
 
@@ -1741,13 +2103,32 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
   }
   
   broadcastRealtimeEvent("quote.extracted", caseId, finalQuote);
+  logFlow("info", "quote.extraction.done", {
+    traceId,
+    caseId,
+    supplierId,
+    orgId,
+    emailMessageId: email.id,
+    quoteId,
+    round: roundNum,
+    status: dbState.procurement_cases.find(c => c.id === caseId)?.status,
+    totalAmount: finalQuote.totalAmount,
+    durationMs: Date.now() - startedAt,
+  });
   
   // Persist State to SQLite
-  try {
-    persistDbState(dbState);
-  } catch (err) {
+  persistDbState(dbState).catch((err) => {
+    logFlow("error", "quote.extraction.persist_failed", {
+      traceId,
+      caseId,
+      supplierId,
+      orgId,
+      emailMessageId: email.id,
+      quoteId,
+      err: safeError(err),
+    });
     console.error("Failed to persist database state in triggerQuoteExtractionPipeline:", err);
-  }
+  });
 }
 
 function simulateQuoteExtraction(caseObj: any, supplierObj: any, multiplier: number) {

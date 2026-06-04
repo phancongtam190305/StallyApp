@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import { apiV1Router } from "./src/backend/api_v1.ts";
 import { sendRealEmail } from "./src/backend/mailer.ts";
 import { startImapPolling } from "./src/backend/imap_poller.ts";
+import { createTraceId, logFlow, safeError, summarizeRequestBody } from "./src/backend/logger.ts";
 import { 
   Organization, User, Supplier, InventoryItem, ProcurementCase, CaseTransition,
   PurchaseRequest, RfqCase, Quote, QuoteVersion, PurchaseOrder, EmailMessage,
@@ -164,6 +165,48 @@ const organizationChecker = (req: express.Request, res: express.Response, next: 
 
 app.use(organizationChecker);
 
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.path.startsWith("/api")) return next();
+
+  const traceId = String(req.headers["x-request-id"] || createTraceId("api"));
+  (req as any).traceId = traceId;
+  res.setHeader("x-stally-request-id", traceId);
+  const startedAt = Date.now();
+
+  logFlow("info", "api.request.start", {
+    traceId,
+    method: req.method,
+    path: req.originalUrl,
+    orgId: req.organizationId,
+    userAgent: req.headers["user-agent"],
+    origin: req.headers.origin,
+    body: summarizeRequestBody(req.body),
+  });
+
+  res.on("finish", () => {
+    logFlow("info", "api.request.done", {
+      traceId,
+      method: req.method,
+      path: req.originalUrl,
+      orgId: req.organizationId,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    });
+  });
+
+  res.on("error", (err) => {
+    logFlow("error", "api.request.error", {
+      traceId,
+      method: req.method,
+      path: req.originalUrl,
+      orgId: req.organizationId,
+      err: safeError(err),
+    });
+  });
+
+  next();
+});
+
 const shouldAutoPersistRequest = (req: express.Request) => {
   if (process.env.AUTO_PERSIST_ENABLED === "false") return false;
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return false;
@@ -249,6 +292,7 @@ declare global {
   namespace Express {
     interface Request {
       organizationId: string;
+      traceId?: string;
     }
   }
 }

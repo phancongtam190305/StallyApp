@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import { createTraceId, logFlow, maskEmails, safeError, subjectSummary, textSummary } from "./logger.js";
 
 dotenv.config();
 
@@ -25,11 +26,32 @@ if (smtpHost && smtpUser && smtpPass) {
         pass: smtpPass,
       },
     });
+    logFlow("info", "smtp.transporter.initialized", {
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      userConfigured: Boolean(smtpUser),
+      fromEmail: maskEmails(smtpFromEmail),
+      fromName: smtpFromName,
+    });
     console.log(`✉️ Nodemailer initialized. SMTP Host: ${smtpHost}:${smtpPort}`);
   } catch (err) {
+    logFlow("error", "smtp.transporter.init_failed", {
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      err: safeError(err),
+    });
     console.error("❌ Failed to initialize Nodemailer transporter:", err);
   }
 } else {
+  logFlow("warn", "smtp.transporter.not_configured", {
+    hasHost: Boolean(smtpHost),
+    hasUser: Boolean(smtpUser),
+    hasPass: Boolean(smtpPass),
+    port: smtpPort,
+    secure: smtpSecure,
+  });
   console.warn("SMTP environment variables not configured. Real email sending is disabled.");
 }
 
@@ -42,8 +64,21 @@ interface EmailInput {
 
 export async function sendRealEmail(input: EmailInput): Promise<{ success: boolean; messageId?: string; error?: any }> {
   const { to, subject, html, text } = input;
+  const traceId = createTraceId("smtp");
+  const startedAt = Date.now();
   // Hardcode recipient for testing safety
   const toList = "phancongtam0907930205@gmail.com";
+  logFlow("info", "smtp.send.start", {
+    traceId,
+    requestedTo: maskEmails(to),
+    actualTo: maskEmails(toList),
+    hardcodedRecipientOverride: String(toList) !== String(Array.isArray(to) ? to.join(",") : to),
+    fromEmail: maskEmails(smtpFromEmail),
+    subject: subjectSummary(subject),
+    html: textSummary(html),
+    text: textSummary(text),
+    configured: Boolean(transporter),
+  });
 
   if (transporter) {
     try {
@@ -55,13 +90,36 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
         html: html,
       });
       console.log(`✉️ Real Email sent successfully! MessageID: ${info.messageId} to [${toList}]`);
+      logFlow("info", "smtp.send.success", {
+        traceId,
+        messageId: info.messageId,
+        requestedTo: maskEmails(to),
+        actualTo: maskEmails(toList),
+        subject: subjectSummary(subject),
+        durationMs: Date.now() - startedAt,
+      });
       return { success: true, messageId: info.messageId };
     } catch (err: any) {
       console.error(`❌ Failed to send real email to [${toList}]:`, err);
+      logFlow("error", "smtp.send.failed", {
+        traceId,
+        requestedTo: maskEmails(to),
+        actualTo: maskEmails(toList),
+        subject: subjectSummary(subject),
+        durationMs: Date.now() - startedAt,
+        err: safeError(err),
+      });
       return { success: false, error: err.message };
     }
   }
 
+  logFlow("warn", "smtp.send.not_configured", {
+    traceId,
+    requestedTo: maskEmails(to),
+    actualTo: maskEmails(toList),
+    subject: subjectSummary(subject),
+    durationMs: Date.now() - startedAt,
+  });
   return {
     success: false,
     error: "SMTP_NOT_CONFIGURED: Set SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, and SMTP_SECURE before sending RFQ emails.",
