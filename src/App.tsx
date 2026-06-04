@@ -123,6 +123,9 @@ export function AppContent() {
           const caseCode = data.caseId ? data.caseId.split('-')[1]?.toUpperCase() : "";
           showToast(`🔄 Hồ sơ thầu #${caseCode || ""} đã chuyển sang trạng thái mới!`, "info");
           syncStateFromServer();
+        } else if (data.type === "supplier.discovery_completed") {
+          showToast("📬 AI đã quét xong nhà cung cấp cho mặt hàng: " + (data.payload?.query || "") + "!", "success");
+          syncStateFromServer();
         }
       } catch (err) {
         console.error("Failed to parse realtime event:", err);
