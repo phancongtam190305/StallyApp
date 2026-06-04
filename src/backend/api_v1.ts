@@ -1637,6 +1637,87 @@ interface InboundEmailPayload {
   receivedAt?: string;
 }
 
+function parseFiniteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasPositiveExtractedMoney(extractedQuote: any): boolean {
+  const totalAmount = parseFiniteNumber(extractedQuote?.totalAmount);
+  const subtotal = parseFiniteNumber(extractedQuote?.subtotal);
+  if ((totalAmount !== null && totalAmount > 0) || (subtotal !== null && subtotal > 0)) return true;
+
+  return Array.isArray(extractedQuote?.items) && extractedQuote.items.some((item: any) => {
+    const totalPrice = parseFiniteNumber(item?.totalPrice);
+    const unitPrice = parseFiniteNumber(item?.unitPrice);
+    return (totalPrice !== null && totalPrice > 0) || (unitPrice !== null && unitPrice > 0);
+  });
+}
+
+function parseDiscountPercent(text: string): number | null {
+  const patterns = [
+    /(?:giảm(?:\s+giá)?|chiết\s*khấu)(?:\s+thêm)?\s*(\d+(?:[.,]\d+)?)\s*%/i,
+    /(?:discount|reduce|reduction)(?:\s+by|\s+additional)?\s*(\d+(?:[.,]\d+)?)\s*%/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const parsed = Number(match[1].replace(",", "."));
+    if (Number.isFinite(parsed) && parsed > 0 && parsed < 100) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function parseDeliveryDays(text: string): number | null {
+  const match = text.match(/(?:giao(?:\s+hàng)?|delivery).{0,40}?(\d{1,3})\s*(?:ngày|days?)/i);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parsePaymentTerms(text: string): string | null {
+  const netMatch = text.match(/(?:net|công\s*nợ|thanh\s*toán\s*sau|giãn\s*nợ).{0,30}?(\d{1,3})\s*(?:ngày|days?)/i);
+  if (netMatch) return `Công nợ Net ${netMatch[1]} ngày`;
+  if (/cod|thanh\s*toán\s*khi\s*nhận\s*hàng/i.test(text)) return "COD - Nhận hàng trả tiền";
+  return null;
+}
+
+function mergeNegotiationReplyWithExistingQuote(existingQuote: Quote, extractedQuote: any, rawText: string) {
+  const discountPercent = parseDiscountPercent(rawText);
+  const multiplier = discountPercent ? 1 - discountPercent / 100 : 1;
+  const items = existingQuote.items.map(item => {
+    const unitPrice = Math.round(item.unitPrice * multiplier);
+    return {
+      ...item,
+      unitPrice,
+      totalPrice: Math.round(item.totalPrice * multiplier),
+    };
+  });
+  const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const taxRate = existingQuote.subtotal > 0 ? existingQuote.taxAmount / existingQuote.subtotal : 0;
+  const taxAmount = Math.round(subtotal * taxRate);
+  const freeShipping = /(?:miễn\s*phí|free).{0,20}(?:vận\s*chuyển|shipping)|(?:vận\s*chuyển|shipping).{0,20}(?:miễn\s*phí|free)/i.test(rawText);
+  const shippingFee = freeShipping ? 0 : existingQuote.shippingFee;
+  const deliveryDays = parseDeliveryDays(rawText) || existingQuote.deliveryDays;
+  const paymentTerms = parsePaymentTerms(rawText) || existingQuote.paymentTerms;
+
+  return {
+    items,
+    subtotal,
+    taxAmount,
+    shippingFee,
+    totalAmount: subtotal + taxAmount + shippingFee,
+    deliveryDays,
+    paymentTerms,
+    aiConfidenceScore: discountPercent ? 82 : 55,
+  };
+}
+
 function createLegacyCaseFromRfq(rfqObj: any, orgId: string) {
   const prObj = dbState.purchase_requests.find(p => p.id === rfqObj.purchaseRequestId && p.organizationId === orgId);
   if (!prObj) return null;
@@ -1801,6 +1882,7 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
     throw err;
   }
   
+  const emailClassification = /\[STALLY NEGOTIATION-/i.test(subject || "") ? "negotiation" : "quote";
   const emailMsgId = `email-in-${Date.now()}`;
   const emailMsg: EmailMessage = {
     id: emailMsgId,
@@ -1820,7 +1902,7 @@ export async function ingestInboundEmail(payload: InboundEmailPayload, orgId = "
     receivedAt: payload.receivedAt || new Date().toISOString(),
     linkedCaseId: resolvedCaseId,
     linkedSupplierId: resolvedSupplierId,
-    classification: "quote",
+    classification: emailClassification,
     attachments: fileName ? [
       {
         id: `att-${Date.now()}`,
@@ -1916,6 +1998,9 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId);
   const supplierObj = dbState.suppliers.find(s => s.id === supplierId);
+  const targetRfqCaseId = caseObj?.currentRfqId || "rfq-1";
+  const existingQuote = dbState.quotes.find(q => q.rfqCaseId === targetRfqCaseId && q.supplierId === supplierId);
+  const isNegotiationReply = email.classification === "negotiation" || /\[STALLY NEGOTIATION-/i.test(email.subject || "");
   logFlow("info", "quote.extraction.context", {
     traceId,
     caseId,
@@ -1928,6 +2013,8 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
     itemCount: caseObj?.items?.length || 0,
     supplierFound: Boolean(supplierObj),
     supplierEmail: maskEmail(supplierObj?.email),
+    existingQuoteFound: Boolean(existingQuote),
+    isNegotiationReply,
   });
   
   let extractedQuote = {
@@ -1951,6 +2038,7 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
   const rawTextForGemini = email.bodyText + " " + (fileName ? `Scan file: ${fileName}` : "");
   
   let isFallback = !ai;
+  let usedNegotiationMerge = false;
   if (ai) {
     try {
       // Real Gemini API Extraction
@@ -2019,6 +2107,23 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     extractedQuote = simulateQuoteExtraction(caseObj, supplierObj, multiplier);
   }
 
+  const shouldMergeNegotiationReply = Boolean(existingQuote && isNegotiationReply && (isFallback || !hasPositiveExtractedMoney(extractedQuote)));
+  if (shouldMergeNegotiationReply && existingQuote) {
+    extractedQuote = mergeNegotiationReplyWithExistingQuote(existingQuote, extractedQuote, rawTextForGemini);
+    usedNegotiationMerge = true;
+    isFallback = false;
+    logFlow("warn", "quote.extraction.negotiation_zero_guard_applied", {
+      traceId,
+      caseId,
+      supplierId,
+      orgId,
+      emailMessageId: email.id,
+      previousTotalAmount: existingQuote.totalAmount,
+      mergedTotalAmount: extractedQuote.totalAmount,
+      aiConfidenceScore: extractedQuote.aiConfidenceScore,
+    });
+  }
+
   const normalizedItems = (extractedQuote.items && extractedQuote.items.length > 0 ? extractedQuote.items : caseObj?.items || []).map((it: any) => {
     const quantity = Number(it.quantity) || 0;
     const unitPrice = Number(it.unitPrice) || 0;
@@ -2030,10 +2135,17 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
       totalPrice: Number(it.totalPrice) || quantity * unitPrice
     };
   });
-  const normalizedSubtotal = Number(extractedQuote.subtotal) || normalizedItems.reduce((sum: number, it: any) => sum + it.totalPrice, 0);
-  const normalizedTaxAmount = Number(extractedQuote.taxAmount) || Math.round(normalizedSubtotal * 0.1);
-  const normalizedShippingFee = Number(extractedQuote.shippingFee) || 0;
-  const normalizedTotalAmount = Number(extractedQuote.totalAmount) || normalizedSubtotal + normalizedTaxAmount + normalizedShippingFee;
+  const computedSubtotal = normalizedItems.reduce((sum: number, it: any) => sum + it.totalPrice, 0);
+  const extractedSubtotal = parseFiniteNumber(extractedQuote.subtotal);
+  const extractedTaxAmount = parseFiniteNumber(extractedQuote.taxAmount);
+  const extractedShippingFee = parseFiniteNumber(extractedQuote.shippingFee);
+  const extractedTotalAmount = parseFiniteNumber(extractedQuote.totalAmount);
+  const normalizedSubtotal = extractedSubtotal !== null && extractedSubtotal > 0 ? extractedSubtotal : computedSubtotal;
+  const normalizedTaxAmount = extractedTaxAmount !== null && extractedTaxAmount >= 0 ? extractedTaxAmount : 0;
+  const normalizedShippingFee = extractedShippingFee !== null && extractedShippingFee >= 0 ? extractedShippingFee : 0;
+  const normalizedTotalAmount = extractedTotalAmount !== null && extractedTotalAmount > 0
+    ? extractedTotalAmount
+    : normalizedSubtotal + normalizedTaxAmount + normalizedShippingFee;
   logFlow("info", "quote.extraction.normalized", {
     traceId,
     caseId,
@@ -2047,13 +2159,11 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     shippingFee: normalizedShippingFee,
     totalAmount: normalizedTotalAmount,
     deliveryDays: Number(extractedQuote.deliveryDays) || 3,
-    aiConfidenceScore: isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70),
+    aiConfidenceScore: Number(extractedQuote.aiConfidenceScore) || (usedNegotiationMerge ? 55 : isFallback ? 0 : 70),
+    usedNegotiationMerge,
   });
   
   // Save or update quote, and log quote version
-  const targetRfqCaseId = caseObj?.currentRfqId || "rfq-1";
-  const existingQuote = dbState.quotes.find(q => q.rfqCaseId === targetRfqCaseId && q.supplierId === supplierId);
-  
   let quoteId: string;
   let finalQuote: Quote;
   let roundNum = 1;
@@ -2068,8 +2178,8 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     existingQuote.deliveryDays = Number(extractedQuote.deliveryDays) || 3;
     existingQuote.paymentTerms = isFallback ? "GIẢ LẬP (Lỗi kết nối Gemini API)" : (extractedQuote.paymentTerms || "COD / Chuyển khoản");
     existingQuote.validUntil = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    existingQuote.aiConfidenceScore = isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70);
-    existingQuote.originalFileUrl = isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt");
+    existingQuote.aiConfidenceScore = Number(extractedQuote.aiConfidenceScore) || (usedNegotiationMerge ? 55 : isFallback ? 0 : 70);
+    existingQuote.originalFileUrl = usedNegotiationMerge ? (fileName || "negotiation_reply.txt") : isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt");
     existingQuote.createdAt = new Date().toISOString();
     
     finalQuote = existingQuote;
@@ -2093,9 +2203,9 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
       deliveryDays: Number(extractedQuote.deliveryDays) || 3,
       paymentTerms: isFallback ? "GIẢ LẬP (Lỗi kết nối Gemini API)" : (extractedQuote.paymentTerms || "COD / Chuyển khoản"),
       validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      aiConfidenceScore: isFallback ? 0 : (Number(extractedQuote.aiConfidenceScore) || 70),
+      aiConfidenceScore: Number(extractedQuote.aiConfidenceScore) || (usedNegotiationMerge ? 55 : isFallback ? 0 : 70),
       status: "extracted",
-      originalFileUrl: isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt"),
+      originalFileUrl: usedNegotiationMerge ? (fileName || "negotiation_reply.txt") : isFallback ? "MÔ PHỎNG (Do hết hạn ngạch API)" : (fileName || "quote_unstructured.txt"),
       createdAt: new Date().toISOString()
     };
     dbState.quotes.push(newQuote);
@@ -2208,7 +2318,8 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
         l => l.caseId === caseId && l.supplierId === supplierId && (l.status === "draft" || l.status === "sent")
       );
       if (activeLogs.length > 0) {
-        const latestLog = activeLogs[activeLogs.length - 1];
+        const sentLogs = activeLogs.filter(l => l.status === "sent");
+        const latestLog = sentLogs.length > 0 ? sentLogs[sentLogs.length - 1] : activeLogs[activeLogs.length - 1];
         latestLog.status = "supplier_responded";
         logFlow("info", "quote.extraction.negotiation_log_updated", {
           traceId,
@@ -2455,35 +2566,44 @@ QUAN TRỌNG: Chỉ trả về duy nhất nội dung email thô (bắt đầu t�
   res.json({ data: newLog });
 });
 
-apiV1Router.post("/negotiation-drafts/:draftId/send", (req: Request, res: Response) => {
+apiV1Router.post("/negotiation-drafts/:draftId/send", async (req: Request, res: Response) => {
+  const orgId = req.organizationId || "org-1";
   const { draftId } = req.params;
   const { editedBody } = req.body;
   
   const log = dbState.ai_negotiation_logs.find(l => l.id === draftId);
-  if (!log) return res.status(404).json({ error: "Không tìm thấy thư đàm phán nháp" });
+  if (!log) return res.status(404).json({ error: { code: "NEGOTIATION_DRAFT_NOT_FOUND", message: "Không tìm thấy thư đàm phán nháp" } });
 
   // Actually send real email via Nodemailer
-  const caseObj = dbState.procurement_cases.find(c => c.id === log.caseId && c.organizationId === (req.organizationId || "org-1"));
+  const caseObj = dbState.procurement_cases.find(c => c.id === log.caseId && c.organizationId === orgId);
   const rfqObj = caseObj?.currentRfqId
-    ? dbState.rfq_cases.find(r => r.id === caseObj.currentRfqId && r.organizationId === (req.organizationId || "org-1"))
+    ? dbState.rfq_cases.find(r => r.id === caseObj.currentRfqId && r.organizationId === orgId)
     : undefined;
-  const supplier = dbState.suppliers.find((s: any) => s.id === log.supplierId && s.organizationId === (req.organizationId || "org-1"));
+  const supplier = dbState.suppliers.find((s: any) => s.id === log.supplierId && s.organizationId === orgId);
   const rfqSupplier = rfqObj?.suppliers.find(s => s.supplierId === log.supplierId);
   const supplierEmail = supplier?.email || rfqSupplier?.email;
   if (!supplierEmail) {
-    return res.status(400).json({ error: "NCC chưa có email hợp lệ để gửi thư đàm phán." });
+    return res.status(400).json({ error: { code: "SUPPLIER_EMAIL_MISSING", message: "NCC chưa có email hợp lệ để gửi thư đàm phán." } });
+  }
+
+  try {
+    await sendRealEmail({
+      to: supplierEmail,
+      subject: `[STALLY NEGOTIATION-${log.caseId.toUpperCase()}] Thương lượng báo giá Case thầu`,
+      html: editedBody || log.draftEmail
+    });
+  } catch (err) {
+    console.error("Sending real negotiation email failed:", err);
+    return res.status(502).json({
+      error: {
+        code: "NEGOTIATION_EMAIL_SEND_FAILED",
+        message: "Gửi email đàm phán thất bại. Case chưa chuyển sang trạng thái chờ phản hồi.",
+      }
+    });
   }
 
   log.status = "sent";
   if (editedBody) log.userEditedEmail = editedBody;
-
-  sendRealEmail({
-    to: supplierEmail,
-    subject: `[STALLY NEGOTIATION-${log.caseId.toUpperCase()}] Thương lượng báo giá Case thầu`,
-    html: editedBody || log.draftEmail
-  }).catch(err => {
-    console.error("Async sending real negotiation email failed:", err);
-  });
   
   // Transition Case status
   transitionCaseStatus({
@@ -2492,7 +2612,7 @@ apiV1Router.post("/negotiation-drafts/:draftId/send", (req: Request, res: Respon
     actorId: "u-1",
     actorRole: "procurement",
     reason: `Gửi email đàm phán thương lượng chào giá đến NCC qua hòm thư Gmail.`,
-    orgId: req.organizationId || "org-1"
+    orgId
   });
   
   // CẢNH BÁO / LƯU Ý: Đã tắt tự động giả lập phản hồi sau 1 giây 

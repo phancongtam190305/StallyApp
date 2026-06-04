@@ -908,12 +908,15 @@ export default function CaseDetailTimeline({
         body: JSON.stringify({ editedBody: negEditedBody })
       });
       const data = await res.json();
-      showToast("Đã gửi email đàm phán qua Gmail! Đang chờ đối tác trả lời v2...", "success");
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Gửi đàm phán thất bại.");
+      }
+      showToast("Đã gửi email đàm phán qua Gmail! Đang chờ đối tác trả lời...", "success");
       setNegDraft(null);
       if (onStateChanged) onStateChanged();
       setTimeout(fetchData, 1800);
-    } catch (e) {
-      showToast("Gửi đàm phán thất bại.", "error");
+    } catch (e: any) {
+      showToast(e.message || "Gửi đàm phán thất bại.", "error");
     } finally {
       setLoadingAction(null);
     }

@@ -44,6 +44,31 @@ vi.mock("mailparser", () => ({
   simpleParser: mocks.simpleParser,
 }));
 
+vi.mock("@google/genai", () => ({
+  GoogleGenAI: class {
+    models = {
+      generateContent: vi.fn().mockResolvedValue({
+        text: JSON.stringify({
+          items: [],
+          subtotal: 0,
+          taxAmount: 0,
+          shippingFee: 0,
+          totalAmount: 0,
+          deliveryDays: 3,
+          paymentTerms: "Không đề cập",
+          aiConfidenceScore: 30,
+        }),
+      }),
+    };
+  },
+  Type: {
+    OBJECT: "object",
+    ARRAY: "array",
+    STRING: "string",
+    INTEGER: "integer",
+  },
+}));
+
 vi.mock("imapflow", () => {
   return {
     ImapFlow: class {
@@ -192,6 +217,83 @@ async function postInboundQuote(caseId: string, messageId = "<supplier-quote-1@e
     });
 }
 
+function createNegotiatingCaseWithExistingQuote(options: { caseStatus?: any; logStatus?: any } = {}) {
+  const now = new Date().toISOString();
+  const caseId = "case-negotiation-guard";
+  const rfqId = "rfq-negotiation-guard";
+  const quoteId = "quote-negotiation-guard";
+  const caseStatus = options.caseStatus || "negotiating";
+  const logStatus = options.logStatus || "sent";
+
+  dbState.procurement_cases.push({
+    id: caseId,
+    organizationId: ORG_ID,
+    title: "Negotiation guard test",
+    status: caseStatus,
+    priority: "high",
+    createdFrom: "web",
+    requesterId: "u-1",
+    requesterName: "Requester",
+    requesterDepartmentId: "dept-kitchen",
+    departmentName: "Kitchen",
+    requiredDate: "2026-06-12",
+    requestId: "pr-negotiation-guard",
+    currentRfqId: rfqId,
+    items: [{ name: "Gao ST25", quantity: 100, unit: "kg", notes: "Low stock" }],
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  dbState.rfq_cases.push({
+    id: rfqId,
+    organizationId: ORG_ID,
+    purchaseRequestId: "pr-negotiation-guard",
+    status: "quotes_received",
+    dueDate: "2026-06-15",
+    suppliers: [{
+      supplierId: "sup-e2e-1",
+      name: "Supplier One",
+      email: "supplier-one@example.test",
+      status: "replied",
+      quoteId,
+    }],
+    createdAt: now,
+  });
+
+  dbState.quotes.push({
+    id: quoteId,
+    organizationId: ORG_ID,
+    rfqCaseId: rfqId,
+    supplierId: "sup-e2e-1",
+    supplierName: "Supplier One",
+    items: [{ name: "Gao ST25", quantity: 100, unit: "kg", unitPrice: 10000, totalPrice: 1000000 }],
+    subtotal: 1000000,
+    taxAmount: 0,
+    shippingFee: 0,
+    totalAmount: 1000000,
+    deliveryDays: 3,
+    paymentTerms: "COD",
+    validUntil: "2026-06-20",
+    aiConfidenceScore: 90,
+    status: "extracted",
+    originalFileUrl: "quote-original.pdf",
+    createdAt: now,
+  });
+
+  dbState.ai_negotiation_logs.push({
+    id: "neg-log-guard",
+    caseId,
+    supplierId: "sup-e2e-1",
+    round: 1,
+    promptGoal: "discount_5",
+    draftEmail: "<p>Xin giảm 5%</p>",
+    status: logStatus,
+    createdAt: now,
+  });
+
+  return { caseId, quoteId };
+}
+
 describe("Email E2E desired behavior", () => {
   beforeEach(() => {
     resetDbState();
@@ -303,6 +405,63 @@ describe("Email E2E desired behavior", () => {
     expect(comparisonRes.status).toBe(200);
     expect(comparisonRes.body.matrix).toHaveLength(1);
     expect(comparisonRes.body.summary.recommendedQuoteId).toBe(dbState.quotes[0].id);
+  });
+
+  it("keeps negotiation reply from overwriting an existing quote with zero values", async () => {
+    const { caseId, quoteId } = createNegotiatingCaseWithExistingQuote();
+    dbState.ai_negotiation_logs.push({
+      id: "neg-log-unsent-newer",
+      caseId,
+      supplierId: "sup-e2e-1",
+      round: 2,
+      promptGoal: "discount_5",
+      draftEmail: "<p>Draft chưa gửi</p>",
+      status: "draft",
+      createdAt: new Date().toISOString(),
+    });
+
+    const inboundRes = await request(app)
+      .post("/api/v1/webhooks/inbound-email")
+      .set("x-organization-id", ORG_ID)
+      .send({
+        fromEmail: "supplier-one@example.test",
+        fromName: "Supplier One",
+        subject: `Re: [STALLY NEGOTIATION-${caseId.toUpperCase()}] Discount accepted`,
+        bodyText: "Chúng tôi đồng ý giảm thêm 5% cho báo giá hiện tại, không gửi lại bảng giá mới.",
+        messageId: "<supplier-negotiation-guard@example.test>",
+        threadId: "<thread-supplier-negotiation-guard@example.test>",
+        internetMessageId: "<supplier-negotiation-guard@example.test>",
+        receivedAt: "2026-06-04T04:00:00.000Z",
+      });
+
+    expect(inboundRes.status).toBe(200);
+
+    const quote = dbState.quotes.find((q: any) => q.id === quoteId);
+    expect(quote?.totalAmount).toBe(950000);
+    expect(quote?.subtotal).toBe(950000);
+    expect(quote?.items[0].unitPrice).toBe(9500);
+    expect(quote?.totalAmount).toBeGreaterThan(0);
+    expect(dbState.procurement_cases.find((c: any) => c.id === caseId)?.status).toBe("comparison_ready");
+    expect(dbState.ai_negotiation_logs.find((log: any) => log.id === "neg-log-guard")?.status).toBe("supplier_responded");
+    expect(dbState.ai_negotiation_logs.find((log: any) => log.id === "neg-log-unsent-newer")?.status).toBe("draft");
+  });
+
+  it("does not mark negotiation as sent when Gmail send fails", async () => {
+    const { caseId } = createNegotiatingCaseWithExistingQuote({
+      caseStatus: "comparison_ready",
+      logStatus: "draft",
+    });
+    mocks.sendRealEmail.mockRejectedValueOnce(new Error("Gmail API unavailable"));
+
+    const sendRes = await request(app)
+      .post("/api/v1/negotiation-drafts/neg-log-guard/send")
+      .set("x-organization-id", ORG_ID)
+      .send({ editedBody: "<p>Xin giảm thêm 5%</p>" });
+
+    expect(sendRes.status).toBe(502);
+    expect(sendRes.body.error.code).toBe("NEGOTIATION_EMAIL_SEND_FAILED");
+    expect(dbState.procurement_cases.find((c: any) => c.id === caseId)?.status).toBe("comparison_ready");
+    expect(dbState.ai_negotiation_logs.find((log: any) => log.id === "neg-log-guard")?.status).toBe("draft");
   });
 
   it.skip("does not process the same inbound messageId twice", async () => {
