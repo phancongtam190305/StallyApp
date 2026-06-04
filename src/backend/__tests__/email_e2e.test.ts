@@ -208,6 +208,64 @@ describe("Email E2E desired behavior", () => {
     vi.unstubAllEnvs();
   });
 
+  it("persists friendly RFQ draft edits before sending", async () => {
+    const createRes = await request(app)
+      .post("/api/v1/cases")
+      .set("x-organization-id", ORG_ID)
+      .send({
+        title: "Buy rice for draft edit test",
+        priority: "high",
+        requiredDate: "2026-06-12",
+        departmentId: "dept-kitchen",
+        createdFrom: "web",
+        requesterId: "u-1",
+        requesterName: "Requester",
+        items: [
+          { name: "Gao ST25", quantity: 100, unit: "kg", notes: "Low stock" },
+        ],
+      });
+    expect(createRes.status).toBe(201);
+    const caseId = createRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/cases/${caseId}/submit`)
+      .set("x-organization-id", ORG_ID)
+      .send({ role: "procurement", reason: "Validated for sourcing" });
+
+    await request(app)
+      .post(`/api/v1/cases/${caseId}/suppliers/select`)
+      .set("x-organization-id", ORG_ID)
+      .send({ supplierIds: ["sup-e2e-1"] });
+
+    const draftRes = await request(app)
+      .post(`/api/v1/cases/${caseId}/rfq-draft`)
+      .set("x-organization-id", ORG_ID)
+      .send({ supplierIds: ["sup-e2e-1"], dueDate: "2026-06-15" });
+    expect(draftRes.status).toBe(200);
+
+    const draftId = draftRes.body.data[0].id;
+    const patchRes = await request(app)
+      .patch(`/api/v1/cases/${caseId}/rfq-drafts/${draftId}`)
+      .set("x-organization-id", ORG_ID)
+      .send({
+        subject: "Updated friendly RFQ subject",
+        bodyHtml: "<p>Friendly preview-first RFQ body</p>",
+        dueDate: "2026-06-20",
+      });
+
+    expect(patchRes.status).toBe(200);
+    expect(patchRes.body.data).toMatchObject({
+      id: draftId,
+      subject: "Updated friendly RFQ subject",
+      bodyHtml: "<p>Friendly preview-first RFQ body</p>",
+      dueDate: "2026-06-20",
+    });
+
+    const storedDraft = dbState.rfq_email_drafts.find((draft: any) => draft.id === draftId);
+    expect(storedDraft?.subject).toBe("Updated friendly RFQ subject");
+    expect(storedDraft?.bodyHtml).toBe("<p>Friendly preview-first RFQ body</p>");
+  });
+
   it("runs RFQ send to inbound quote to comparison_ready as one end to end behavior", async () => {
     const { caseId, rfqId } = await createCaseReadyForRfq();
 

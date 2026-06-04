@@ -1154,6 +1154,51 @@ apiV1Router.get("/cases/:caseId/rfq-drafts", (req: Request, res: Response) => {
   res.json({ data: drafts });
 });
 
+apiV1Router.patch("/cases/:caseId/rfq-drafts/:draftId", (req: Request, res: Response) => {
+  const traceId = req.traceId || createTraceId("rfq-draft-update");
+  const orgId = req.organizationId;
+  const { caseId, draftId } = req.params;
+  const { subject, bodyHtml, dueDate } = req.body || {};
+
+  const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
+  if (!caseObj) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy case" } });
+  }
+
+  const draft = (dbState.rfq_email_drafts || []).find((item: any) => item.id === draftId && item.caseId === caseId);
+  if (!draft) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy bản nháp RFQ" } });
+  }
+
+  if (draft.status === "sent") {
+    return res.status(409).json({ error: { code: "RFQ_DRAFT_LOCKED", message: "Bản nháp đã gửi, không thể chỉnh sửa." } });
+  }
+
+  if (typeof subject !== "string" || subject.trim().length === 0 || typeof bodyHtml !== "string" || bodyHtml.trim().length === 0) {
+    return res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Tiêu đề và nội dung email là bắt buộc." } });
+  }
+
+  draft.subject = subject.trim();
+  draft.bodyHtml = bodyHtml;
+  if (typeof dueDate === "string" && dueDate.trim()) {
+    draft.dueDate = dueDate.trim();
+  }
+
+  logFlow("info", "rfq.draft.updated", {
+    traceId,
+    caseId,
+    orgId,
+    draftId,
+    supplierId: draft.supplierId,
+    supplierEmail: maskEmail(draft.supplierEmail),
+    subject: subjectSummary(draft.subject),
+    body: textSummary(draft.bodyHtml),
+    dueDate: draft.dueDate,
+  });
+
+  res.json({ data: draft });
+});
+
 apiV1Router.post("/cases/:caseId/suppliers/promote-candidates", (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;

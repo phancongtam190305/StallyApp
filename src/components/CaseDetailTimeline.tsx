@@ -62,6 +62,14 @@ interface RfqDraft {
   status: string;
 }
 
+interface RfqDraftEditForm {
+  subject: string;
+  greeting: string;
+  notes: string;
+  dueDate: string;
+  signature: string;
+}
+
 interface SupplierDiscoveryCandidate {
   id?: string;
   name: string;
@@ -76,6 +84,133 @@ interface SupplierDiscoveryCandidate {
   riskFlags: string[];
   autoAddEligible: boolean;
   duplicateOfSupplierId?: string;
+}
+
+const RFQ_TEST_RECIPIENT = "phancongtam0907930205@gmail.com";
+
+const emptyRfqDraftEditForm: RfqDraftEditForm = {
+  subject: "",
+  greeting: "",
+  notes: "",
+  dueDate: "",
+  signature: ""
+};
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function htmlToPlainText(html: string): string {
+  if (!html) return "";
+  if (typeof document === "undefined") {
+    return html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .trim();
+  }
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  container.querySelectorAll("script,style").forEach(node => node.remove());
+  return (container.innerText || container.textContent || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function normalizeDraftNotes(plainText: string, supplierName: string): string {
+  const supplier = supplierName.toLowerCase();
+  const ignoredFragments = [
+    "kính chào",
+    "kính gửi",
+    "trân trọng",
+    "phan công tâm",
+    "procurement",
+    "sourcing staff",
+    "stally food"
+  ];
+
+  const lines = plainText
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => {
+      const lower = line.toLowerCase();
+      if ((lower.includes("kính chào") || lower.includes("kính gửi")) && lower.includes(supplier)) return false;
+      return !ignoredFragments.some(fragment => lower === fragment || lower.startsWith(`${fragment},`));
+    });
+
+  return lines.join("\n\n").trim();
+}
+
+function normalizeDateInput(value: string): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const slashMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const [, day, month, year] = slashMatch;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function formatDueDateForEmail(value: string): string {
+  const normalized = normalizeDateInput(value);
+  if (!normalized) return "theo thời hạn đã thống nhất";
+  const [year, month, day] = normalized.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function textToHtmlParagraphs(value: string): string {
+  return value
+    .trim()
+    .split(/\n{2,}/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean)
+    .map(paragraph => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
+}
+
+function createDraftEditForm(draft: RfqDraft): RfqDraftEditForm {
+  const plainText = htmlToPlainText(draft.bodyHtml);
+  const notes = normalizeDraftNotes(plainText, draft.supplierName);
+
+  return {
+    subject: draft.subject,
+    greeting: `Kính gửi ${draft.supplierName},`,
+    notes: notes || "Vui lòng gửi báo giá chi tiết, điều kiện giao hàng, thời gian giao và hiệu lực báo giá khi phản hồi email này.",
+    dueDate: normalizeDateInput(draft.dueDate),
+    signature: "Trân trọng,\nPhan Công Tâm\nProcurement & Sourcing Staff\nStally Food & Beverage Group"
+  };
+}
+
+function buildFriendlyRfqHtml(form: RfqDraftEditForm): string {
+  const notesHtml = textToHtmlParagraphs(form.notes);
+  const signatureHtml = form.signature
+    .split(/\n/)
+    .map(line => escapeHtml(line.trim()))
+    .filter(Boolean)
+    .join("<br>");
+
+  return `
+<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #24323f; background-color: #ffffff;">
+  <p>${escapeHtml(form.greeting)}</p>
+  ${notesHtml || "<p>Vui lòng gửi báo giá chi tiết khi phản hồi email này.</p>"}
+  <p>Hạn chót tiếp nhận báo giá: <strong>${escapeHtml(formatDueDateForEmail(form.dueDate))}</strong>.</p>
+  <p>Vui lòng đính kèm báo giá định dạng PDF/Excel nếu có.</p>
+  <p>${signatureHtml}</p>
+</div>`.trim();
 }
 
 export default function CaseDetailTimeline({ 
@@ -115,8 +250,8 @@ export default function CaseDetailTimeline({
   const [discoveryElapsedSec, setDiscoveryElapsedSec] = useState(0);
   const [customRfqDueDate, setCustomRfqDueDate] = useState("");
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
-  const [editedSubject, setEditedSubject] = useState("");
-  const [editedBody, setEditedBody] = useState("");
+  const [draftEditForm, setDraftEditForm] = useState<RfqDraftEditForm>(emptyRfqDraftEditForm);
+  const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
   
   // Inbound simulation states
   const [simSupplierId, setSimSupplierId] = useState("");
@@ -576,14 +711,63 @@ export default function CaseDetailTimeline({
     }
   };
 
-  const handleSaveDraft = (draftId: string) => {
-    setRfqDrafts(prev => prev.map(d => d.id === draftId ? { ...d, subject: editedSubject, bodyHtml: editedBody } : d));
-    setEditingDraftId(null);
+  const beginEditDraft = (draft: RfqDraft) => {
+    setEditingDraftId(draft.id);
+    setDraftEditForm(createDraftEditForm(draft));
+  };
+
+  const updateDraftEditForm = (field: keyof RfqDraftEditForm, value: string) => {
+    setDraftEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveDraft = async (draftId: string) => {
+    const draft = rfqDrafts.find(item => item.id === draftId);
+    if (!draft) return;
+    const nextDraft: RfqDraft = {
+      ...draft,
+      subject: draftEditForm.subject.trim(),
+      dueDate: draftEditForm.dueDate,
+      bodyHtml: buildFriendlyRfqHtml(draftEditForm)
+    };
+
+    if (!nextDraft.subject || !draftEditForm.notes.trim()) {
+      showToast("Vui lòng nhập tiêu đề và nội dung ghi chú trước khi lưu.", "error");
+      return;
+    }
+
+    setSavingDraftId(draftId);
+    try {
+      const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq-drafts/${draftId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
+        body: JSON.stringify({
+          subject: nextDraft.subject,
+          bodyHtml: nextDraft.bodyHtml,
+          dueDate: nextDraft.dueDate
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      setRfqDrafts(prev => prev.map(item => item.id === draftId ? (data.data || nextDraft) : item));
+      setEditingDraftId(null);
+      setDraftEditForm(emptyRfqDraftEditForm);
+      showToast("Đã lưu chỉnh sửa email thầu.", "success");
+      return;
+    } catch (e: any) {
+      showToast(e.message || "Lưu bản nháp RFQ thất bại.", "error");
+      return;
+    } finally {
+      setSavingDraftId(null);
+    }
     showToast("Đã lưu chỉnh sửa email thầu!", "success");
   };
 
   const handleSendRfqs = async () => {
     if (rfqDrafts.length === 0) return;
+    if (editingDraftId) {
+      showToast("Vui lòng lưu hoặc hủy biên tập thư trước khi gửi.", "info");
+      return;
+    }
     setLoadingAction("send_rfqs");
     try {
       const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq/send`), {
@@ -1401,17 +1585,19 @@ export default function CaseDetailTimeline({
                   <p className="text-[11px] text-slate-600 font-bold">
                     Review thư mời thầu trước khi gửi. Sau khi gửi, hệ thống sẽ chuyển sang chờ báo giá từ email.
                   </p>
+                  <div className="bg-amber-50 border-2 border-accent-gold rounded-xl p-3 flex items-start gap-2 text-[11px] text-primary-dark font-bold leading-relaxed">
+                    <Info className="w-4 h-4 text-accent-gold shrink-0 mt-0.5" />
+                    <span>
+                      Chế độ test: email gửi thật sẽ được chuyển tới <strong>{RFQ_TEST_RECIPIENT}</strong>. Email NCC trong card là người nhận nghiệp vụ để theo dõi flow.
+                    </span>
+                  </div>
                   
                   {rfqDrafts.map((d) => (
                     <div key={d.id} className="border-2 border-primary-dark rounded-2xl overflow-hidden bg-surface-base">
                       <div className="p-3.5 bg-cream flex justify-between items-center text-xs font-black border-b-2 border-primary-dark">
                         <span className="text-primary-dark uppercase tracking-wide">{d.supplierName} ({d.supplierEmail})</span>
                         <button
-                          onClick={() => {
-                            setEditingDraftId(d.id);
-                            setEditedSubject(d.subject);
-                            setEditedBody(d.bodyHtml);
-                          }}
+                          onClick={() => beginEditDraft(d)}
                           className="px-3 py-1 bg-white hover:bg-primary-bg border-2 border-primary-dark text-primary-dark rounded-full font-black text-[10px] uppercase transition cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" /> Biên tập thư
@@ -1424,30 +1610,104 @@ export default function CaseDetailTimeline({
                             <label className="text-[10px] font-black text-primary-dark uppercase">Tiêu đề email</label>
                             <input 
                               type="text"
-                              value={editedSubject}
-                              onChange={e => setEditedSubject(e.target.value)}
+                              value={draftEditForm.subject}
+                              onChange={e => updateDraftEditForm("subject", e.target.value)}
                               className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
                             />
                           </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="flex flex-col space-y-1">
+                              <label className="text-[10px] font-black text-primary-dark uppercase">Lời chào</label>
+                              <input
+                                type="text"
+                                value={draftEditForm.greeting}
+                                onChange={e => updateDraftEditForm("greeting", e.target.value)}
+                                className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-1">
+                              <label className="text-[10px] font-black text-primary-dark uppercase">Hạn báo giá</label>
+                              <input
+                                type="date"
+                                value={draftEditForm.dueDate}
+                                onChange={e => updateDraftEditForm("dueDate", e.target.value)}
+                                className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
+                              />
+                            </div>
+                          </div>
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-black text-primary-dark uppercase">Nội dung thư thầu (HTML)</label>
+                            <label className="text-[10px] font-black text-primary-dark uppercase">Nội dung ghi chú thêm</label>
                             <textarea 
                               rows={8}
-                              value={editedBody}
-                              onChange={e => setEditedBody(e.target.value)}
-                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold font-mono text-primary-dark"
+                              value={draftEditForm.notes}
+                              onChange={e => updateDraftEditForm("notes", e.target.value)}
+                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed resize-y"
                             />
                           </div>
+                          <div className="flex flex-col space-y-1">
+                            <label className="text-[10px] font-black text-primary-dark uppercase">Chữ ký</label>
+                            <textarea
+                              rows={4}
+                              value={draftEditForm.signature}
+                              onChange={e => updateDraftEditForm("signature", e.target.value)}
+                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed resize-y"
+                            />
+                          </div>
+                          <div className="rounded-xl border-2 border-primary-dark/20 overflow-hidden bg-cream">
+                            <div className="px-3 py-2 border-b-2 border-primary-dark/20 bg-white flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-primary" />
+                              <p className="text-[10px] font-black uppercase tracking-wider text-primary-dark">Preview người nhận</p>
+                            </div>
+                            <div className="p-3 space-y-2">
+                              <p className="text-xs font-black text-primary-dark break-words">{draftEditForm.subject}</p>
+                              <div
+                                className="bg-white border border-primary-dark/15 rounded-lg p-3 max-h-72 overflow-auto text-[12px] text-slate-700 leading-relaxed"
+                                dangerouslySetInnerHTML={{ __html: buildFriendlyRfqHtml(draftEditForm) }}
+                              />
+                            </div>
+                          </div>
+                          <details className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+                            <summary className="cursor-pointer text-[10px] font-black uppercase tracking-wider text-slate-600">
+                              HTML nâng cao
+                            </summary>
+                            <textarea
+                              readOnly
+                              rows={7}
+                              value={buildFriendlyRfqHtml(draftEditForm)}
+                              className="mt-2 w-full p-2.5 border border-slate-200 bg-white rounded-lg text-[11px] font-mono text-slate-600 resize-y"
+                            />
+                          </details>
                           <div className="flex justify-end gap-2.5 text-xs">
-                            <button onClick={() => setEditingDraftId(null)} className="px-4 py-1.5 bg-white hover:bg-slate-55 border-2 border-primary-dark text-primary-dark rounded-full font-black cursor-pointer uppercase">Hủy</button>
-                            <button onClick={() => handleSaveDraft(d.id)} className="px-4 py-1.5 bg-primary text-white border-2 border-primary-dark rounded-full font-black cursor-pointer uppercase">Lưu thầu</button>
+                            <button
+                              onClick={() => {
+                                setEditingDraftId(null);
+                                setDraftEditForm(emptyRfqDraftEditForm);
+                              }}
+                              disabled={savingDraftId === d.id}
+                              className="px-4 py-1.5 bg-white hover:bg-slate-50 border-2 border-primary-dark text-primary-dark rounded-full font-black cursor-pointer uppercase disabled:opacity-50"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              onClick={() => handleSaveDraft(d.id)}
+                              disabled={savingDraftId === d.id}
+                              className="px-4 py-1.5 bg-primary text-white border-2 border-primary-dark rounded-full font-black cursor-pointer uppercase disabled:opacity-50"
+                            >
+                              {savingDraftId === d.id ? "Đang lưu..." : "Lưu thầu"}
+                            </button>
                           </div>
                         </div>
                       ) : (
-                        <div className="p-4 bg-white space-y-2">
-                          <p className="text-xs font-black text-primary-dark">Tiêu đề: {d.subject}</p>
-                          <div 
-                            className="p-3 bg-cream border-2 border-primary-dark/20 rounded-xl text-[11px] text-primary-dark font-medium overflow-auto max-h-40 leading-relaxed font-sans"
+                        <div className="p-4 bg-white space-y-3">
+                          <div className="flex items-start gap-2">
+                            <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black text-primary-dark/60 uppercase tracking-wider">Tiêu đề email</p>
+                              <p className="text-xs font-black text-primary-dark break-words">{d.subject}</p>
+                            </div>
+                          </div>
+                          <div
+                            className="p-4 bg-cream border-2 border-primary-dark/20 rounded-xl text-[12px] text-slate-700 font-medium overflow-auto max-h-72 leading-relaxed font-sans"
                             dangerouslySetInnerHTML={{ __html: d.bodyHtml }}
                           />
                         </div>
@@ -1482,7 +1742,7 @@ export default function CaseDetailTimeline({
                       ) : (
                         <button
                           onClick={handleSendRfqs}
-                          disabled={loadingAction !== null || currentRole !== "procurement"}
+                          disabled={loadingAction !== null || currentRole !== "procurement" || editingDraftId !== null || savingDraftId !== null}
                           className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer animate-bounce disabled:opacity-50"
                         >
                           {loadingAction === "send_rfqs" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
