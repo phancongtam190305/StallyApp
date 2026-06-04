@@ -156,6 +156,11 @@ export default function CaseDetailTimeline({
   const discoveryProgress = isCurrentlyScanning
     ? Math.min(94, 12 + discoveryElapsedSec * 3)
     : 0;
+  const procurementScopeLabel = caseObj?.items?.map(item => item.name).filter(Boolean).join(", ") || "mặt hàng trong case";
+  const hasRfqDrafts = rfqDrafts.length > 0;
+  const isDraftingRfq = loadingAction === "draft_rfq";
+  const canEditSourcing = caseObj?.status === "supplier_matching" && !hasRfqDrafts && !isDraftingRfq;
+  const isRfqDraftSyncing = caseObj?.status === "rfq_draft" && !hasRfqDrafts && !isDraftingRfq;
 
   useEffect(() => {
     if (!isCurrentlyScanning) {
@@ -464,6 +469,10 @@ export default function CaseDetailTimeline({
   };
 
   const handleSupplierDiscover = async () => {
+    if (!canEditSourcing) {
+      showToast("Nguồn thầu đã khóa cho case này. Muốn mời thầu mặt hàng khác, hãy tạo case mới.", "info");
+      return;
+    }
     if (!aiSearchQuery) return;
     setLoadingAction("discover_suppliers");
     setDiscoveryElapsedSec(0);
@@ -503,6 +512,10 @@ export default function CaseDetailTimeline({
   };
 
   const handlePromoteDiscoveryCandidates = async () => {
+    if (!canEditSourcing) {
+      showToast("Nguồn thầu đã khóa cho case này. Không thể thêm NCC mới vào vòng RFQ hiện tại.", "info");
+      return;
+    }
     if (selectedDiscoveryCandidateIds.length === 0) {
       showToast("Vui lòng chọn ít nhất 1 NCC crawl để thêm vào danh sách chính.", "error");
       return;
@@ -531,6 +544,10 @@ export default function CaseDetailTimeline({
   };
 
   const handleSelectSuppliers = async () => {
+    if (!canEditSourcing) {
+      showToast("Nguồn thầu đã khóa cho case này. Vui lòng review hoặc gửi RFQ hiện tại.", "info");
+      return;
+    }
     if (selectedSuppliers.length === 0) {
       showToast("Vui lòng chọn ít nhất 1 nhà cung cấp.", "error");
       return;
@@ -1086,15 +1103,16 @@ export default function CaseDetailTimeline({
                   <div className="absolute -top-10 -right-10 w-24 h-24 bg-accent-gold/10 rounded-full blur-xl pointer-events-none" />
                   <div className="flex items-center gap-1.5 text-xs font-black text-primary-dark uppercase tracking-wider">
                     <Sparkles className="w-4 h-4 text-accent-gold animate-pulse" />
-                    <span>Google Search Grounding Sourcing Crawler</span>
+                    <span>Tìm NCC theo mặt hàng trong case: {procurementScopeLabel}</span>
                   </div>
                   <p className="text-[11px] text-slate-600 leading-normal">
-                    Không có nhà cung cấp phù hợp trong danh bạ? Gõ từ khóa nguyên liệu, AI sẽ tìm nguồn công khai, kiểm tra contact và chỉ thêm NCC có đủ email/số điện thoại xác minh.
+                    Từ khóa này dùng để tìm nguồn cung cho case hiện tại, không đổi mặt hàng yêu cầu.
                   </p>
+                  {canEditSourcing ? (
                   <div className="flex gap-2.5">
                     <input 
                       type="text" 
-                      placeholder="Tìm NCC sỉ... (Ví dụ: Đại lý bán sỉ cá hồi tươi ngon)"
+                      placeholder={procurementScopeLabel}
                       value={aiSearchQuery}
                       onChange={e => setAiSearchQuery(e.target.value)}
                       className="flex-1 p-2.5 border-2 border-primary-dark/30 bg-white focus:border-primary-dark rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
@@ -1102,13 +1120,46 @@ export default function CaseDetailTimeline({
                     <button
                       onClick={handleSupplierDiscover}
                       disabled={isCurrentlyScanning || !aiSearchQuery}
-                      className="px-5 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-xl flex items-center gap-1.5 shadow-teal-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider"
+                      className="px-5 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-xl flex items-center gap-1.5 shadow-teal-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isCurrentlyScanning ? <RefreshCw className="w-4.5 h-4.5 animate-spin" /> : <Search className="w-4 h-4" />}
                       AI quét thầu
                     </button>
                   </div>
-                  {isCurrentlyScanning && (
+                  ) : (
+                    <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary-bg border-2 border-primary flex items-center justify-center shrink-0">
+                        <Lock className="w-4 h-4 text-primary-dark" />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-black text-primary-dark uppercase tracking-wider">Nguồn thầu đã khóa</p>
+                        <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                          Case này đã chuyển sang soạn/gửi RFQ. Muốn mời thầu mặt hàng khác, hãy tạo case mới.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {isDraftingRfq && (
+                    <div className="bg-white border-2 border-accent-gold rounded-2xl p-4 space-y-3 shadow-sm animate-fade-slide-up">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-accent-gold text-primary-dark border-2 border-primary-dark flex items-center justify-center shrink-0">
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-primary-dark uppercase tracking-wider">AI đang soạn thư mời thầu</p>
+                          <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                            Đang viết email riêng cho {selectedSuppliers.length} NCC đã chọn. Bước này có thể mất 1-2 phút.
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-bold">
+                        Vui lòng giữ trang mở cho đến khi bản nháp xuất hiện.
+                      </p>
+                    </div>
+                  )}
+
+                  {canEditSourcing && isCurrentlyScanning && (
                     <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 space-y-3 animate-fade-slide-up">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
@@ -1170,7 +1221,7 @@ export default function CaseDetailTimeline({
                       </p>
                     </div>
                   )}
-                  {discoveryCandidates.length > 0 && (
+                  {canEditSourcing && discoveryCandidates.length > 0 && (
                     <div className="space-y-3 pt-2">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
@@ -1213,7 +1264,7 @@ export default function CaseDetailTimeline({
                                 <input
                                   type="checkbox"
                                   checked={selectedDiscoveryCandidateIds.includes(candidate.id || "")}
-                                  disabled={!candidate.id}
+                                  disabled={!candidate.id || !canEditSourcing}
                                   onChange={() => {
                                     if (!candidate.id) return;
                                     setSelectedDiscoveryCandidateIds(prev =>
@@ -1261,7 +1312,7 @@ export default function CaseDetailTimeline({
                         </p>
                         <button
                           onClick={handlePromoteDiscoveryCandidates}
-                          disabled={loadingAction !== null || selectedDiscoveryCandidateIds.length === 0}
+                          disabled={loadingAction !== null || selectedDiscoveryCandidateIds.length === 0 || !canEditSourcing}
                           className="px-4 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark rounded-xl text-[10px] font-black uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
                           {loadingAction === "promote_discovery_candidates" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -1284,15 +1335,17 @@ export default function CaseDetailTimeline({
                     <div 
                       key={item.supplierId} 
                       onClick={() => {
-                        if (!["supplier_matching", "rfq_draft"].includes(caseObj.status)) return;
+                        if (!canEditSourcing) return;
                         setSelectedSuppliers(prev => 
                           prev.includes(item.supplierId) ? prev.filter(id => id !== item.supplierId) : [...prev, item.supplierId]
                         );
                       }}
-                      className={`p-4 rounded-3xl border-3 transition-all flex justify-between items-start cursor-pointer border-l-8 ${
+                      className={`p-4 rounded-3xl border-3 transition-all flex justify-between items-start border-l-8 ${
+                        canEditSourcing ? "cursor-pointer" : "cursor-default opacity-90"
+                      } ${
                         selectedSuppliers.includes(item.supplierId) 
                           ? "bg-cream border-primary-dark shadow-accent-glow border-l-accent-gold transform scale-[1.01]" 
-                          : "bg-white border-primary-dark/20 hover:border-primary-dark border-l-primary-light"
+                          : canEditSourcing ? "bg-white border-primary-dark/20 hover:border-primary-dark border-l-primary-light" : "bg-white border-primary-dark/10 border-l-primary-light"
                       }`}
                     >
                       <div className="space-y-1.5 flex-1 pr-3 pl-1">
@@ -1313,7 +1366,7 @@ export default function CaseDetailTimeline({
                         </div>
                       </div>
                       
-                      {["supplier_matching", "rfq_draft"].includes(caseObj.status) && (
+                      {canEditSourcing && (
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
                           selectedSuppliers.includes(item.supplierId) ? "bg-primary border-primary-dark text-white" : "border-primary-dark/30 bg-white"
                         }`}>
@@ -1325,12 +1378,29 @@ export default function CaseDetailTimeline({
                 </div>
               </div>
 
+              {isRfqDraftSyncing && (
+                <div className="bg-white border-2 border-accent-gold rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-accent-gold text-primary-dark border-2 border-primary-dark flex items-center justify-center shrink-0">
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-sm font-black text-primary-dark uppercase tracking-wider">Đang đồng bộ bản nháp RFQ...</p>
+                    <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                      AI đang hoàn tất thư mời thầu cho các NCC đã chọn. Bản nháp sẽ tự xuất hiện khi xử lý xong.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Draft RFQ personalization editor panel */}
               {rfqDrafts.length > 0 && (
                 <div className="space-y-4 pt-4 border-t-2 border-dashed border-primary/20">
                   <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-accent-gold" /> AI Dự thảo thư mời thầu RFQ chi tiết:
                   </h4>
+                  <p className="text-[11px] text-slate-600 font-bold">
+                    Review thư mời thầu trước khi gửi. Sau khi gửi, hệ thống sẽ chuyển sang chờ báo giá từ email.
+                  </p>
                   
                   {rfqDrafts.map((d) => (
                     <div key={d.id} className="border-2 border-primary-dark rounded-2xl overflow-hidden bg-surface-base">
@@ -1394,7 +1464,7 @@ export default function CaseDetailTimeline({
                     <span className="flex items-center gap-1.5 text-[#27AE60] bg-emerald-50 border-2 border-success px-3.5 py-2 rounded-full shadow-sm">
                       <Clock className="w-4 h-4 animate-spin" /> Đang nghe hòm thư phản hồi báo giá tự động...
                     </span>
-                  ) : "Vui lòng chọn NCC và nhấn phát thầu."}
+                  ) : hasRfqDrafts ? "Review thư mời thầu trước khi gửi." : isRfqDraftSyncing ? "Đang đồng bộ bản nháp RFQ..." : "Vui lòng chọn NCC và nhấn phát thầu."}
                 </div>
 
                 <div className="flex gap-3 w-full sm:w-auto">
@@ -1403,11 +1473,11 @@ export default function CaseDetailTimeline({
                       {rfqDrafts.length === 0 ? (
                         <button
                           onClick={handleSelectSuppliers}
-                          disabled={loadingAction !== null || currentRole !== "procurement"}
-                          className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
+                          disabled={loadingAction !== null || currentRole !== "procurement" || !canEditSourcing}
+                          className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {loadingAction === "draft_rfq" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                          AI Soạn thư thầu
+                          {loadingAction === "draft_rfq" || isRfqDraftSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                          {isRfqDraftSyncing ? "Đang đồng bộ RFQ" : "AI Soạn thư thầu"}
                         </button>
                       ) : (
                         <button
