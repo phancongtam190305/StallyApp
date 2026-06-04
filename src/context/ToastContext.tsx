@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 import { CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info";
@@ -17,12 +17,24 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const recentToasts = useRef<Map<string, number>>(new Map());
 
   const showToast = useCallback((text: string, type: ToastType = "success") => {
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const now = Date.now();
+    const lastShown = recentToasts.current.get(text) || 0;
+    
+    // Ignore duplicate toasts with exact same text within 1.5 seconds
+    if (now - lastShown < 1500) {
+      return;
+    }
+    recentToasts.current.set(text, now);
+
+    const id = `${now}-${Math.random().toString(36).substr(2, 5)}`;
     setToasts((prev) => [...prev, { id, text, type }]);
+    
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
+      recentToasts.current.delete(text);
     }, 4500);
   }, []);
 
