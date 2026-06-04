@@ -2313,7 +2313,43 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
   }
   
   const rfqId = caseObj.currentRfqId;
+  const rfqCase = rfqId ? dbState.rfq_cases.find(r => r.id === rfqId && r.organizationId === orgId) : undefined;
   const quotesList = rfqId ? dbState.quotes.filter(q => q.rfqCaseId === rfqId && q.organizationId === orgId) : [];
+  const supplierById = new Map<string, Supplier>(dbState.suppliers.filter(s => s.organizationId === orgId).map(s => [s.id, s]));
+  const negotiationSupplierById = new Map<string, {
+    supplierId: string;
+    name: string;
+    email: string;
+    status: string;
+    hasQuote: boolean;
+    quoteId?: string;
+  }>();
+
+  for (const rfqSupplier of rfqCase?.suppliers || []) {
+    if (!rfqSupplier.supplierId) continue;
+    const supplier = supplierById.get(rfqSupplier.supplierId);
+    negotiationSupplierById.set(rfqSupplier.supplierId, {
+      supplierId: rfqSupplier.supplierId,
+      name: supplier?.name || rfqSupplier.name,
+      email: supplier?.email || rfqSupplier.email,
+      status: rfqSupplier.status,
+      hasQuote: Boolean(rfqSupplier.quoteId),
+      quoteId: rfqSupplier.quoteId
+    });
+  }
+
+  for (const quote of quotesList) {
+    if (!quote.supplierId) continue;
+    const supplier = supplierById.get(quote.supplierId);
+    negotiationSupplierById.set(quote.supplierId, {
+      supplierId: quote.supplierId,
+      name: supplier?.name || quote.supplierName,
+      email: supplier?.email || negotiationSupplierById.get(quote.supplierId)?.email || "",
+      status: "replied",
+      hasQuote: true,
+      quoteId: quote.id
+    });
+  }
   
   let lowestTotalQuoteId = "";
   let fastestDeliveryQuoteId = "";
@@ -2334,7 +2370,8 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
   res.json({
     caseId,
     items: caseObj.items,
-    suppliers: rfqId ? dbState.rfq_cases.find(r => r.id === rfqId)?.suppliers || [] : [],
+    suppliers: rfqCase?.suppliers || [],
+    negotiationSuppliers: Array.from(negotiationSupplierById.values()),
     matrix: quotesList,
     summary: {
       lowestTotalQuoteId,
@@ -2354,14 +2391,22 @@ apiV1Router.post("/cases/:caseId/negotiations/:supplierId/draft", async (req: Re
   const { goal } = req.body; // e.g. "discount_5", "faster_delivery", "longer_terms"
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
-  const supplier = dbState.suppliers.find(s => s.id === supplierId);
+  const rfqObj = caseObj?.currentRfqId
+    ? dbState.rfq_cases.find(r => r.id === caseObj.currentRfqId && r.organizationId === orgId)
+    : undefined;
+  const supplier = dbState.suppliers.find(s => s.id === supplierId && s.organizationId === orgId);
+  const rfqSupplier = rfqObj?.suppliers.find(s => s.supplierId === supplierId);
   
-  if (!caseObj || !supplier) {
-    return res.status(404).json({ error: "Không tìm thấy case hoặc nhà cung cấp" });
+  if (!caseObj) {
+    return res.status(404).json({ error: { code: "CASE_NOT_FOUND", message: "Không tìm thấy case" } });
+  }
+  if (!supplier && !rfqSupplier) {
+    return res.status(404).json({ error: { code: "SUPPLIER_NOT_FOUND", message: "NCC này không còn nằm trong danh sách RFQ hoặc danh bạ nhà cung cấp." } });
   }
   
   const rfqId = caseObj.currentRfqId;
   const quote = dbState.quotes.find(q => q.rfqCaseId === rfqId && q.supplierId === supplierId);
+  const supplierName = supplier?.name || rfqSupplier?.name || "nhà cung cấp";
   
   let targetDetail = "giảm giá 5%";
   if (goal === "faster_delivery") targetDetail = "rút ngắn thời gian giao hàng xuống 1 ngày";
@@ -2369,7 +2414,7 @@ apiV1Router.post("/cases/:caseId/negotiations/:supplierId/draft", async (req: Re
   
   const currentPriceText = quote ? `${quote.totalAmount.toLocaleString()}đ` : "báo giá chào thầu";
   
-  let draftEmail = `<p>Chào anh/chị đại diện <strong>${supplier.name}</strong>,</p>
+  let draftEmail = `<p>Chào anh/chị đại diện <strong>${supplierName}</strong>,</p>
 <p>Ban mua sắm Stally chân thành cảm ơn bảng chào thầu nguyên liệu trị giá <strong>${currentPriceText}</strong> của quý công ty.</p>
 <p>Để tiến tới ký kết PO chính thức dài hạn, chúng tôi mong muốn thương lượng thêm về điều khoản: <strong>${targetDetail}</strong>.</p>
 <p>Kính mong quý đối tác cân nhắc điều chỉnh để Stally duyệt hồ sơ mua sắm này khẩn cấp. Xin cảm ơn!</p>
@@ -2379,7 +2424,7 @@ apiV1Router.post("/cases/:caseId/negotiations/:supplierId/draft", async (req: Re
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Hãy đóng vai trò là một chuyên viên mua sắm chuyên nghiệp. Hãy soạn thảo một email đàm phán gửi đến NCC ${supplier.name} nhằm mục tiêu: ${targetDetail}. 
+        contents: `Hãy đóng vai trò là một chuyên viên mua sắm chuyên nghiệp. Hãy soạn thảo một email đàm phán gửi đến NCC ${supplierName} nhằm mục tiêu: ${targetDetail}. 
 Lưu ý quan trọng về số tiền: Tổng trị giá của toàn bộ báo giá thầu/đơn hàng (tổng số tiền cho tất cả nguyên liệu cộng lại) hiện tại là: ${currentPriceText} (đây là tổng giá trị của toàn bộ đơn thầu, tuyệt đối không phải là đơn giá của từng món hay của một đơn vị sản phẩm).
 Thư viết bằng tiếng Việt trang trọng, định dạng HTML.
 QUAN TRỌNG: Chỉ trả về duy nhất nội dung email thô (bắt đầu từ phần Kính gửi/Chào đối tác đến hết phần Ký tên). Tuyệt đối không thêm bất kỳ lời giới thiệu, giải thích, lời bàn luận của AI, hoặc bao bọc mã trong khối code block markdown (như \`\`\`html) nào khác.`
@@ -2416,13 +2461,22 @@ apiV1Router.post("/negotiation-drafts/:draftId/send", (req: Request, res: Respon
   
   const log = dbState.ai_negotiation_logs.find(l => l.id === draftId);
   if (!log) return res.status(404).json({ error: "Không tìm thấy thư đàm phán nháp" });
-  
+
+  // Actually send real email via Nodemailer
+  const caseObj = dbState.procurement_cases.find(c => c.id === log.caseId && c.organizationId === (req.organizationId || "org-1"));
+  const rfqObj = caseObj?.currentRfqId
+    ? dbState.rfq_cases.find(r => r.id === caseObj.currentRfqId && r.organizationId === (req.organizationId || "org-1"))
+    : undefined;
+  const supplier = dbState.suppliers.find((s: any) => s.id === log.supplierId && s.organizationId === (req.organizationId || "org-1"));
+  const rfqSupplier = rfqObj?.suppliers.find(s => s.supplierId === log.supplierId);
+  const supplierEmail = supplier?.email || rfqSupplier?.email;
+  if (!supplierEmail) {
+    return res.status(400).json({ error: "NCC chưa có email hợp lệ để gửi thư đàm phán." });
+  }
+
   log.status = "sent";
   if (editedBody) log.userEditedEmail = editedBody;
 
-  // Actually send real email via Nodemailer
-  const supplier = dbState.suppliers.find((s: any) => s.id === log.supplierId);
-  const supplierEmail = supplier ? supplier.email : "supplier@example.com";
   sendRealEmail({
     to: supplierEmail,
     subject: `[STALLY NEGOTIATION-${log.caseId.toUpperCase()}] Thương lượng báo giá Case thầu`,

@@ -50,6 +50,15 @@ interface SupplierMatch {
   riskFlags: string[];
 }
 
+interface NegotiationSupplierOption {
+  supplierId: string;
+  name: string;
+  email: string;
+  status?: string;
+  hasQuote?: boolean;
+  quoteId?: string;
+}
+
 interface RfqDraft {
   id: string;
   caseId: string;
@@ -211,6 +220,48 @@ function buildFriendlyRfqHtml(form: RfqDraftEditForm): string {
   <p>Vui lòng đính kèm báo giá định dạng PDF/Excel nếu có.</p>
   <p>${signatureHtml}</p>
 </div>`.trim();
+}
+
+function getNegotiationSupplierOptions(comparison: any): NegotiationSupplierOption[] {
+  const byId = new Map<string, NegotiationSupplierOption>();
+
+  for (const supplier of comparison?.negotiationSuppliers || []) {
+    if (!supplier.supplierId) continue;
+    byId.set(supplier.supplierId, {
+      supplierId: supplier.supplierId,
+      name: supplier.name || "Nhà cung cấp chưa đặt tên",
+      email: supplier.email || "",
+      status: supplier.status,
+      hasQuote: Boolean(supplier.hasQuote),
+      quoteId: supplier.quoteId
+    });
+  }
+
+  for (const supplier of comparison?.suppliers || []) {
+    if (!supplier.supplierId || byId.has(supplier.supplierId)) continue;
+    byId.set(supplier.supplierId, {
+      supplierId: supplier.supplierId,
+      name: supplier.name || "Nhà cung cấp chưa đặt tên",
+      email: supplier.email || "",
+      status: supplier.status,
+      hasQuote: Boolean(supplier.quoteId),
+      quoteId: supplier.quoteId
+    });
+  }
+
+  for (const quote of comparison?.matrix || []) {
+    if (!quote.supplierId || byId.has(quote.supplierId)) continue;
+    byId.set(quote.supplierId, {
+      supplierId: quote.supplierId,
+      name: quote.supplierName || "Nhà cung cấp chưa đặt tên",
+      email: "",
+      status: "replied",
+      hasQuote: true,
+      quoteId: quote.id
+    });
+  }
+
+  return Array.from(byId.values());
 }
 
 export default function CaseDetailTimeline({ 
@@ -461,6 +512,8 @@ export default function CaseDetailTimeline({
       </div>
     );
   }
+
+  const negotiationSupplierOptions = getNegotiationSupplierOptions(comparison);
 
   const milestones = [
     { num: 1, label: "Đón nhận", desc: "Chuẩn hóa" },
@@ -832,11 +885,14 @@ export default function CaseDetailTimeline({
         body: JSON.stringify({ goal: negGoal })
       });
       const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Không thể soạn thư đàm phán.");
+      }
       setNegDraft(data.data);
       setNegEditedBody(data.data.draftEmail);
       showToast("AI đã soạn thảo thư đàm phán tối ưu!", "success");
-    } catch (e) {
-      showToast("Đàm phán thất bại", "error");
+    } catch (e: any) {
+      showToast(e.message || "Đàm phán thất bại", "error");
     } finally {
       setNegLoading(false);
     }
@@ -1956,10 +2012,17 @@ export default function CaseDetailTimeline({
                             className="p-2.5 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                           >
                             <option value="">-- Chọn nhà cung cấp --</option>
-                            {comparison.matrix.map((q: Quote) => (
-                              <option key={q.supplierId} value={q.supplierId}>{q.supplierName}</option>
+                            {negotiationSupplierOptions.map((supplier) => (
+                              <option key={supplier.supplierId} value={supplier.supplierId}>
+                                {supplier.name}{supplier.hasQuote ? " - đã có báo giá" : " - chờ báo giá"}
+                              </option>
                             ))}
                           </select>
+                          {negotiationSupplierOptions.length === 0 && (
+                            <p className="text-[10px] font-bold text-coral-dark">
+                              Chưa có NCC hợp lệ trong RFQ để thương lượng. Hãy gửi RFQ hoặc kiểm tra lại danh sách NCC.
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex flex-col space-y-1.5">
@@ -1979,7 +2042,7 @@ export default function CaseDetailTimeline({
                       <div className="flex justify-end">
                         <button
                           onClick={handleDraftNegotiation}
-                          disabled={negLoading || !selectedNegSupplier || currentRole !== "procurement"}
+                          disabled={negLoading || !selectedNegSupplier || negotiationSupplierOptions.length === 0 || currentRole !== "procurement"}
                           className="px-4 py-2.5 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           {negLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
