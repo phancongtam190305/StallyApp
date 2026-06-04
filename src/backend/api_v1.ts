@@ -1673,6 +1673,21 @@ function parseDiscountPercent(text: string): number | null {
   return null;
 }
 
+function parseDiscountPercentFromGoal(goal?: string): number | null {
+  if (!goal) return null;
+  const match = goal.match(/discount_(\d+(?:[.,]\d+)?)/i);
+  if (!match) return null;
+  const parsed = Number(match[1].replace(",", "."));
+  return Number.isFinite(parsed) && parsed > 0 && parsed < 100 ? parsed : null;
+}
+
+function isAgreementText(text: string): boolean {
+  const normalized = text.toLowerCase();
+  const hasAgreement = /\b(ok|okay|agree|accepted|accept|approved)\b|đồng\s*ý|chấp\s*nhận|thống\s*nhất|nhất\s*trí|xác\s*nhận|được\s+ạ|được\s+nhé/i.test(normalized);
+  const hasRejection = /không\s+đồng\s*ý|không\s+chấp\s*nhận|chưa\s+thể|không\s+thể|từ\s+chối|reject|decline|cannot|can't/i.test(normalized);
+  return hasAgreement && !hasRejection;
+}
+
 function parseDeliveryDays(text: string): number | null {
   const match = text.match(/(?:giao(?:\s+hàng)?|delivery).{0,40}?(\d{1,3})\s*(?:ngày|days?)/i);
   if (!match) return null;
@@ -1687,8 +1702,9 @@ function parsePaymentTerms(text: string): string | null {
   return null;
 }
 
-function mergeNegotiationReplyWithExistingQuote(existingQuote: Quote, extractedQuote: any, rawText: string) {
-  const discountPercent = parseDiscountPercent(rawText);
+function mergeNegotiationReplyWithExistingQuote(existingQuote: Quote, extractedQuote: any, rawText: string, promptGoal?: string) {
+  const agreedToGoal = isAgreementText(rawText);
+  const discountPercent = parseDiscountPercent(rawText) || (agreedToGoal ? parseDiscountPercentFromGoal(promptGoal) : null);
   const multiplier = discountPercent ? 1 - discountPercent / 100 : 1;
   const items = existingQuote.items.map(item => {
     const unitPrice = Math.round(item.unitPrice * multiplier);
@@ -1703,8 +1719,10 @@ function mergeNegotiationReplyWithExistingQuote(existingQuote: Quote, extractedQ
   const taxAmount = Math.round(subtotal * taxRate);
   const freeShipping = /(?:miễn\s*phí|free).{0,20}(?:vận\s*chuyển|shipping)|(?:vận\s*chuyển|shipping).{0,20}(?:miễn\s*phí|free)/i.test(rawText);
   const shippingFee = freeShipping ? 0 : existingQuote.shippingFee;
-  const deliveryDays = parseDeliveryDays(rawText) || existingQuote.deliveryDays;
-  const paymentTerms = parsePaymentTerms(rawText) || existingQuote.paymentTerms;
+  const deliveryDays = parseDeliveryDays(rawText)
+    || (agreedToGoal && promptGoal === "faster_delivery" ? Math.max(1, existingQuote.deliveryDays - 1) : existingQuote.deliveryDays);
+  const paymentTerms = parsePaymentTerms(rawText)
+    || (agreedToGoal && promptGoal === "longer_terms" ? "Công nợ Net 30 ngày" : existingQuote.paymentTerms);
 
   return {
     items,
@@ -1714,8 +1732,28 @@ function mergeNegotiationReplyWithExistingQuote(existingQuote: Quote, extractedQ
     totalAmount: subtotal + taxAmount + shippingFee,
     deliveryDays,
     paymentTerms,
-    aiConfidenceScore: discountPercent ? 82 : 55,
+    aiConfidenceScore: discountPercent || agreedToGoal ? 82 : 55,
   };
+}
+
+function shouldApplyAcceptedNegotiationGoal(existingQuote: Quote, extractedQuote: any, rawText: string, promptGoal?: string) {
+  if (!promptGoal || !isAgreementText(rawText)) return false;
+
+  const extractedTotal = parseFiniteNumber(extractedQuote?.totalAmount);
+  const extractedDeliveryDays = parseFiniteNumber(extractedQuote?.deliveryDays);
+  const extractedPaymentTerms = String(extractedQuote?.paymentTerms || "");
+
+  if (parseDiscountPercent(rawText) || parseDiscountPercentFromGoal(promptGoal)) {
+    return extractedTotal === null || extractedTotal >= existingQuote.totalAmount;
+  }
+  if (promptGoal === "faster_delivery") {
+    return extractedDeliveryDays === null || extractedDeliveryDays >= existingQuote.deliveryDays;
+  }
+  if (promptGoal === "longer_terms") {
+    return !/net\s*30|30\s*(ngày|days?)/i.test(extractedPaymentTerms);
+  }
+
+  return false;
 }
 
 function createLegacyCaseFromRfq(rfqObj: any, orgId: string) {
@@ -2001,6 +2039,10 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
   const targetRfqCaseId = caseObj?.currentRfqId || "rfq-1";
   const existingQuote = dbState.quotes.find(q => q.rfqCaseId === targetRfqCaseId && q.supplierId === supplierId);
   const isNegotiationReply = email.classification === "negotiation" || /\[STALLY NEGOTIATION-/i.test(email.subject || "");
+  const latestSentNegotiationLog = dbState.ai_negotiation_logs
+    .filter(log => log.caseId === caseId && log.supplierId === supplierId && log.status === "sent")
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .at(-1);
   logFlow("info", "quote.extraction.context", {
     traceId,
     caseId,
@@ -2015,6 +2057,7 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
     supplierEmail: maskEmail(supplierObj?.email),
     existingQuoteFound: Boolean(existingQuote),
     isNegotiationReply,
+    sentNegotiationGoal: latestSentNegotiationLog?.promptGoal,
   });
   
   let extractedQuote = {
@@ -2107,9 +2150,13 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     extractedQuote = simulateQuoteExtraction(caseObj, supplierObj, multiplier);
   }
 
-  const shouldMergeNegotiationReply = Boolean(existingQuote && isNegotiationReply && (isFallback || !hasPositiveExtractedMoney(extractedQuote)));
+  const shouldMergeNegotiationReply = Boolean(existingQuote && isNegotiationReply && (
+    isFallback ||
+    !hasPositiveExtractedMoney(extractedQuote) ||
+    shouldApplyAcceptedNegotiationGoal(existingQuote, extractedQuote, rawTextForGemini, latestSentNegotiationLog?.promptGoal)
+  ));
   if (shouldMergeNegotiationReply && existingQuote) {
-    extractedQuote = mergeNegotiationReplyWithExistingQuote(existingQuote, extractedQuote, rawTextForGemini);
+    extractedQuote = mergeNegotiationReplyWithExistingQuote(existingQuote, extractedQuote, rawTextForGemini, latestSentNegotiationLog?.promptGoal);
     usedNegotiationMerge = true;
     isFallback = false;
     logFlow("warn", "quote.extraction.negotiation_zero_guard_applied", {
@@ -2121,6 +2168,7 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
       previousTotalAmount: existingQuote.totalAmount,
       mergedTotalAmount: extractedQuote.totalAmount,
       aiConfidenceScore: extractedQuote.aiConfidenceScore,
+      promptGoal: latestSentNegotiationLog?.promptGoal,
     });
   }
 

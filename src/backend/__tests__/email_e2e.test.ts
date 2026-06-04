@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   imapInstances: [] as any[],
   imapSearchResults: [] as any[][],
   imapFetchMessage: undefined as any,
+  genAiResponseText: "",
 }));
 
 vi.mock("../db.ts", () => {
@@ -48,16 +49,18 @@ vi.mock("@google/genai", () => ({
   GoogleGenAI: class {
     models = {
       generateContent: vi.fn().mockResolvedValue({
-        text: JSON.stringify({
-          items: [],
-          subtotal: 0,
-          taxAmount: 0,
-          shippingFee: 0,
-          totalAmount: 0,
-          deliveryDays: 3,
-          paymentTerms: "Không đề cập",
-          aiConfidenceScore: 30,
-        }),
+        get text() {
+          return mocks.genAiResponseText || JSON.stringify({
+            items: [],
+            subtotal: 0,
+            taxAmount: 0,
+            shippingFee: 0,
+            totalAmount: 0,
+            deliveryDays: 3,
+            paymentTerms: "Không đề cập",
+            aiConfidenceScore: 30,
+          });
+        },
       }),
     };
   },
@@ -303,6 +306,7 @@ describe("Email E2E desired behavior", () => {
     mocks.imapInstances.length = 0;
     mocks.imapSearchResults = [];
     mocks.imapFetchMessage = undefined;
+    mocks.genAiResponseText = "";
   });
 
   afterEach(() => {
@@ -462,6 +466,41 @@ describe("Email E2E desired behavior", () => {
       versionCount: 1,
       totalAmount: 950000,
     });
+  });
+
+  it("applies the sent discount goal when a supplier agrees but AI extracts the old quoted total", async () => {
+    const { caseId, quoteId } = createNegotiatingCaseWithExistingQuote();
+    mocks.genAiResponseText = JSON.stringify({
+      items: [{ name: "Gao ST25", quantity: 100, unit: "kg", unitPrice: 10000, totalPrice: 1000000 }],
+      subtotal: 1000000,
+      taxAmount: 0,
+      shippingFee: 0,
+      totalAmount: 1000000,
+      deliveryDays: 3,
+      paymentTerms: "Không đề cập",
+      aiConfidenceScore: 55,
+    });
+
+    const inboundRes = await request(app)
+      .post("/api/v1/webhooks/inbound-email")
+      .set("x-organization-id", ORG_ID)
+      .send({
+        fromEmail: "supplier-one@example.test",
+        fromName: "Supplier One",
+        subject: `Re: [STALLY NEGOTIATION-${caseId.toUpperCase()}] Discount accepted`,
+        bodyText: "Đồng ý với đề xuất của Stally. Chúng tôi xác nhận điều chỉnh theo thư thương lượng trước đó.",
+        messageId: "<supplier-negotiation-old-total@example.test>",
+        threadId: "<thread-supplier-negotiation-old-total@example.test>",
+        internetMessageId: "<supplier-negotiation-old-total@example.test>",
+        receivedAt: "2026-06-04T04:10:00.000Z",
+      });
+
+    expect(inboundRes.status).toBe(200);
+
+    const quote = dbState.quotes.find((q: any) => q.id === quoteId);
+    expect(quote?.totalAmount).toBe(950000);
+    expect(quote?.items[0].unitPrice).toBe(9500);
+    expect(dbState.ai_negotiation_logs.find((log: any) => log.id === "neg-log-guard")?.status).toBe("supplier_responded");
   });
 
   it("does not mark negotiation as sent when Gmail send fails", async () => {
