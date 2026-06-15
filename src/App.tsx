@@ -414,7 +414,8 @@ export function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EFF8F7] flex font-sans text-primary-dark">
+    <div className="min-h-screen stally-lux-shell flex font-sans text-primary-dark">
+      <div className="stally-flow-lines" />
       
       {showTutorial && (
         <OnboardingTutorial 
@@ -433,26 +434,26 @@ export function AppContent() {
       />
 
       {/* Main Content Area - Single Screen Viewport Layout */}
-      <main className="flex-1 ml-72 h-screen flex flex-col overflow-hidden p-8 text-primary-dark">
+      <main className="relative z-10 flex-1 ml-72 h-screen flex flex-col overflow-hidden p-8 text-primary-dark">
         
-        {/* Top Header navbar bar - Styled as a playful pill-shaped board */}
-        <header className="flex justify-between items-center bg-[#FFF8E7] border-3 border-primary-dark p-4 px-6 rounded-full shadow-card mb-6 shrink-0">
+        {/* Top Header navbar bar */}
+        <header className="lux-card flex justify-between items-center p-4 px-6 mb-6 shrink-0">
           <div>
-            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 font-display">Bảng điều khiển</span>
+            <span className="text-[10px] uppercase font-bold tracking-[0.24em] text-primary-light font-sans">Bảng điều khiển</span>
             <div className="flex items-center gap-2.5 mt-0.5">
-              <span className="text-sm font-black text-primary-dark font-display tracking-wide">Hệ thống Thu mua Stally</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-primary-dark/30" />
-              <span className="text-[10px] text-primary-dark font-extrabold bg-[#E8F6F5] border border-primary-dark/20 px-2.5 py-0.5 rounded-full font-mono">
+              <span className="text-xl font-normal text-primary-dark font-display tracking-tight">Stally Procurement</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-light" />
+              <span className="text-[10px] text-primary-dark/70 font-bold bg-white/70 border border-primary-dark/10 px-2.5 py-0.5 rounded-full font-mono">
                 Mã chi nhánh: org-1
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-accent-light via-accent-gold to-accent-dark border-2 border-primary-dark rounded-full text-xs font-black text-primary-dark shadow-accent-glow hover:scale-[1.02] active:scale-[0.98] transition-all">
-              <span className="w-2 h-2 rounded-full bg-[#27AE60] animate-pulse" />
-              <span>Nhân sự hiện tại:</span>
-              <span className="font-extrabold">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/70 border border-primary-dark/10 rounded-full text-xs font-bold text-primary-dark shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-primary-dark/55">Nhân sự hiện tại</span>
+              <span className="font-bold">
                 {currentUser?.name || (
                   currentRole === "requester" ? "Bếp Trưởng Bình" :
                   currentRole === "procurement" ? "Thu Mua Tâm" :
@@ -466,14 +467,14 @@ export function AppContent() {
         </header>
 
         {errorText && (
-          <div className="mb-6 bg-[#FF8A6A]/10 border-3 border-[#EF6C4A] text-[#EF6C4A] p-4 rounded-[24px] text-xs flex items-center gap-2.5 shadow-coral-glow animate-fade-slide-up shrink-0">
+          <div className="mb-6 bg-coral-light/10 border border-coral/30 text-coral-dark p-4 rounded-2xl text-xs flex items-center gap-2.5 shadow-coral-glow animate-fade-slide-up shrink-0">
             <ShieldAlert className="w-5 h-5 text-coral shrink-0" />
             <div>
-              <p className="font-black">Lỗi kết nối đồng bộ cơ sở dữ liệu</p>
-              <p className="opacity-95 font-bold">{errorText}. Kiểm tra server rồi bấm thử lại.</p>
+              <p className="font-bold">Lỗi kết nối đồng bộ cơ sở dữ liệu</p>
+              <p className="opacity-95 font-medium">{errorText}. Kiểm tra server rồi bấm thử lại.</p>
               <button
                 onClick={syncStateFromServer}
-                className="mt-2 px-3 py-1.5 bg-white border border-[#EF6C4A]/30 rounded-lg text-[11px] font-black text-[#EF6C4A] hover:bg-[#FF8A6A]/10"
+                className="mt-2 px-3 py-1.5 bg-white border border-coral/30 rounded-full text-[11px] font-bold text-coral-dark hover:bg-coral-light/10"
               >
                 Thử đồng bộ lại
               </button>
@@ -483,7 +484,7 @@ export function AppContent() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center flex-1 text-xs text-slate-400 space-y-3">
-            <RefreshCw className="w-5 h-5 text-[#006d77] animate-spin" />
+            <RefreshCw className="w-5 h-5 text-primary-light animate-spin" />
             <span className="font-medium tracking-wide">Đang đồng bộ hồ sơ nhà hàng...</span>
           </div>
         ) : (

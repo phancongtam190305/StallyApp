@@ -3,7 +3,6 @@ import { UserRole } from "../types";
 import { 
   Sparkles, 
   ArrowRight, 
-  CornerDownLeft, 
   HelpCircle, 
   CheckCircle2, 
   X,
@@ -33,125 +32,153 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
   const [typingComplete, setTypingComplete] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
-  // Define super short, focused, hand-holding steps for each role
+  // Focused hand-holding steps for each role in the current case-based workflow.
   const getStepsByRole = (r: UserRole): Step[] => {
     switch (r) {
-      case "requester": // Bếp Trưởng
+      case "requester":
         return [
           {
             tab: "overview",
-            title: "TỔNG QUAN KHO",
-            description: "Dòm các ô nguyên liệu có dấu chấm đỏ cảnh báo khẩn cấp (sắp cạn kho bếp).",
+            title: "BƯỚC 1 - KIỂM TRA TỒN KHO",
+            description: "Trước khi tạo yêu cầu mua, xem nhanh mặt hàng nào đang dưới mức tồn tối thiểu để ưu tiên đúng nhu cầu của bếp.",
             targetId: "#btn-tab-overview",
-            tooltip: "Nhìn vào Tab Tổng quan để rà soát lượng tồn."
+            tooltip: "Mở Tổng quan để xem cảnh báo tồn kho thấp."
           },
           {
             tab: "pr",
-            title: "BIỂU MẪU MUA HÀNG (PR)",
-            description: "Click sang tab này để đặt đơn hàng mới, gửi thầu tuyển chọn nhà cung cấp.",
+            title: "BƯỚC 2 - TẠO PHIẾU PR",
+            description: "Vào tab Yêu cầu để nhập mặt hàng, số lượng, đơn vị và ngày cần hàng. PR là đầu vào để phòng mua hàng tạo case thu mua.",
             targetId: "#btn-tab-pr",
-            tooltip: "Bấm chuột vào Tab Yêu cầu mua hàng."
+            tooltip: "Mở tab Yêu cầu để lập phiếu mua."
           },
           {
             tab: "pr",
-            title: "GỬI ĐƠN PHÒNG THU MUA",
-            description: "Nhập mặt mộc nguyên liệu ở cột trái rồi nhấn nút này gửi trực tế thầu của bạn.",
+            title: "BƯỚC 3 - GỬI CHO THU MUA",
+            description: "Sau khi kiểm tra nội dung PR, bấm nút gửi. Phòng mua hàng sẽ tiếp nhận, chọn nhà cung cấp và gửi RFQ.",
             targetId: "#btn-create-pr",
-            tooltip: "Biểu mẫu điền nhanh rồi click Gửi."
+            tooltip: "Điền đủ mặt hàng rồi bấm nút tạo/gửi PR."
           },
           {
-            tab: "chatbot",
-            title: "TRỢ LÝ AI SOURCING",
-            description: "Để rảnh tay hơn, click vào đây để trò chuyện lập hợp đồng qua robot.",
-            targetId: "#btn-tab-chatbot",
-            tooltip: "Mở Tab Trợ lý ảo AI tiện dụng."
-          },
-          {
-            tab: "chatbot",
-            title: "RA LỆNH TRỰC TIẾP",
-            description: "Gõ đại 'mua 20kg thịt bò' rồi Enter. AI lập đơn nháp trong 1 nốt nhạc!",
-            targetId: "#chatbot-input",
-            tooltip: "Gõ lệnh & xem robot viết đơn tức thời."
+            tab: "inventory",
+            title: "BƯỚC 4 - THEO DÕI KHO",
+            description: "Sau khi PO được duyệt và thủ kho nhận hàng, số lượng tồn kho sẽ tự tăng. Nếu vẫn thiếu hàng, tạo PR bù tồn tiếp.",
+            targetId: "#btn-tab-inventory",
+            tooltip: "Mở Tồn kho để kiểm tra lượng đã cập nhật."
           }
         ];
-      case "procurement": // Trưởng Phòng Thu Mua
+      case "procurement":
         return [
           {
-            tab: "pr",
-            title: "XEM YÊU CẦU CỦA BẾP",
-            description: "Nơi tụ hội toàn bộ nhu cầu mua sắm thực phẩm khẩn cấp từ bếp nhà hàng.",
-            targetId: "#btn-tab-pr",
-            tooltip: "Mở Tab PR kiểm định hồ sơ."
+            tab: "cases",
+            title: "BƯỚC 1 - MỞ KANBAN CASE",
+            description: "Đây là màn vận hành chính của phòng mua hàng. Mỗi thẻ case đi từ đón nhận, mời thầu, đàm phán, duyệt PO tới nhập kho.",
+            targetId: "#btn-tab-cases",
+            tooltip: "Mở tab Quy trình để xử lý case mua hàng."
           },
           {
-            tab: "pr",
-            title: "QUẢN LÝ TIẾP QUẬN",
-            description: "Bấm nút này trên một phiếu PR bất kỳ để xúc tiến liên kết đấu thầu.",
-            targetId: "#btn-sourcing-rfq",
-            tooltip: "Nhấn nút Sourcing/Khảo giá để điều thầu."
+            tab: "cases",
+            title: "BƯỚC 2 - TẠO HOẶC MỞ CASE",
+            description: "Nếu có yêu cầu mới, tạo case thu mua. Nếu đã có case từ bếp, bấm vào thẻ để vào timeline xử lý chi tiết.",
+            targetId: "#btn-create-case",
+            tooltip: "Tạo case mới hoặc mở thẻ case đang chờ."
           },
           {
-            tab: "rfq",
-            title: "XUẤT YÊU CẦU BÁO GIÁ",
-            description: "Nhấn đây để bắn thông báo email liên mời hàng loạt nhà thầu báo giá cạnh tranh.",
-            targetId: "#btn-send-rfq",
-            tooltip: "Nút gửi thư thầu RFQ đến các thương lái."
+            tab: "cases",
+            title: "BƯỚC 3 - SOẠN VÀ GỬI RFQ",
+            description: "Trong case, chọn nhà cung cấp, để AI soạn email RFQ, review nội dung rồi bấm gửi Gmail thật cho nhà cung cấp.",
+            targetId: "#btn-send-case-rfq",
+            tooltip: "Nếu chưa thấy nút này, mở một case đang ở bước Mời thầu."
           },
           {
-            tab: "rfq",
-            title: "MA TRẬN ĐỐI CHIẾU GIÁ",
-            description: "Hệ thống lấy email báo giá nộp về, tự tô xanh nhà bán lẻ rẻ nhất có lợi.",
-            targetId: "#btn-tab-rfq",
-            tooltip: "Nhìn bảng đối chiếu so giá thầu tự động."
+            tab: "cases",
+            title: "BƯỚC 4 - THEO DÕI BÁO GIÁ",
+            description: "Khi NCC reply Gmail, hệ thống đọc mail, trích xuất báo giá và cập nhật bảng so sánh. Kiểm tra tổng tiền, ngày giao, điều khoản công nợ.",
+            targetId: "#btn-tab-cases",
+            tooltip: "Mở case ở bước Thương thảo để xem matrix."
+          },
+          {
+            tab: "cases",
+            title: "BƯỚC 5 - ĐÀM PHÁN AI",
+            description: "Nếu cần giảm giá, chọn NCC, chọn mục tiêu như giảm 5%, để AI soạn mail thương lượng. Khi NCC đồng ý, bảng giá sẽ tự cập nhật.",
+            targetId: "#btn-draft-negotiation",
+            tooltip: "Nếu chưa thấy nút này, case cần có ít nhất một báo giá."
+          },
+          {
+            tab: "cases",
+            title: "BƯỚC 6 - TRÌNH DUYỆT PO",
+            description: "Chọn phương án tốt nhất rồi trình lên Giám Đốc. Từ đây manager duyệt, sau đó phòng mua hàng tạo và gửi PO chính thức.",
+            targetId: "#btn-request-approval",
+            tooltip: "Bấm Trình duyệt PO trên dòng nhà cung cấp phù hợp."
           }
         ];
-      case "manager": // Giám Đốc Phê Duyệt
+      case "manager":
         return [
-          {
-            tab: "rfq",
-            title: "ĐÁNH GIÁ PHƯƠNG ÁN",
-            description: "Mở bảng so thầu xem nhà cung cấp nào cam kết giá cạnh tranh nhất chuỗi ăn.",
-            targetId: "#btn-tab-rfq",
-            tooltip: "Tab RFQ giúp đối chiếu dòng tiền thu mua."
-          },
-          {
-            tab: "rfq",
-            title: "DUYỆT CHI & KÝ PO",
-            description: "Bấm ký duyệt. Robot tự gieo email đơn PO cam kết cho đại lý tức tốc bốc xe.",
-            targetId: "#btn-approve-po",
-            tooltip: "Gõ duyệt & ký số xuất đơn hàng tức khắc."
-          },
           {
             tab: "overview",
-            title: "GIÁM SÁT TÀI CHÍNH",
-            description: "Click đây để theo dõi biểu đồ cơ cấu nợ, thâm hụt tài toán doanh nghiệp.",
+            title: "BƯỚC 1 - XEM HỒ SƠ CHỜ DUYỆT",
+            description: "Tổng quan cho biết hồ sơ nào đang chờ duyệt PO. Ưu tiên hồ sơ khẩn cấp hoặc có giá trị lớn.",
             targetId: "#btn-tab-overview",
-            tooltip: "Phân tích đồ thị chi phí tối ưu."
-          }
-        ];
-      case "warehouse": // Thủ Kho Trưởng
-        return [
+            tooltip: "Mở Tổng quan để xem hàng đợi duyệt."
+          },
           {
-            tab: "inventory",
-            title: "XÁC THỰC NHẬN HÀNG (PO)",
-            description: "Xe bốc hàng của đại lý cập bến, rà đơn và click đây tăng lượng tồn bãi.",
-            targetId: "#btn-receive-po",
-            tooltip: "Nhấn Xác thực Nhận PO để kiểm đếm tăng kho."
+            tab: "cases",
+            title: "BƯỚC 2 - MỞ CASE CẦN DUYỆT",
+            description: "Vào Quy trình và mở case ở trạng thái Chờ CEO duyệt. Kiểm tra nhà cung cấp được đề xuất, tổng tiền và lý do chọn.",
+            targetId: "#btn-tab-cases",
+            tooltip: "Mở tab Quy trình rồi chọn case chờ duyệt."
+          },
+          {
+            tab: "cases",
+            title: "BƯỚC 3 - KÝ DUYỆT HOẶC TRẢ VỀ",
+            description: "Nếu giá và điều kiện đạt yêu cầu, bấm ký duyệt. Nếu chưa ổn, bác bỏ để phòng mua hàng quay lại đàm phán.",
+            targetId: "#btn-manager-approve-case",
+            tooltip: "Nếu chưa thấy nút này, hãy mở case đang ở bước CEO Duyệt."
           },
           {
             tab: "inventory",
-            title: "ĐIỀU CHỈNH HAO HỤT",
-            description: "Có rau hỏng, dĩa mẻ? Dùng mục này điều chỉnh trực chứng và lưu nhật ký.",
+            title: "BƯỚC 4 - KIỂM TRA SAU DUYỆT",
+            description: "Sau khi PO gửi và thủ kho nhận hàng, tồn kho sẽ tự cập nhật. Manager có thể kiểm tra kết quả cuối ở tab Tồn kho.",
+            targetId: "#btn-tab-inventory",
+            tooltip: "Mở Tồn kho để xem lượng hàng sau nhập."
+          }
+        ];
+      case "warehouse":
+        return [
+          {
+            tab: "cases",
+            title: "BƯỚC 1 - MỞ CASE ĐANG NHẬN HÀNG",
+            description: "Vào Quy trình để tìm case ở trạng thái Đang nhận hàng. Đây là lô PO đã được phòng mua hàng gửi chính thức.",
+            targetId: "#btn-tab-cases",
+            tooltip: "Mở tab Quy trình để tìm case cần nhập kho."
+          },
+          {
+            tab: "cases",
+            title: "BƯỚC 2 - XÁC NHẬN NHẬP KHO",
+            description: "Khi hàng về đủ, bấm xác nhận kiểm kho. Hệ thống tự tăng tồn khả dụng, giảm hàng đang về và ghi stock movement.",
+            targetId: "#btn-receive-case-po",
+            tooltip: "Nếu chưa thấy nút này, mở case có PO đã gửi và đang nhận."
+          },
+          {
+            tab: "inventory",
+            title: "BƯỚC 3 - KIỂM TRA TỒN ĐÃ TĂNG",
+            description: "Sau khi nhận PO, quay về Tồn kho để kiểm tra số lượng đã tăng đúng theo số nhận thực tế.",
+            targetId: "#btn-receive-po",
+            tooltip: "Mở Tồn kho để đối chiếu lượng hàng."
+          },
+          {
+            tab: "inventory",
+            title: "BƯỚC 4 - GHI ĐIỀU CHỈNH NẾU LỆCH",
+            description: "Nếu phát hiện hư hỏng, hao hụt hoặc kiểm kê lệch, dùng điều chỉnh tồn kho để tạo lịch sử đối soát.",
             targetId: "#btn-adjust-inventory",
-            tooltip: "Ghi biến động kho để đối chiếu kế toán."
+            tooltip: "Ghi tăng/giảm tồn và lý do điều chỉnh."
           }
         ];
       default:
         return [
           {
             tab: "overview",
-            title: "BẮT ĐẦU TRẢI NGHIỆM",
-            description: "Hệ thống mua thầu chuỗi cung ứng đồng bộ. Click để xem tiếp.",
+            title: "BẮT ĐẦU",
+            description: "Mở Tổng quan để xem trạng thái vận hành, sau đó vào Quy trình để xử lý từng case mua hàng.",
             targetId: "#btn-tab-overview",
             tooltip: "Tab tổng quan mặc định."
           }
@@ -161,6 +188,7 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
 
   const steps = getStepsByRole(role);
   const currentStep = steps[currentStepIndex];
+  const targetFound = Boolean(coords);
 
   // 1. Handle actual tab redirection inside main application state
   useEffect(() => {
@@ -175,20 +203,25 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
     
     setDisplayedText("");
     setTypingComplete(false);
-    
+
+    let cancelled = false;
     let index = 0;
     const initialText = currentStep.description;
     
     const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + initialText.charAt(index));
+      if (cancelled) return;
       index++;
+      setDisplayedText(initialText.slice(0, index));
       if (index >= initialText.length) {
         clearInterval(interval);
         setTypingComplete(true);
       }
     }, 12); // Snappy streaming effect
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [currentStepIndex, role]);
 
   // 3. Dynamic target element coordinate calculations to "Cầm tay chỉ việc"
@@ -257,12 +290,12 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
     <div id="tutorial-workspace" className="fixed inset-0 z-50 pointer-events-none">
       
       {/* Dim overlay that filters clicks except on the targeted element if supported */}
-      <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[0.5px] transition-all duration-300" />
+      <div className="absolute inset-0 bg-[#1A1A1A]/25 backdrop-blur-[0.5px] transition-all duration-300" />
 
       {/* Dynamic Hand-holding Highlight Box */}
       {coords && (
         <div 
-          className="absolute border-2 border-teal-400 rounded-xl pointer-events-none transition-all duration-300 ring-4 ring-[#14b8a6]/20 shadow-2xl z-50"
+          className="absolute border border-accent-gold rounded-2xl pointer-events-none transition-all duration-300 ring-4 ring-accent-gold/20 shadow-2xl z-50"
           style={{
             top: coords.top - 6,
             left: coords.left - 6,
@@ -271,22 +304,22 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
           }}
         >
           {/* Glowing Animated outline */}
-          <div className="absolute inset-0 border border-teal-300 rounded-lg animate-ping opacity-60 pointer-events-none" />
+          <div className="absolute inset-0 border border-accent-gold rounded-2xl animate-ping opacity-50 pointer-events-none" />
           
           {/* Little Floating pointing tag */}
-          <div className="absolute -top-3.5 -right-3.5 bg-teal-500 text-white p-1 rounded-full animate-bounce z-50 shadow-md">
+          <div className="absolute -top-3.5 -right-3.5 bg-accent-gold text-primary-dark p-1 rounded-full animate-bounce z-50 shadow-md">
             <MousePointerClick className="w-3.5 h-3.5" />
           </div>
         </div>
       )}
 
       {/* Floating Snappy Streaming Chat Dialog card */}
-      <div className="absolute bottom-6 right-6 z-50 w-full max-w-sm bg-slate-900 border border-teal-500/40 text-white rounded-2.5xl shadow-2xl p-4.5 pointer-events-auto select-none font-sans flex flex-col gap-3">
+      <div className="absolute bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm bg-[#1A1A1A] border border-white/10 text-white rounded-[2rem] shadow-2xl p-4.5 pointer-events-auto select-none font-sans flex flex-col gap-3">
         
         {/* Brand/Role Tag Header */}
         <div className="flex items-center justify-between border-b border-white/5 pb-2">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase font-black tracking-widest text-teal-400">
-            <Zap className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+          <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-[0.22em] text-accent-gold">
+            <Zap className="w-3.5 h-3.5 text-accent-gold shrink-0" />
             <span>AI TRỢ THỦ • {currentStepIndex + 1}/{steps.length}</span>
           </div>
           
@@ -302,7 +335,7 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
 
         {/* Typing streaming contents */}
         <div className="space-y-1">
-          <h4 className="text-[11px] font-black text-[#5eead4] tracking-wide">
+          <h4 className="text-base font-display font-normal text-accent-light tracking-tight">
             {currentStep.title}
           </h4>
           
@@ -310,17 +343,17 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
             <p className="text-xs text-slate-100 font-medium leading-relaxed">
               {displayedText}
               {!typingComplete && (
-                <span className="inline-block w-1.5 h-3 bg-teal-400 ml-1 animate-pulse" />
+                <span className="inline-block w-1.5 h-3 bg-accent-gold ml-1 animate-pulse" />
               )}
             </p>
           </div>
         </div>
 
         {/* Targeted action bubble helper */}
-        <div className="bg-teal-950/40 border border-teal-900/50 p-2 rounded-xl text-[10px] text-teal-300 flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0 animate-ping inline-block" />
+        <div className="bg-white/8 border border-white/10 p-2 rounded-2xl text-[10px] text-accent-light flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 inline-block ${targetFound ? "bg-accent-gold animate-ping" : "bg-coral"}`} />
           <span className="italic leading-snug">
-            <strong>Chỉ vị:</strong> {currentStep.tooltip}
+            <strong>{targetFound ? "Chỉ vị:" : "Cần mở đúng màn:"}</strong> {currentStep.tooltip}
           </span>
         </div>
 
@@ -337,7 +370,7 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10.5px] font-semibold text-slate-300 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10.5px] font-semibold text-slate-300 transition-colors cursor-pointer"
               >
                 Lùi
               </button>
@@ -346,7 +379,7 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
             <button
               type="button"
               onClick={handleNext}
-              className="px-4 py-1.5 bg-teal-500 hover:bg-teal-600 border border-teal-400 text-white rounded-xl text-xs font-black tracking-wide transition-all shadow-md cursor-pointer flex items-center gap-1"
+              className="px-4 py-1.5 bg-accent-gold hover:bg-white border border-accent-gold text-primary-dark rounded-full text-xs font-bold tracking-wide transition-all shadow-md cursor-pointer flex items-center gap-1"
             >
               {currentStepIndex === steps.length - 1 ? (
                 <>XONG <CheckCircle2 className="w-3.5 h-3.5" /></>

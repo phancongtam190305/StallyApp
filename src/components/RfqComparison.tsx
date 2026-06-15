@@ -173,27 +173,27 @@ Vận chuyển 80k. Giao hàng trong ngày.
     <div className="space-y-6 animate-fade-slide-up">
       {/* Title */}
       <div>
-        <h2 className="text-xl font-extrabold font-display text-[#00535b] tracking-tight">Vòng thầu &amp; So sánh RFQ</h2>
+        <h2 className="text-3xl font-normal font-display text-[#1A1A1A] tracking-tight">Vòng thầu &amp; So sánh RFQ</h2>
         <p className="text-xs text-slate-500 mt-1">Ghép nối nhà cung cấp tối ưu, tự động gửi RFQ và phân tích báo giá bằng AI.</p>
       </div>
 
       {!selectedPr ? (
-        <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl executive-shadow space-y-4 max-w-4xl mx-auto">
-          <Building2 className="w-12 h-12 text-[#00535b]/30 mx-auto animate-bounce" />
+        <div className="text-center py-20 lux-card space-y-4 max-w-4xl mx-auto">
+          <Building2 className="w-12 h-12 text-[#1A1A1A]/30 mx-auto" />
           <p className="text-slate-700 text-sm font-extrabold">Chưa chọn yêu cầu mua sắm để so sánh đấu thầu.</p>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Hãy truy cập danh sách <strong className="text-teal-700">Yêu cầu mua sắm (PR)</strong>, chọn một phiếu yêu cầu bất kỳ và bấm băm nút <strong className="font-semibold text-teal-800">"Tiếp quản &amp; Khảo giá NCC (RFQ)"</strong>.
+            Hãy truy cập danh sách <strong className="text-accent-dark">Yêu cầu mua sắm (PR)</strong>, chọn một phiếu yêu cầu bất kỳ và bấm băm nút <strong className="font-semibold text-primary-dark">"Tiếp quản &amp; Khảo giá NCC (RFQ)"</strong>.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SOURCING PANEL - MATCH & SEND RFQ */}
           <div className="lg:col-span-4 space-y-5">
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl executive-shadow space-y-4">
+            <div className="lux-card p-5 space-y-4">
               <div className="border-b border-slate-150 pb-3">
-                <span className="text-[9px] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded font-mono font-bold text-teal-700 uppercase tracking-wider">Bước 1: Sourcing gợi ý</span>
+                <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-mono font-bold text-accent-dark uppercase tracking-wider">Bước 1: Sourcing gợi ý</span>
                 <h3 className="text-xs font-bold text-slate-700 mt-2 flex items-center gap-1.5">
-                  <Cpu className="w-4 h-4 text-teal-600" /> AI Đề xuất nhà cung ứng phù hợp
+                  <Cpu className="w-4 h-4 text-accent-dark" /> AI Đề xuất nhà cung ứng phù hợp
                 </h3>
                 <p className="text-[11px] text-slate-400 mt-1">Tìm kiếm dựa trên lịch sử giao dịch và chất lượng thầu.</p>
               </div>
@@ -212,7 +212,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
               {loadingMatches ? (
                 <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-accent-dark" />
                   <span>AI đang ghép cặp hồ sơ thương mại đối tác...</span>
                 </div>
               ) : (
@@ -223,7 +223,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                       <div 
                         key={supplier.id}
                         className={`p-3 rounded-xl border transition-all ${
-                          isSelected ? "bg-teal-50/20 border-teal-500/50" : "bg-white border-slate-200 hover:border-slate-300"
+                          isSelected ? "bg-amber-50/20 border-accent-gold/50" : "bg-white border-slate-200 hover:border-slate-300"
                         }`}
                       >
                         <div className="flex justify-between items-start">
@@ -232,10 +232,10 @@ Vận chuyển 80k. Giao hàng trong ngày.
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => handleToggleSupplierCheckbox(supplier.id)}
-                              className="accent-teal-600 rounded border-slate-300 bg-white"
+                              className="accent-amber-600 rounded border-slate-300 bg-white"
                             />
                             <div>
-                              <p className="font-extrabold text-slate-700">{supplier.name}</p>
+                              <p className="font-bold text-slate-700">{supplier.name}</p>
                               <p className="text-[11px] text-slate-400">{supplier.email}</p>
                             </div>
                           </label>
@@ -247,7 +247,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* Reason tip */}
                         <div className="mt-2.5 pl-6 pt-2 border-t border-slate-100 flex items-start gap-1">
-                          <Sparkles className="w-3 h-3 text-teal-600 shrink-0 mt-0.5" />
+                          <Sparkles className="w-3 h-3 text-accent-dark shrink-0 mt-0.5" />
                           <p className="text-[10.5px] text-slate-500 italic leading-snug">{reasons[0]}</p>
                         </div>
                       </div>
@@ -263,7 +263,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   onClick={handleCreateRfqClick}
                   disabled={sendingRfq}
                   className={`w-full text-white font-bold text-xs p-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm ${
-                    sendingRfq ? "bg-slate-400 cursor-not-allowed" : "bg-[#00535b] hover:bg-[#003d44] cursor-pointer"
+                    sendingRfq ? "bg-slate-400 cursor-not-allowed" : "bg-[#1A1A1A] hover:bg-[#000000] cursor-pointer"
                   }`}
                 >
                   {sendingRfq ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -274,7 +274,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
             {/* SIMULATED WEBHOOK CONTROLLER - internal debugging only */}
             {showDevTools && currentRfq && (
-              <div className="bg-white border border-slate-200 p-5 rounded-2xl executive-shadow space-y-4">
+              <div className="lux-card p-5 space-y-4">
                 <div className="border-b border-slate-150 pb-3">
                   <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-700 font-mono font-bold uppercase tracking-wider">Hộp Thử nghiệm</span>
                   <h3 className="text-xs font-bold text-slate-705 mt-2">Mô phỏng Email báo giá nộp về</h3>
@@ -292,11 +292,11 @@ Vận chuyển 80k. Giao hàng trong ngày.
                           className={`w-full text-left p-2.5 rounded-lg border text-xs flex justify-between items-center transition-all ${
                             hasReplied 
                               ? "bg-slate-50 border-slate-200 text-slate-400" 
-                              : "bg-white hover:bg-slate-50 border-teal-500/20 text-teal-700 font-bold cursor-pointer"
+                              : "bg-white hover:bg-slate-50 border-accent-gold/20 text-accent-dark font-bold cursor-pointer"
                           }`}
                         >
-                          <span className="truncate">📬 {sup.name} gửi thư</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold ${hasReplied ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-teal-50 text-teal-700 border border-teal-200"}`}>
+                          <span className="truncate">{sup.name} gửi thư</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold ${hasReplied ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-accent-dark border border-amber-200"}`}>
                             {hasReplied ? "Đã nộp" : "Gửi thư mẫu"}
                           </span>
                         </button>
@@ -311,11 +311,11 @@ Vận chuyển 80k. Giao hàng trong ngày.
           {/* ANALYSIS & COMPARISON MATRIX */}
           <div className="lg:col-span-8 space-y-5">
             {/* COMPARISON SHEET */}
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl executive-shadow space-y-5">
+            <div className="lux-card p-6 space-y-5">
               <div className="flex justify-between items-center border-b border-slate-150 pb-4">
                 <div>
-                  <span className="text-[9px] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-teal-700 font-mono font-bold uppercase tracking-wider">Bước 2: Ma trận giá</span>
-                  <h3 className="text-sm font-extrabold text-slate-800 mt-2">Bảng đối chiếu so sánh phương án</h3>
+                  <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-accent-dark font-mono font-bold uppercase tracking-wider">Bước 2: Ma trận giá</span>
+                  <h3 className="text-sm font-bold text-slate-800 mt-2">Bảng đối chiếu so sánh phương án</h3>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-slate-500 font-bold font-mono">CODE RFQ: #{currentRfq ? currentRfq.id.toUpperCase() : "CHƯA TẠO"}</p>
@@ -324,7 +324,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
               {currentQuotes.length === 0 ? (
                 <div className="text-center py-16">
-                  <Mail className="w-10 h-10 text-slate-300 mx-auto animate-pulse" />
+                  <Mail className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="text-slate-400 text-xs mt-3 font-semibold">Đang trông đợi phản hồi báo giá từ NCC thầu thợ...</p>
                   <p className="text-[11px] text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
                     Hệ thống đang lắng nghe email phản hồi thật qua Gmail/IMAP và sẽ tự bóc tách dữ liệu phi cấu trúc bằng AI.
@@ -336,15 +336,15 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider bg-slate-50">
+                        <tr className="border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider bg-[#F7F5F0]">
                           <th className="p-4 font-bold text-slate-600">Tiêu chí bóc tách</th>
                           {currentQuotes.map((q) => (
-                            <th key={q.id} className="p-4 font-bold text-teal-800 min-w-44 border-l border-slate-200">
+                            <th key={q.id} className="p-4 font-bold text-primary-dark min-w-44 border-l border-slate-200">
                               <div className="space-y-0.5">
                                 <p className="font-extrabold text-slate-700">{q.supplierName}</p>
                                 <p className="text-[9.5px] text-slate-400 font-mono font-medium">{q.originalFileUrl}</p>
                                 {q.negotiationStatus === "supplier_responded" && (
-                                  <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-black uppercase tracking-wider">
+                                  <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
                                     Đã đồng ý đàm phán V{q.versionCount || 2}
                                   </span>
                                 )}
@@ -374,7 +374,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                   <td key={q.id} className="p-4 border-l border-slate-200 text-slate-600 font-mono font-bold">
                                     {qItem ? (
                                       <div>
-                                        <p className="text-slate-700 font-black">{qItem.unitPrice.toLocaleString()} đ</p>
+                                        <p className="text-slate-700 font-bold">{qItem.unitPrice.toLocaleString()} đ</p>
                                         <p className="text-[10px] text-slate-400 font-medium">T.Tiền: {qItem.totalPrice.toLocaleString()} đ</p>
                                       </div>
                                     ) : (
@@ -392,7 +392,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                           <td className="p-4 font-extrabold text-slate-600">Giao hàng dự kiến</td>
                           {currentQuotes.map((q) => (
                             <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-slate-700 font-bold">
-                              🚚 {q.deliveryDays} ngày
+                              {q.deliveryDays} ngày
                             </td>
                           ))}
                         </tr>
@@ -402,7 +402,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                           <td className="p-4 font-extrabold text-slate-600">Điều khoản công nợ</td>
                           {currentQuotes.map((q) => (
                             <td key={q.id} className="p-4 border-l border-slate-200 text-slate-600">
-                              💳 {q.paymentTerms}
+                              {q.paymentTerms}
                             </td>
                           ))}
                         </tr>
@@ -428,10 +428,10 @@ Vận chuyển 80k. Giao hàng trong ngày.
                         </tr>
 
                         {/* Total pricing SUMMARY */}
-                        <tr className="bg-teal-50/40 font-bold border-t border-slate-200">
-                          <td className="p-4 text-teal-800 text-xs uppercase tracking-wider font-extrabold">TỔNG GHI TRÊN HÓA ĐƠN</td>
+                        <tr className="bg-amber-50/40 font-bold border-t border-slate-200">
+                          <td className="p-4 text-primary-dark text-xs uppercase tracking-wider font-extrabold">TỔNG GHI TRÊN HÓA ĐƠN</td>
                           {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-teal-800 text-sm font-black">
+                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-primary-dark text-sm font-bold">
                               {q.totalAmount.toLocaleString()} đ
                             </td>
                           ))}
@@ -442,7 +442,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                           <td className="p-4 font-medium uppercase tracking-wider font-mono">Độ tin cậy trích xuất AI</td>
                           {currentQuotes.map((q) => (
                             <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-[10px] font-bold">
-                              ⭐ {q.aiConfidenceScore}% Confidence
+                              {q.aiConfidenceScore}% Confidence
                             </td>
                           ))}
                         </tr>
@@ -457,7 +457,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                   <button
                                     id="btn-approve-po"
                                     onClick={() => onApproveQuote(currentRfq.id, q.id)}
-                                    className="w-full bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm"
+                                    className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm"
                                   >
                                     <UserCheck className="w-4 h-4" /> Duyệt &amp; Ký PO
                                   </button>
@@ -490,14 +490,14 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   {/* AI RECOMMENDATION BOX */}
                   {generatingAdvice ? (
                     <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center text-xs text-slate-400 space-y-2">
-                      <RefreshCw className="w-4 h-4 text-teal-600 animate-spin mx-auto" />
+                      <RefreshCw className="w-4 h-4 text-accent-dark animate-spin mx-auto" />
                       <p className="font-semibold">Stally AI đang bốc tách ma trận rủi ro báo giá...</p>
                     </div>
                   ) : (
                     aiAdvice && (
-                      <div className="bg-teal-50/15 p-5 rounded-2xl border border-teal-500/10 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-3.5 right-3.5 flex items-center gap-1 px-2 py-0.5 rounded bg-teal-50 border border-teal-200/50 text-teal-800 text-[9px] font-mono font-bold">
-                          <Cpu className="w-3 h-3 text-teal-600" /> STALLY PROCUREMENT AI
+                      <div className="bg-amber-50/15 p-5 rounded-2xl border border-accent-gold/10 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-3.5 right-3.5 flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 border border-amber-200/50 text-primary-dark text-[9px] font-mono font-bold">
+                          <Cpu className="w-3 h-3 text-accent-dark" /> STALLY PROCUREMENT AI
                         </div>
                         <div className="text-xs text-slate-600 leading-relaxed font-sans space-y-3">
                           <div className="prose prose-xs">

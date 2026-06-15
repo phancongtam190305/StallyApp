@@ -34,7 +34,7 @@ export default function ItemIcon({ name, className = "", size = "md" }: ItemIcon
     bgClass = "bg-rose-50 text-rose-700 border-rose-200/50";
   } else if (lowerName.includes("dầu") || lowerName.includes("an") || lowerName.includes("chai") || lowerName.includes("nước") || lowerName.includes("oil") || lowerName.includes("mắm")) {
     IconComponent = Droplet;
-    bgClass = "bg-teal-50 text-teal-750 border-teal-200/50";
+    bgClass = "bg-amber-50 text-accent-dark border-amber-200/50";
   } else if (lowerName.includes("chén") || lowerName.includes("dĩa") || lowerName.includes("bát") || lowerName.includes("sứ") || lowerName.includes("minh long") || lowerName.includes("utensil")) {
     IconComponent = Utensils;
     bgClass = "bg-indigo-50 text-indigo-750 border-indigo-200/50";

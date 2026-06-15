@@ -50,31 +50,31 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
   };
 
   return (
-    <aside className="w-72 bg-[#0c2b29] border-r-3 border-primary-dark flex flex-col justify-between h-screen fixed top-0 left-0 text-slate-300 z-20 shadow-xl">
+    <aside className="w-72 bg-[#1A1A1A] flex flex-col justify-between h-screen fixed top-0 left-0 text-white/75 z-20 shadow-2xl">
       {/* Brand Section */}
       <div>
-        <div className="p-6 border-b border-[#135d5a] flex flex-col items-center">
-          <div className="retro-ribbon w-full py-2.5 shadow-md flex items-center justify-center gap-2">
-            <span className="w-5 h-5 rounded-lg bg-accent-gold text-primary-dark flex items-center justify-center font-extrabold text-xs border border-primary-dark">S</span>
-            <span className="font-display font-black text-[12px] tracking-widest text-[#1e8c86]">STALLY B2B</span>
+        <div className="p-6 border-b border-white/10 flex flex-col items-center">
+          <div className="w-full flex items-center justify-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-accent-gold text-primary-dark flex items-center justify-center font-display text-lg border border-white/10">S</span>
+            <span className="font-display text-2xl tracking-tight text-white">Stally</span>
           </div>
-          <p className="text-[9px] text-accent-light font-mono tracking-widest font-extrabold mt-2.5 uppercase">Enterprise Node</p>
+          <p className="text-[9px] text-white/40 font-sans tracking-[0.28em] font-bold mt-2.5 uppercase">Procurement OS</p>
         </div>
 
         {/* Locked Profile Badge */}
-        <div className="p-4 mx-4 mt-4 bg-cream border-2 border-primary-dark rounded-2xl flex items-center space-x-3 shadow-md shadow-primary/10">
-          <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center border-2 border-primary-dark font-black text-xs shadow-teal-glow shrink-0">
+        <div className="p-4 mx-4 mt-4 bg-white/8 border border-white/10 rounded-3xl flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-full bg-accent-gold text-primary-dark flex items-center justify-center font-bold text-xs shrink-0">
             {roleLabels[currentRole]?.substring(0, 2)}
           </div>
           <div className="overflow-hidden">
-            <p className="text-[9px] text-primary-dark/70 font-black leading-none uppercase tracking-wider">VẬN HÀNH</p>
-            <p className="text-xs text-primary-dark font-black mt-1.5 truncate">{roleLabels[currentRole]}</p>
+            <p className="text-[9px] text-white/45 font-bold leading-none uppercase tracking-[0.22em]">Vận hành</p>
+            <p className="text-sm text-white font-medium mt-1.5 truncate">{roleLabels[currentRole]}</p>
           </div>
         </div>
 
         {/* Navigation Items */}
         <nav className="p-4 space-y-2 mt-4">
-          <div className="px-3 mb-2 text-[9px] font-bold text-accent-light/50 uppercase tracking-widest font-display">CHỨC NĂNG CẤP PHÉP</div>
+          <div className="px-3 mb-2 text-[9px] font-bold text-white/35 uppercase tracking-[0.25em] font-sans">Chức năng cấp phép</div>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -83,15 +83,15 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
                 key={item.id}
                 id={`btn-tab-${item.id}`}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-full text-xs font-black tracking-wider uppercase transition-all duration-200 cursor-pointer border-2 ${
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border ${
                   isActive
-                    ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow transform scale-[1.02]"
-                    : "text-white/90 border-transparent hover:bg-primary-light hover:text-white hover:scale-[1.01]"
+                    ? "bg-accent-gold text-primary-dark border-accent-gold shadow-accent-glow"
+                    : "text-white/75 border-transparent hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary-dark" : "text-accent-light"}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary-dark" : "text-accent-gold"}`} />
                 <span>{item.label}</span>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-primary-dark animate-pulse" />}
+                {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-primary-dark" />}
               </button>
             );
           })}
@@ -99,13 +99,13 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
       </div>
 
       {/* Logout & Tenant Context */}
-      <div className="p-4 border-t border-[#135d5a] bg-[#091f1e]">
+      <div className="p-4 border-t border-white/10 bg-black/20">
         {/* Simple Tenant Info */}
-        <div className="mb-3 bg-cream p-3 rounded-2xl border-2 border-primary-dark flex items-center space-x-2.5 shadow-sm">
-          <FolderKey className="w-4 h-4 text-primary shrink-0" />
+        <div className="mb-3 bg-white/8 p-3 rounded-2xl border border-white/10 flex items-center space-x-2.5">
+          <FolderKey className="w-4 h-4 text-accent-gold shrink-0" />
           <div className="overflow-hidden">
-            <p className="text-[9px] text-primary-dark/70 font-bold uppercase tracking-wider font-mono">Cách Ly Dữ Liệu</p>
-            <p className="text-xs text-primary-dark font-black truncate">Stally Food Group</p>
+            <p className="text-[9px] text-white/45 font-bold uppercase tracking-[0.22em] font-sans">Cách ly dữ liệu</p>
+            <p className="text-xs text-white font-medium truncate">Stally Food Group</p>
           </div>
         </div>
 
@@ -113,7 +113,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
         <button
           onClick={onLogout}
           id="btn-logout"
-          className="w-full flex items-center justify-center space-x-2 p-2.5 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white text-xs font-black uppercase rounded-full tracking-wider transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-coral-glow"
+          className="w-full flex items-center justify-center space-x-2 p-2.5 bg-transparent hover:bg-white hover:text-primary-dark border border-white/20 text-white text-xs font-bold uppercase rounded-full tracking-wider transition-all duration-150 cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
           <span>Đăng xuất hệ thống</span>

@@ -142,24 +142,24 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
             <div className={`border rounded-2xl p-4 transition-all duration-300 ${
               msg.isDraftConfirmed 
                 ? "bg-slate-100/50 border-slate-200 text-slate-500" 
-                : "bg-teal-50/20 border-teal-200/50 shadow-sm text-slate-700"
+                : "bg-amber-50/20 border-amber-200/50 shadow-sm text-slate-700"
             }`}>
               <div className="flex items-center justify-between border-b border-slate-150 pb-2 mb-3">
                 <div className="flex items-center gap-1.5">
-                  <FilePlus2 className={`w-4 h-4 ${msg.isDraftConfirmed ? "text-slate-400" : "text-teal-600 animate-pulse"}`} />
-                  <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-teal-700">DỰ THẢO THẦU MUA SẮM (PR)</span>
+                  <FilePlus2 className={`w-4 h-4 ${msg.isDraftConfirmed ? "text-slate-400" : "text-accent-dark animate-pulse"}`} />
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-accent-dark">DỰ THẢO THẦU MUA SẮM (PR)</span>
                 </div>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-lg uppercase font-mono ${
-                  msg.isDraftConfirmed ? "bg-slate-200 text-slate-500" : "bg-teal-100 text-teal-700"
+                  msg.isDraftConfirmed ? "bg-slate-200 text-slate-500" : "bg-amber-50 text-accent-dark"
                 }`}>
                   {draftData.priority || "Medium"}
                 </span>
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-xs font-black text-[#00535b]">{draftData.title}</h4>
+                <h4 className="text-xs font-bold text-[#1A1A1A]">{draftData.title}</h4>
                 
-                <div className="space-y-1.5 pl-2 border-l-2 border-slate-200 text-[11px] font-medium text-slate-600">
+                <div className="space-y-1.5 pl-2 border-l border-slate-200 text-[11px] font-medium text-slate-600">
                   {draftData.items?.map((it: any, i: number) => (
                     <div key={i} className="flex justify-between items-center py-0.5">
                       <div className="flex items-center gap-1.5">
@@ -181,7 +181,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
                   ) : (
                     <button
                       onClick={() => handleConfirmDraft(draftData, msg.id)}
-                      className="bg-teal-600 hover:bg-[#00535b] text-white font-bold p-2 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                      className="bg-primary-dark hover:bg-[#000000] text-white font-bold p-2 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                     >
                       <span>✓ Phát hành thầu tức thì</span>
                     </button>
@@ -198,17 +198,17 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl executive-shadow flex flex-col h-[600px] overflow-hidden relative animate-fade-slide-up">
+    <div className="lux-card flex flex-col h-[600px] overflow-hidden relative animate-fade-slide-up">
       {/* Bot Header */}
-      <div className="p-4 border-b border-slate-150 bg-slate-50/50 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-150 bg-[#F7F5F0]/80 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200/50 flex items-center justify-center text-teal-600 font-bold relative shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200/50 flex items-center justify-center text-accent-dark font-bold relative shadow-sm">
             <Bot className="w-4 h-4" />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />
           </div>
           <div>
-            <h3 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-              Bộ điều phối AI Sourcing Agent <Sparkles className="w-3 h-3 text-teal-600" />
+            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              Bộ điều phối AI Sourcing Agent <Sparkles className="w-3 h-3 text-accent-dark" />
             </h3>
             <p className="text-[10px] text-slate-400 font-mono font-bold flex items-center gap-1">
               <span>HỆ THỐNG TRỰC TUYẾN</span>
@@ -229,7 +229,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
       </div>
 
       {/* Messages Feed */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/30">
+      <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#F7F5F0]/35">
         {messages.map((msg) => {
           const isBot = msg.role === "assistant";
           return (
@@ -240,8 +240,8 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
               {/* Avatar circle */}
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${
                 isBot 
-                  ? "bg-teal-50 border-teal-200 text-teal-700" 
-                  : "bg-[#00535b] border-teal-600 text-white"
+                  ? "bg-amber-50 border-amber-200 text-accent-dark" 
+                  : "bg-[#1A1A1A] border-amber-200 text-white"
               }`}>
                 {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
               </div>
@@ -250,7 +250,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
               <div className={`p-4 rounded-2xl text-[11.5px] border ${
                 isBot 
                   ? "bg-white border-slate-150 text-slate-700 rounded-tl-none leading-relaxed shadow-sm" 
-                  : "bg-teal-50 border-teal-200/50 text-[#00535b] rounded-tr-none leading-relaxed shadow-sm"
+                  : "bg-amber-50 border-amber-200/50 text-[#1A1A1A] rounded-tr-none leading-relaxed shadow-sm"
               }`}>
                 {renderMessageContent(msg)}
               </div>
@@ -260,11 +260,11 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
 
         {sending && (
           <div className="flex items-start space-x-3 max-w-[80%]">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 text-accent-dark flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4" />
             </div>
             <div className="p-4 rounded-2xl text-[11.5px] bg-white border border-slate-150 text-slate-400 rounded-tl-none flex items-center gap-1.5 shadow-sm">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-600" />
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent-dark" />
               <span className="font-medium">AI Sourcing Agent đang rà duyệt danh sách định mức...</span>
             </div>
           </div>
@@ -273,12 +273,12 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
       </div>
 
       {/* Quick Prompts Panel */}
-      <div className="px-5 pb-2 pt-1 border-t border-slate-150 bg-slate-50 flex flex-wrap gap-2 overflow-x-auto select-none">
+      <div className="px-5 pb-2 pt-1 border-t border-slate-150 bg-[#F7F5F0] flex flex-wrap gap-2 overflow-x-auto select-none">
         {samplePrompts.map((sp, idx) => (
           <button
             key={idx}
             onClick={() => handleSendMessage(sp.prompt)}
-            className="text-[10px] bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full text-slate-500 hover:text-teal-700 transition-all flex items-center gap-1 cursor-pointer font-bold"
+            className="text-[10px] bg-white hover:bg-[#F3D7A6]/35 border border-[#E6A756]/25 px-3 py-1.5 rounded-full text-slate-500 hover:text-accent-dark transition-all flex items-center gap-1 cursor-pointer font-bold"
           >
             <span>{sp.title}</span>
             <ArrowUpRight className="w-3 h-3 text-slate-400" />
@@ -301,7 +301,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Gửi yêu cầu lập PR (ví dụ: 'Yêu cầu lập PR mua gạo ST25', 'Kho còn gì sắp hết?')..."
-            className="flex-1 bg-white border border-slate-205 focus:outline-none focus:border-teal-500 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 font-medium"
+            className="flex-1 bg-white border border-slate-205 focus:outline-none focus:border-accent-gold rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 font-medium"
           />
           <button
             type="submit"
@@ -310,7 +310,7 @@ Tôi hoạt động theo cơ chế **Draft-and-Confirm** an toàn tuyệt đối
             className={`p-3 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
               !inputValue.trim() || sending
                 ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-teal-600 hover:bg-[#00535b] text-white"
+                : "bg-primary-dark hover:bg-[#000000] text-white"
             }`}
           >
             <Send className="w-3.5 h-3.5" /> Gửi

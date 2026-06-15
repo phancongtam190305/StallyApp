@@ -508,7 +508,7 @@ export default function CaseDetailTimeline({
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-4">
         <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-        <span className="text-xs text-primary-dark font-black">Đang tải hồ sơ thầu...</span>
+        <span className="text-xs text-primary-dark font-bold">Đang tải hồ sơ thầu...</span>
       </div>
     );
   }
@@ -1069,12 +1069,12 @@ export default function CaseDetailTimeline({
         <div className="bg-amber-50 border border-amber-220 p-5 rounded-2xl flex items-start gap-3.5 shadow-sm mb-6 animate-pulse">
           <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">Hạn chế quyền hạn (Role-based Restriction)</h4>
+            <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Hạn chế quyền hạn (Role-based Restriction)</h4>
             <p className="text-xs text-amber-800 font-semibold leading-relaxed">
-              Thao tác <strong className="text-teal-900">"{actionName}"</strong> đang bị khóa đối với vai trò hiện tại của bạn.
+              Thao tác <strong className="text-accent-dark">"{actionName}"</strong> đang bị khóa đối với vai trò hiện tại của bạn.
             </p>
             <p className="text-[10px] text-slate-500 font-bold mt-1">
-              Vai trò của bạn: <span className="text-rose-700 font-black">{roleLabels[currentRole]}</span> | Vai trò được phép: <span className="text-emerald-700 font-black">{allowedLabels}</span>
+              Vai trò của bạn: <span className="text-rose-700 font-bold">{roleLabels[currentRole]}</span> | Vai trò được phép: <span className="text-emerald-700 font-bold">{allowedLabels}</span>
             </p>
           </div>
         </div>
@@ -1087,25 +1087,25 @@ export default function CaseDetailTimeline({
     <div className="space-y-6 animate-fade-slide-up max-w-[1400px] mx-auto">
       
       {/* Header bar and controls */}
-      <div className="bg-white border-3 border-primary-dark rounded-3xl p-5 shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white border border-primary-dark rounded-3xl p-5 shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBackToList}
-            className="p-2.5 bg-primary-bg hover:bg-primary-light hover:text-white border-2 border-primary-dark text-primary-dark rounded-full transition-all transform active:scale-95 cursor-pointer shrink-0 shadow-sm"
+            className="p-2.5 bg-primary-bg hover:bg-primary-light hover:text-white border border-primary-dark text-primary-dark rounded-full transition-all transform active:scale-95 cursor-pointer shrink-0 shadow-sm"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-[9px] bg-cream border-2 border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-black shadow-sm">CASE: {caseObj.id.toUpperCase()}</span>
-              <span className={`px-2 py-0.5 rounded border-2 text-[9px] font-black uppercase font-mono ${getStatusBadgeColor(caseObj.status)}`}>
+              <span className="text-[9px] bg-cream border border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-bold shadow-sm">CASE: {caseObj.id.toUpperCase()}</span>
+              <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase font-mono ${getStatusBadgeColor(caseObj.status)}`}>
                 {getStatusLabel(caseObj.status)}
               </span>
-              <span className={`px-2 py-0.5 rounded border-2 text-[9px] font-black uppercase font-mono ${getPriorityBadgeColor(caseObj.priority)}`}>
+              <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase font-mono ${getPriorityBadgeColor(caseObj.priority)}`}>
                 {getPriorityLabel(caseObj.priority)}
               </span>
             </div>
-            <h2 className="text-base font-black text-primary-dark mt-2 font-display uppercase tracking-wider leading-none">
+            <h2 className="text-base font-bold text-primary-dark mt-2 font-display uppercase tracking-wider leading-none">
               {caseObj.title}
             </h2>
           </div>
@@ -1114,7 +1114,7 @@ export default function CaseDetailTimeline({
         <div className="flex items-center gap-2.5">
           <button
             onClick={fetchData}
-            className="px-4 py-2.5 bg-white hover:bg-cream border-2 border-primary-dark text-primary-dark font-black text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-sm"
+            className="px-4 py-2.5 bg-white hover:bg-cream border border-primary-dark text-primary-dark font-bold text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Làm mới
           </button>
@@ -1122,7 +1122,7 @@ export default function CaseDetailTimeline({
           {caseObj.status !== "closed" && caseObj.status !== "cancelled" && (currentRole === "procurement" || currentRole === "manager") && (
             <button
               onClick={handleCancelCase}
-              className="px-4 py-2.5 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white font-black text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-coral-glow"
+              className="px-4 py-2.5 bg-coral hover:bg-coral-dark border border-primary-dark text-white font-bold text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-coral-glow"
             >
               <Trash2 className="w-3.5 h-3.5" /> Hủy thầu
             </button>
@@ -1131,10 +1131,10 @@ export default function CaseDetailTimeline({
       </div>
 
       {/* Horizontal Multi-stage Wizard Stepper (Playful game-board styling) */}
-      <div className="bg-white border-3 border-primary-dark rounded-3xl p-6 shadow-card">
+      <div className="bg-white border border-primary-dark rounded-3xl p-6 shadow-card">
         <div className="flex flex-col md:flex-row justify-between items-center relative gap-6">
           {/* Thick board game dashed line */}
-          <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-1 bg-primary-dark/15 border-t-2 border-dashed border-primary-dark/30 hidden md:block z-0" />
+          <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-1 bg-primary-dark/15 border-t border-dashed border-primary-dark/30 hidden md:block z-0" />
           
           {(() => {
             const getStatusMilestoneNum = (status: string): number => {
@@ -1171,15 +1171,15 @@ export default function CaseDetailTimeline({
                     isActive ? "bg-[#e0f2f1]/80 border border-[#b2dfdb] scale-102" : "hover:bg-slate-50 border border-transparent"
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 transition-all ${
-                    isCompleted ? "bg-teal-600 border-teal-600 text-white" :
-                    step.num === maxMilestone ? "bg-[#00535b] border-[#00535b] text-white animate-pulse" :
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border transition-all ${
+                    isCompleted ? "bg-amber-50 border-amber-200 text-white" :
+                    step.num === maxMilestone ? "bg-[#1A1A1A] border-[#1A1A1A] text-white animate-pulse" :
                     "bg-white border-slate-200 text-slate-400"
                   }`}>
                     {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : step.num}
                   </div>
                   <div>
-                    <p className={`text-xs font-black leading-none ${isActive ? "text-[#00535b]" : !isLocked ? "text-slate-700" : "text-slate-400"}`}>
+                    <p className={`text-xs font-bold leading-none ${isActive ? "text-[#1A1A1A]" : !isLocked ? "text-slate-700" : "text-slate-400"}`}>
                       {step.label}
                     </p>
                     <p className="text-[10px] text-slate-400 font-medium mt-1 leading-none">
@@ -1197,23 +1197,23 @@ export default function CaseDetailTimeline({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Side: Dynamic action workflow panel */}
-        <div className="lg:col-span-8 bg-white border-3 border-primary-dark rounded-3xl p-6 shadow-card min-h-[500px]">
+        <div className="lg:col-span-8 bg-white border border-primary-dark rounded-3xl p-6 shadow-card min-h-[500px]">
           
           {/* Milestone 1 View: Request Intake & Standardization */}
           {activeMilestone === 1 && (
             <div className="space-y-6">
               {renderPermissionLock(["procurement", "requester"], "Chuẩn hóa & Tiếp nhận Yêu cầu")}
               <div>
-                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
-                  <FileText className="w-5 h-5 text-teal-600" /> Bước 1: Tiếp nhận &amp; Chuẩn hóa Yêu cầu
+                <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
+                  <FileText className="w-5 h-5 text-accent-dark" /> Bước 1: Tiếp nhận &amp; Chuẩn hóa Yêu cầu
                 </h3>
               </div>
 
               {/* Informational Panel */}
-              <div className="bg-primary-bg/25 border-2 border-primary rounded-2xl p-4 flex items-start gap-3 shadow-inner">
+              <div className="bg-primary-bg/25 border border-primary rounded-2xl p-4 flex items-start gap-3 shadow-inner">
                 <Sparkles className="w-4.5 h-4.5 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="text-xs font-black text-primary-dark">Vai trò: Ban Mua Sắm (Sourcing Staff)</p>
+                  <p className="text-xs font-bold text-primary-dark">Vai trò: Ban Mua Sắm (Sourcing Staff)</p>
                   <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
                     Bạn cần rà soát lại các dòng sản phẩm thầu bếp trưởng yêu cầu. Thêm ghi chú hoặc loại bỏ các mục lỗi/trùng lặp trước khi phát thầu RFQ chính thức.
                   </p>
@@ -1221,10 +1221,10 @@ export default function CaseDetailTimeline({
               </div>
 
               {/* Items List Table */}
-              <div className="border-2 border-primary-dark rounded-2xl overflow-hidden bg-white shadow-sm">
+              <div className="border border-primary-dark rounded-2xl overflow-hidden bg-white shadow-sm">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-primary-bg text-primary-dark font-black border-b-2 border-primary-dark uppercase tracking-wider text-[9px]">
+                    <tr className="bg-primary-bg text-primary-dark font-bold border-b border-primary-dark uppercase tracking-wider text-[9px]">
                       <th className="p-3.5">#</th>
                       <th className="p-3.5">Tên sản phẩm</th>
                       <th className="p-3.5 text-center">Số lượng</th>
@@ -1238,18 +1238,18 @@ export default function CaseDetailTimeline({
                       caseObj.items.map((item, idx) => (
                         <tr key={idx} className="hover:bg-primary-bg/5 transition-all">
                           <td className="p-3.5 font-bold font-mono text-primary-dark/50">{idx + 1}</td>
-                          <td className="p-3.5 font-black text-primary-dark flex items-center gap-2">
+                          <td className="p-3.5 font-bold text-primary-dark flex items-center gap-2">
                             <ItemIcon name={item.name} size="sm" className="scale-75 border" />
                             <span>{item.name}</span>
                           </td>
-                          <td className="p-3.5 text-center font-black font-mono text-primary-dark bg-primary-bg/10">{item.quantity}</td>
-                          <td className="p-3.5 font-black text-primary-dark/60 uppercase">{item.unit}</td>
+                          <td className="p-3.5 text-center font-bold font-mono text-primary-dark bg-primary-bg/10">{item.quantity}</td>
+                          <td className="p-3.5 font-bold text-primary-dark/60 uppercase">{item.unit}</td>
                           <td className="p-3.5 text-primary-dark/50 italic text-[11px] font-medium">{item.notes || "—"}</td>
                           <td className="p-3.5 text-center">
                             {["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) && (
                               <button 
                                 onClick={() => handleDeleteItem(idx)}
-                                className="p-1.5 text-coral hover:bg-coral-light/10 border-2 border-transparent hover:border-coral rounded-xl transition cursor-pointer"
+                                className="p-1.5 text-coral hover:bg-coral-light/10 border border-transparent hover:border-coral rounded-xl transition cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -1269,26 +1269,26 @@ export default function CaseDetailTimeline({
               {/* Add New Item Panel */}
               {["procurement", "requester"].includes(currentRole) && ["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) && (
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
-                  <h4 className="text-xs font-black text-slate-700">Thêm sản phẩm mới chuẩn hóa:</h4>
+                  <h4 className="text-xs font-bold text-slate-700">Thêm sản phẩm mới chuẩn hóa:</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <input 
                       type="text" 
                       placeholder="Tên nguyên liệu... (Ví dụ: Gạo thơm sỉ)"
                       value={newItemName}
                       onChange={e => setNewItemName(e.target.value)}
-                      className="p-2 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                      className="p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                     />
                     <input 
                       type="number" 
                       placeholder="Số lượng"
                       value={newItemQty}
                       onChange={e => setNewItemQty(Number(e.target.value))}
-                      className="p-2 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-mono font-black text-center focus:outline-none"
+                      className="p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-mono font-bold text-center focus:outline-none"
                     />
                     <select 
                       value={newItemUnit}
                       onChange={e => setNewItemUnit(e.target.value)}
-                      className="p-2 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-black text-primary-dark focus:outline-none"
+                      className="p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                     >
                       <option value="kg">kg</option>
                       <option value="chai">chai (5L)</option>
@@ -1298,7 +1298,7 @@ export default function CaseDetailTimeline({
                     </select>
                     <button
                       onClick={handleAddItem}
-                      className="p-2 bg-primary hover:bg-primary-dark text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 border-2 border-primary-dark transition cursor-pointer transform active:scale-95 shadow-sm uppercase tracking-wider"
+                      className="p-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-primary-dark transition cursor-pointer transform active:scale-95 shadow-sm uppercase tracking-wider"
                     >
                       <Plus className="w-4 h-4" /> Thêm thầu
                     </button>
@@ -1308,24 +1308,24 @@ export default function CaseDetailTimeline({
                     placeholder="Ghi chú nghiệp vụ..."
                     value={newItemNotes}
                     onChange={e => setNewItemNotes(e.target.value)}
-                    className="w-full p-2 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                    className="w-full p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                   />
                 </div>
               )}
 
               {/* Step submit trigger */}
-              <div className="pt-4 border-t-2 border-dashed border-primary/20 flex justify-end">
+              <div className="pt-4 border-t border-dashed border-primary/20 flex justify-end">
                 {["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) ? (
                   <button
                     onClick={handleIntakeSubmit}
                     disabled={loadingAction !== null || caseObj.items.length === 0 || !["procurement", "requester"].includes(currentRole)}
-                    className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
+                    className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                   >
                     {loadingAction === "submit_intake" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
                     Xác nhận chuẩn hóa &amp; Soạn thầu
                   </button>
                 ) : (
-                  <div className="flex items-center gap-2 text-primary-dark/60 text-xs font-black bg-primary-bg px-4 py-2.5 rounded-full border-2 border-primary shadow-sm uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-primary-dark/60 text-xs font-bold bg-primary-bg px-4 py-2.5 rounded-full border border-primary shadow-sm uppercase tracking-wider">
                     <Check className="w-4 h-4 text-success stroke-[3]" /> Hoàn tất đón nhận hồ sơ
                   </div>
                 )}
@@ -1338,16 +1338,16 @@ export default function CaseDetailTimeline({
             <div className="space-y-6">
               {renderPermissionLock(["procurement"], "Khớp Nhà Cung Cấp & Phát RFQ")}
               <div>
-                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
-                  <Building2 className="w-5 h-5 text-teal-600" /> Bước 2: Khớp Nhà Cung Cấp &amp; Phát RFQ
+                <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
+                  <Building2 className="w-5 h-5 text-accent-dark" /> Bước 2: Khớp Nhà Cung Cấp &amp; Phát RFQ
                 </h3>
               </div>
 
               {/* Sourcing crawler workspace */}
               {["supplier_matching", "rfq_draft"].includes(caseObj.status) && (
-                <div className="bg-cream border-3 border-primary-dark p-5 rounded-3xl space-y-3 relative overflow-hidden shadow-card">
+                <div className="bg-cream border border-primary-dark p-5 rounded-3xl space-y-3 relative overflow-hidden shadow-card">
                   <div className="absolute -top-10 -right-10 w-24 h-24 bg-accent-gold/10 rounded-full blur-xl pointer-events-none" />
-                  <div className="flex items-center gap-1.5 text-xs font-black text-primary-dark uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary-dark uppercase tracking-wider">
                     <Sparkles className="w-4 h-4 text-accent-gold animate-pulse" />
                     <span>Tìm NCC theo mặt hàng trong case: {procurementScopeLabel}</span>
                   </div>
@@ -1361,24 +1361,24 @@ export default function CaseDetailTimeline({
                       placeholder={procurementScopeLabel}
                       value={aiSearchQuery}
                       onChange={e => setAiSearchQuery(e.target.value)}
-                      className="flex-1 p-2.5 border-2 border-primary-dark/30 bg-white focus:border-primary-dark rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                      className="flex-1 p-2.5 border border-primary-dark/30 bg-white focus:border-primary-dark rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                     />
                     <button
                       onClick={handleSupplierDiscover}
                       disabled={isCurrentlyScanning || !aiSearchQuery}
-                      className="px-5 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark font-black text-xs rounded-xl flex items-center gap-1.5 shadow-teal-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-5 py-2 bg-primary hover:bg-primary-dark text-white border border-primary-dark font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-accent-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isCurrentlyScanning ? <RefreshCw className="w-4.5 h-4.5 animate-spin" /> : <Search className="w-4 h-4" />}
                       AI quét thầu
                     </button>
                   </div>
                   ) : (
-                    <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-primary-bg border-2 border-primary flex items-center justify-center shrink-0">
+                    <div className="bg-white border border-primary-dark/20 rounded-2xl p-4 flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary-bg border border-primary flex items-center justify-center shrink-0">
                         <Lock className="w-4 h-4 text-primary-dark" />
                       </div>
                       <div className="space-y-1 min-w-0">
-                        <p className="text-xs font-black text-primary-dark uppercase tracking-wider">Nguồn thầu đã khóa</p>
+                        <p className="text-xs font-bold text-primary-dark uppercase tracking-wider">Nguồn thầu đã khóa</p>
                         <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
                           Case này đã chuyển sang soạn/gửi RFQ. Muốn mời thầu mặt hàng khác, hãy tạo case mới.
                         </p>
@@ -1387,13 +1387,13 @@ export default function CaseDetailTimeline({
                   )}
 
                   {isDraftingRfq && (
-                    <div className="bg-white border-2 border-accent-gold rounded-2xl p-4 space-y-3 shadow-sm animate-fade-slide-up">
+                    <div className="bg-white border border-accent-gold rounded-2xl p-4 space-y-3 shadow-sm animate-fade-slide-up">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent-gold text-primary-dark border-2 border-primary-dark flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-accent-gold text-primary-dark border border-primary-dark flex items-center justify-center shrink-0">
                           <RefreshCw className="w-5 h-5 animate-spin" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-primary-dark uppercase tracking-wider">AI đang soạn thư mời thầu</p>
+                          <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">AI đang soạn thư mời thầu</p>
                           <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
                             Đang viết email riêng cho {selectedSuppliers.length} NCC đã chọn. Bước này có thể mất 1-2 phút.
                           </p>
@@ -1406,14 +1406,14 @@ export default function CaseDetailTimeline({
                   )}
 
                   {canEditSourcing && isCurrentlyScanning && (
-                    <div className="bg-white border-2 border-primary-dark/20 rounded-2xl p-4 space-y-3 animate-fade-slide-up">
+                    <div className="bg-white border border-primary-dark/20 rounded-2xl p-4 space-y-3 animate-fade-slide-up">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-primary text-white border-2 border-primary-dark flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-primary text-white border border-primary-dark flex items-center justify-center shrink-0">
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-black text-primary-dark uppercase tracking-wider">
+                            <p className="text-xs font-bold text-primary-dark uppercase tracking-wider">
                               Đang crawl nhà cung cấp
                             </p>
                             <p className="text-[10px] text-slate-500 font-bold truncate">
@@ -1422,7 +1422,7 @@ export default function CaseDetailTimeline({
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-xs font-black text-primary-dark">{discoveryElapsedSec}s</p>
+                          <p className="text-xs font-bold text-primary-dark">{discoveryElapsedSec}s</p>
                           <p className="text-[9px] text-slate-400 font-bold uppercase">Thời gian chạy</p>
                         </div>
                       </div>
@@ -1441,7 +1441,7 @@ export default function CaseDetailTimeline({
                           return (
                             <div
                               key={step}
-                              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-black ${
+                              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-bold ${
                                 isActive
                                   ? "bg-accent-light/20 border-accent-gold text-primary-dark"
                                   : isDone
@@ -1471,7 +1471,7 @@ export default function CaseDetailTimeline({
                     <div className="space-y-3 pt-2">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
-                          <p className="text-[10px] font-black uppercase text-slate-500">Kết quả crawl chờ duyệt ({discoveryCandidates.length})</p>
+                          <p className="text-[10px] font-bold uppercase text-slate-500">Kết quả crawl chờ duyệt ({discoveryCandidates.length})</p>
                           <p className="text-[10px] text-slate-500 font-bold">Tick chọn NCC bạn muốn đưa vào danh sách chính trước khi gửi RFQ.</p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1480,7 +1480,7 @@ export default function CaseDetailTimeline({
                               const eligibleIds = discoveryCandidates.filter(c => c.autoAddEligible && c.id).map(c => c.id as string);
                               setSelectedDiscoveryCandidateIds(eligibleIds);
                             }}
-                            className="text-[10px] font-black px-2.5 py-1.5 bg-white border border-primary-dark/20 rounded-lg text-primary-dark hover:bg-cream"
+                            className="text-[10px] font-bold px-2.5 py-1.5 bg-white border border-primary-dark/20 rounded-lg text-primary-dark hover:bg-cream"
                           >
                             Chọn đủ điều kiện
                           </button>
@@ -1522,11 +1522,11 @@ export default function CaseDetailTimeline({
                                   className="mt-0.5 w-3.5 h-3.5 accent-primary shrink-0"
                                 />
                                 <div className="min-w-0">
-                                <p className="text-xs font-black text-slate-800 leading-snug">{candidate.name}</p>
+                                <p className="text-xs font-bold text-slate-800 leading-snug">{candidate.name}</p>
                                 <p className="text-[10px] text-slate-500 mt-0.5">{candidate.address || "Chưa có địa chỉ"}</p>
                                 </div>
                               </label>
-                              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
                                 candidate.autoAddEligible ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}>
                                 {candidate.autoAddEligible ? "Có thể thêm" : "Cần kiểm tra"} · {candidate.confidence}%
@@ -1552,14 +1552,14 @@ export default function CaseDetailTimeline({
                           </div>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between gap-3 bg-white border-2 border-primary-dark/20 rounded-2xl p-3">
+                      <div className="flex items-center justify-between gap-3 bg-white border border-primary-dark/20 rounded-2xl p-3">
                         <p className="text-[10px] text-slate-600 font-bold">
-                          Đã chọn <span className="font-black text-primary-dark">{selectedDiscoveryCandidateIds.length}</span> NCC để đưa vào danh sách chính.
+                          Đã chọn <span className="font-bold text-primary-dark">{selectedDiscoveryCandidateIds.length}</span> NCC để đưa vào danh sách chính.
                         </p>
                         <button
                           onClick={handlePromoteDiscoveryCandidates}
                           disabled={loadingAction !== null || selectedDiscoveryCandidateIds.length === 0 || !canEditSourcing}
-                          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white border-2 border-primary-dark rounded-xl text-[10px] font-black uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                          className="px-4 py-2 bg-primary hover:bg-primary-dark text-white border border-primary-dark rounded-xl text-[10px] font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
                           {loadingAction === "promote_discovery_candidates" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                           Thêm vào danh sách chính
@@ -1572,7 +1572,7 @@ export default function CaseDetailTimeline({
 
               {/* Suggested matched suppliers grid */}
               <div className="space-y-3">
-                <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">
                   Đề xuất nhà thầu phù hợp nhất ({matchedSuppliers.length}):
                 </h4>
                 
@@ -1586,7 +1586,7 @@ export default function CaseDetailTimeline({
                           prev.includes(item.supplierId) ? prev.filter(id => id !== item.supplierId) : [...prev, item.supplierId]
                         );
                       }}
-                      className={`p-4 rounded-3xl border-3 transition-all flex justify-between items-start border-l-8 ${
+                      className={`p-4 rounded-3xl border transition-all flex justify-between items-start border-l-8 ${
                         canEditSourcing ? "cursor-pointer" : "cursor-default opacity-90"
                       } ${
                         selectedSuppliers.includes(item.supplierId) 
@@ -1596,12 +1596,12 @@ export default function CaseDetailTimeline({
                     >
                       <div className="space-y-1.5 flex-1 pr-3 pl-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-xs text-primary-dark truncate max-w-[150px]">{item.name}</span>
-                          <span className="text-[9px] bg-primary-bg text-primary-dark px-1.5 py-0.5 rounded border border-primary font-mono font-black">
+                          <span className="font-bold text-xs text-primary-dark truncate max-w-[150px]">{item.name}</span>
+                          <span className="text-[9px] bg-primary-bg text-primary-dark px-1.5 py-0.5 rounded border border-primary font-mono font-bold">
                             Khớp {item.score}%
                           </span>
                         </div>
-                        <p className="text-[10px] text-primary-dark/50 font-black font-mono">{item.email}</p>
+                        <p className="text-[10px] text-primary-dark/50 font-bold font-mono">{item.email}</p>
                         
                         <div className="space-y-1 pt-1.5">
                           {item.reasons.map((r, i) => (
@@ -1613,7 +1613,7 @@ export default function CaseDetailTimeline({
                       </div>
                       
                       {canEditSourcing && (
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
                           selectedSuppliers.includes(item.supplierId) ? "bg-primary border-primary-dark text-white" : "border-primary-dark/30 bg-white"
                         }`}>
                           {selectedSuppliers.includes(item.supplierId) && <Check className="w-3 h-3 stroke-[3]" />}
@@ -1625,12 +1625,12 @@ export default function CaseDetailTimeline({
               </div>
 
               {isRfqDraftSyncing && (
-                <div className="bg-white border-2 border-accent-gold rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-                  <div className="w-10 h-10 rounded-xl bg-accent-gold text-primary-dark border-2 border-primary-dark flex items-center justify-center shrink-0">
+                <div className="bg-white border border-accent-gold rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-accent-gold text-primary-dark border border-primary-dark flex items-center justify-center shrink-0">
                     <RefreshCw className="w-5 h-5 animate-spin" />
                   </div>
                   <div className="space-y-1 min-w-0">
-                    <p className="text-sm font-black text-primary-dark uppercase tracking-wider">Đang đồng bộ bản nháp RFQ...</p>
+                    <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">Đang đồng bộ bản nháp RFQ...</p>
                     <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
                       AI đang hoàn tất thư mời thầu cho các NCC đã chọn. Bản nháp sẽ tự xuất hiện khi xử lý xong.
                     </p>
@@ -1640,14 +1640,14 @@ export default function CaseDetailTimeline({
 
               {/* Draft RFQ personalization editor panel */}
               {rfqDrafts.length > 0 && (
-                <div className="space-y-4 pt-4 border-t-2 border-dashed border-primary/20">
-                  <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider flex items-center gap-1.5">
+                <div className="space-y-4 pt-4 border-t border-dashed border-primary/20">
+                  <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-accent-gold" /> AI Dự thảo thư mời thầu RFQ chi tiết:
                   </h4>
                   <p className="text-[11px] text-slate-600 font-bold">
                     Review thư mời thầu trước khi gửi. Sau khi gửi, hệ thống sẽ chuyển sang chờ báo giá từ email.
                   </p>
-                  <div className="bg-amber-50 border-2 border-accent-gold rounded-xl p-3 flex items-start gap-2 text-[11px] text-primary-dark font-bold leading-relaxed">
+                  <div className="bg-amber-50 border border-accent-gold rounded-xl p-3 flex items-start gap-2 text-[11px] text-primary-dark font-bold leading-relaxed">
                     <Info className="w-4 h-4 text-accent-gold shrink-0 mt-0.5" />
                     <span>
                       Chế độ test: email gửi thật sẽ được chuyển tới <strong>{RFQ_TEST_RECIPIENT}</strong>. Email NCC trong card là người nhận nghiệp vụ để theo dõi flow.
@@ -1655,12 +1655,12 @@ export default function CaseDetailTimeline({
                   </div>
                   
                   {rfqDrafts.map((d) => (
-                    <div key={d.id} className="border-2 border-primary-dark rounded-2xl overflow-hidden bg-surface-base">
-                      <div className="p-3.5 bg-cream flex justify-between items-center text-xs font-black border-b-2 border-primary-dark">
+                    <div key={d.id} className="border border-primary-dark rounded-2xl overflow-hidden bg-surface-base">
+                      <div className="p-3.5 bg-cream flex justify-between items-center text-xs font-bold border-b border-primary-dark">
                         <span className="text-primary-dark uppercase tracking-wide">{d.supplierName} ({d.supplierEmail})</span>
                         <button
                           onClick={() => beginEditDraft(d)}
-                          className="px-3 py-1 bg-white hover:bg-primary-bg border-2 border-primary-dark text-primary-dark rounded-full font-black text-[10px] uppercase transition cursor-pointer"
+                          className="px-3 py-1 bg-white hover:bg-primary-bg border border-primary-dark text-primary-dark rounded-full font-bold text-[10px] uppercase transition cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" /> Biên tập thư
                         </button>
@@ -1669,59 +1669,59 @@ export default function CaseDetailTimeline({
                       {editingDraftId === d.id ? (
                         <div className="p-4 space-y-3 bg-white">
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-black text-primary-dark uppercase">Tiêu đề email</label>
+                            <label className="text-[10px] font-bold text-primary-dark uppercase">Tiêu đề email</label>
                             <input 
                               type="text"
                               value={draftEditForm.subject}
                               onChange={e => updateDraftEditForm("subject", e.target.value)}
-                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
+                              className="p-2.5 border border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
                             />
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="flex flex-col space-y-1">
-                              <label className="text-[10px] font-black text-primary-dark uppercase">Lời chào</label>
+                              <label className="text-[10px] font-bold text-primary-dark uppercase">Lời chào</label>
                               <input
                                 type="text"
                                 value={draftEditForm.greeting}
                                 onChange={e => updateDraftEditForm("greeting", e.target.value)}
-                                className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
+                                className="p-2.5 border border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
                               />
                             </div>
                             <div className="flex flex-col space-y-1">
-                              <label className="text-[10px] font-black text-primary-dark uppercase">Hạn báo giá</label>
+                              <label className="text-[10px] font-bold text-primary-dark uppercase">Hạn báo giá</label>
                               <input
                                 type="date"
                                 value={draftEditForm.dueDate}
                                 onChange={e => updateDraftEditForm("dueDate", e.target.value)}
-                                className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
+                                className="p-2.5 border border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark"
                               />
                             </div>
                           </div>
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-black text-primary-dark uppercase">Nội dung ghi chú thêm</label>
+                            <label className="text-[10px] font-bold text-primary-dark uppercase">Nội dung ghi chú thêm</label>
                             <textarea 
                               rows={8}
                               value={draftEditForm.notes}
                               onChange={e => updateDraftEditForm("notes", e.target.value)}
-                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed resize-y"
+                              className="p-2.5 border border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed resize-y"
                             />
                           </div>
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-black text-primary-dark uppercase">Chữ ký</label>
+                            <label className="text-[10px] font-bold text-primary-dark uppercase">Chữ ký</label>
                             <textarea
                               rows={4}
                               value={draftEditForm.signature}
                               onChange={e => updateDraftEditForm("signature", e.target.value)}
-                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed resize-y"
+                              className="p-2.5 border border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed resize-y"
                             />
                           </div>
-                          <div className="rounded-xl border-2 border-primary-dark/20 overflow-hidden bg-cream">
-                            <div className="px-3 py-2 border-b-2 border-primary-dark/20 bg-white flex items-center gap-2">
+                          <div className="rounded-xl border border-primary-dark/20 overflow-hidden bg-cream">
+                            <div className="px-3 py-2 border-b border-primary-dark/20 bg-white flex items-center gap-2">
                               <Mail className="w-4 h-4 text-primary" />
-                              <p className="text-[10px] font-black uppercase tracking-wider text-primary-dark">Preview người nhận</p>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-primary-dark">Preview người nhận</p>
                             </div>
                             <div className="p-3 space-y-2">
-                              <p className="text-xs font-black text-primary-dark break-words">{draftEditForm.subject}</p>
+                              <p className="text-xs font-bold text-primary-dark break-words">{draftEditForm.subject}</p>
                               <div
                                 className="bg-white border border-primary-dark/15 rounded-lg p-3 max-h-72 overflow-auto text-[12px] text-slate-700 leading-relaxed"
                                 dangerouslySetInnerHTML={{ __html: buildFriendlyRfqHtml(draftEditForm) }}
@@ -1729,7 +1729,7 @@ export default function CaseDetailTimeline({
                             </div>
                           </div>
                           <details className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
-                            <summary className="cursor-pointer text-[10px] font-black uppercase tracking-wider text-slate-600">
+                            <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-600">
                               HTML nâng cao
                             </summary>
                             <textarea
@@ -1746,14 +1746,14 @@ export default function CaseDetailTimeline({
                                 setDraftEditForm(emptyRfqDraftEditForm);
                               }}
                               disabled={savingDraftId === d.id}
-                              className="px-4 py-1.5 bg-white hover:bg-slate-50 border-2 border-primary-dark text-primary-dark rounded-full font-black cursor-pointer uppercase disabled:opacity-50"
+                              className="px-4 py-1.5 bg-white hover:bg-slate-50 border border-primary-dark text-primary-dark rounded-full font-bold cursor-pointer uppercase disabled:opacity-50"
                             >
                               Hủy
                             </button>
                             <button
                               onClick={() => handleSaveDraft(d.id)}
                               disabled={savingDraftId === d.id}
-                              className="px-4 py-1.5 bg-primary text-white border-2 border-primary-dark rounded-full font-black cursor-pointer uppercase disabled:opacity-50"
+                              className="px-4 py-1.5 bg-primary text-white border border-primary-dark rounded-full font-bold cursor-pointer uppercase disabled:opacity-50"
                             >
                               {savingDraftId === d.id ? "Đang lưu..." : "Lưu thầu"}
                             </button>
@@ -1764,12 +1764,12 @@ export default function CaseDetailTimeline({
                           <div className="flex items-start gap-2">
                             <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                             <div className="min-w-0">
-                              <p className="text-[10px] font-black text-primary-dark/60 uppercase tracking-wider">Tiêu đề email</p>
-                              <p className="text-xs font-black text-primary-dark break-words">{d.subject}</p>
+                              <p className="text-[10px] font-bold text-primary-dark/60 uppercase tracking-wider">Tiêu đề email</p>
+                              <p className="text-xs font-bold text-primary-dark break-words">{d.subject}</p>
                             </div>
                           </div>
                           <div
-                            className="p-4 bg-cream border-2 border-primary-dark/20 rounded-xl text-[12px] text-slate-700 font-medium overflow-auto max-h-72 leading-relaxed font-sans"
+                            className="p-4 bg-cream border border-primary-dark/20 rounded-xl text-[12px] text-slate-700 font-medium overflow-auto max-h-72 leading-relaxed font-sans"
                             dangerouslySetInnerHTML={{ __html: d.bodyHtml }}
                           />
                         </div>
@@ -1780,10 +1780,10 @@ export default function CaseDetailTimeline({
               )}
 
               {/* RFQ Sender triggers */}
-              <div className="pt-4 border-t-2 border-dashed border-primary/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="text-[10px] text-primary-dark/60 font-black uppercase tracking-wider">
+              <div className="pt-4 border-t border-dashed border-primary/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="text-[10px] text-primary-dark/60 font-bold uppercase tracking-wider">
                   {caseObj.status === "collecting_quotes" || caseObj.status === "rfq_sent" ? (
-                    <span className="flex items-center gap-1.5 text-[#27AE60] bg-emerald-50 border-2 border-success px-3.5 py-2 rounded-full shadow-sm">
+                    <span className="flex items-center gap-1.5 text-[#4F7942] bg-emerald-50 border border-success px-3.5 py-2 rounded-full shadow-sm">
                       <Clock className="w-4 h-4 animate-spin" /> Đang nghe hòm thư phản hồi báo giá tự động...
                     </span>
                   ) : hasRfqDrafts ? "Review thư mời thầu trước khi gửi." : isRfqDraftSyncing ? "Đang đồng bộ bản nháp RFQ..." : "Vui lòng chọn NCC và nhấn phát thầu."}
@@ -1794,15 +1794,17 @@ export default function CaseDetailTimeline({
                     <>
                       {rfqDrafts.length === 0 ? (
                         <button
+                          id="btn-draft-rfq"
                           onClick={handleSelectSuppliers}
                           disabled={loadingAction !== null || currentRole !== "procurement" || !canEditSourcing}
-                          className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {loadingAction === "draft_rfq" || isRfqDraftSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                           {isRfqDraftSyncing ? "Đang đồng bộ RFQ" : "AI Soạn thư thầu"}
                         </button>
                       ) : (
                         <button
+                          id="btn-send-case-rfq"
                           onClick={handleSendRfqs}
                           disabled={loadingAction !== null || currentRole !== "procurement" || editingDraftId !== null || savingDraftId !== null}
                           className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer animate-bounce disabled:opacity-50"
@@ -1820,7 +1822,7 @@ export default function CaseDetailTimeline({
                         showToast("Đã quét hòm thư đồng bộ.", "info");
                         fetchData();
                       }}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-cream border-2 border-primary-dark text-primary-dark font-black text-xs rounded-full transition transform active:scale-95 cursor-pointer uppercase tracking-wider shadow-sm"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-cream border border-primary-dark text-primary-dark font-bold text-xs rounded-full transition transform active:scale-95 cursor-pointer uppercase tracking-wider shadow-sm"
                     >
                       Đồng bộ hòm thư thầu 📩
                     </button>
@@ -1833,7 +1835,7 @@ export default function CaseDetailTimeline({
                 <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4.5 h-4.5 text-accent-gold animate-spin-slow" />
-                    <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">Giả lập nhà cung cấp phản hồi thầu</h4>
+                    <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Giả lập nhà cung cấp phản hồi thầu</h4>
                   </div>
                   <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
                     Để chạy demo khép kín, bạn có thể chọn một NCC giả lập nộp file báo giá. Hệ thống sẽ bóc tách dữ liệu AI OCR lập tức và lập bảng so sánh thầu!
@@ -1841,11 +1843,11 @@ export default function CaseDetailTimeline({
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-[9px] font-black text-primary-dark uppercase tracking-wider">NCC phản hồi thầu:</label>
+                      <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">NCC phản hồi thầu:</label>
                       <select 
                         value={simSupplierId}
                         onChange={e => setSimSupplierId(e.target.value)}
-                        className="p-2.5 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                        className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                       >
                         <option value="">-- Chọn NCC nộp thầu --</option>
                         {matchedSuppliers.map(s => (
@@ -1855,24 +1857,24 @@ export default function CaseDetailTimeline({
                     </div>
 
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-[9px] font-black text-primary-dark uppercase tracking-wider">Tên file đính kèm (Báo giá PDF/Excel):</label>
+                      <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">Tên file đính kèm (Báo giá PDF/Excel):</label>
                       <input 
                         type="text" 
                         value={simFile}
                         onChange={e => setSimFile(e.target.value)}
-                        className="p-2.5 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-black font-mono text-primary-dark"
+                        className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold font-mono text-primary-dark"
                       />
                     </div>
                   </div>
 
                   <div className="flex flex-col space-y-1.5">
-                    <label className="text-[9px] font-black text-primary-dark uppercase tracking-wider">Nội dung thư phản hồi:</label>
+                    <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">Nội dung thư phản hồi:</label>
                     <textarea 
                       rows={3}
                       placeholder="Chào Stally F&B, chúng tôi phản hồi báo giá thầu chi tiết kèm theo..."
                       value={simEmailBody}
                       onChange={e => setSimEmailBody(e.target.value)}
-                      className="p-2.5 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark"
+                      className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark"
                     />
                   </div>
 
@@ -1896,38 +1898,38 @@ export default function CaseDetailTimeline({
             <div className="space-y-6">
               {renderPermissionLock(["procurement"], "Đối Chiếu Báo Giá & AI Negotiation")}
               <div>
-                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
-                  <Scale className="w-5 h-5 text-teal-600" /> Bước 3: So sánh &amp; Thương lượng giá (AI Negotiation)
+                <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
+                  <Scale className="w-5 h-5 text-accent-dark" /> Bước 3: So sánh &amp; Thương lượng giá (AI Negotiation)
                 </h3>
               </div>
 
               {comparison && comparison.matrix && comparison.matrix.length > 0 ? (
                 <div className="space-y-6">
                   {/* AI Sourcing recommendation card (Gold glow) */}
-                  <div className="bg-cream border-3 border-primary-dark p-5 rounded-3xl shadow-accent-glow">
-                    <p className="text-[9px] font-black text-primary-dark uppercase tracking-widest font-mono flex items-center gap-1.5">
+                  <div className="bg-cream border border-primary-dark p-5 rounded-3xl shadow-accent-glow">
+                    <p className="text-[9px] font-bold text-primary-dark uppercase tracking-widest font-mono flex items-center gap-1.5">
                       <Award className="w-4.5 h-4.5 text-accent-dark animate-bounce" /> Đề xuất lựa chọn tốt nhất từ AI Sourcing
                     </p>
                     <p className="text-xs text-primary-dark font-bold mt-2.5 leading-relaxed" dangerouslySetInnerHTML={{ __html: comparison.summary.recommendationReason }} />
                   </div>
 
-                  <div className="border-2 border-primary-dark rounded-2xl overflow-x-auto bg-white shadow-sm">
+                  <div className="border border-primary-dark rounded-2xl overflow-x-auto bg-white shadow-sm">
                     <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                       <thead>
-                        <tr className="bg-primary-bg border-b-2 border-primary-dark font-black text-[9px] text-primary-dark uppercase tracking-wider">
+                        <tr className="bg-primary-bg border-b border-primary-dark font-bold text-[9px] text-primary-dark uppercase tracking-wider">
                           <th className="p-3.5">Hồ sơ thầu</th>
                           {comparison.matrix.map((q: Quote) => (
-                            <th key={q.id} className="p-3.5 border-l-2 border-primary-dark/20 relative min-w-[200px]">
+                            <th key={q.id} className="p-3.5 border-l border-primary-dark/20 relative min-w-[200px]">
                               <div className="space-y-1">
-                                <p className="font-black text-primary-dark text-xs uppercase tracking-wide">{q.supplierName}</p>
+                                <p className="font-bold text-primary-dark text-xs uppercase tracking-wide">{q.supplierName}</p>
                                 <p className="text-[9px] font-mono text-primary-dark/50">ID: {q.id}</p>
                                 {q.negotiationStatus === "supplier_responded" && (
-                                  <span className="inline-flex w-fit px-2 py-0.5 rounded bg-emerald-50 border border-emerald-500 text-[8px] text-emerald-700 font-black uppercase tracking-wider">
+                                  <span className="inline-flex w-fit px-2 py-0.5 rounded bg-emerald-50 border border-emerald-500 text-[8px] text-emerald-700 font-bold uppercase tracking-wider">
                                     Đã đồng ý đàm phán V{q.versionCount || 2}
                                   </span>
                                 )}
                                 {q.id === comparison.summary.lowestTotalQuoteId && (
-                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-black uppercase tracking-wider shadow-sm">Tối ưu nhất</span>
+                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-bold uppercase tracking-wider shadow-sm">Tối ưu nhất</span>
                                 )}
                               </div>
                             </th>
@@ -1938,7 +1940,7 @@ export default function CaseDetailTimeline({
                         <tr className="bg-cream/20">
                           <td className="p-3.5 bg-primary-bg/10">Tổng thanh toán thầu</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l-2 border-primary-dark/20 font-black text-xs text-primary-dark">
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-bold text-xs text-primary-dark">
                               {formatVND(q.totalAmount)}
                             </td>
                           ))}
@@ -1946,7 +1948,7 @@ export default function CaseDetailTimeline({
                         <tr>
                           <td className="p-3.5 bg-primary-bg/10">Lịch giao hàng dự kiến</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l-2 border-primary-dark/20 font-black text-primary font-mono">
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-bold text-primary font-mono">
                               {q.deliveryDays} ngày
                             </td>
                           ))}
@@ -1954,7 +1956,7 @@ export default function CaseDetailTimeline({
                         <tr>
                           <td className="p-3.5 bg-primary-bg/10">Điều khoản công nợ</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l-2 border-primary-dark/20 text-primary-dark/75">
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20 text-primary-dark/75">
                               {q.paymentTerms}
                             </td>
                           ))}
@@ -1962,7 +1964,7 @@ export default function CaseDetailTimeline({
                         <tr>
                           <td className="p-3.5 bg-primary-bg/10">Độ tin cậy trích xuất OCR</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l-2 border-primary-dark/20 font-mono font-black text-teal-600">
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-mono font-bold text-accent-dark">
                               ⭐ {q.aiConfidenceScore}/100
                             </td>
                           ))}
@@ -1970,8 +1972,8 @@ export default function CaseDetailTimeline({
                         <tr>
                           <td className="p-3.5 bg-primary-bg/10">Trạng thái</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l-2 border-primary-dark/20">
-                              <span className={`px-2 py-0.5 rounded-full border-2 text-[8px] font-black uppercase font-mono ${
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20">
+                              <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase font-mono ${
                                 q.status === "selected" ? "bg-emerald-50 border-success text-success" :
                                 q.status === "rejected" ? "bg-coral-light/10 border-coral text-coral-dark" :
                                 "bg-accent-light/10 border-accent-gold text-accent-dark"
@@ -1979,7 +1981,7 @@ export default function CaseDetailTimeline({
                                 {q.status === "extracted" ? "Mới nhận" : q.status === "selected" ? "Được chọn" : "Đã loại"}
                               </span>
                               {q.negotiationStatus === "supplier_responded" && (
-                                <p className="mt-1.5 text-[9px] font-black text-emerald-700">
+                                <p className="mt-1.5 text-[9px] font-bold text-emerald-700">
                                   NCC đã phản hồi đồng ý thương lượng
                                 </p>
                               )}
@@ -1989,17 +1991,18 @@ export default function CaseDetailTimeline({
                         <tr className="bg-primary-bg/5">
                           <td className="p-3.5 bg-primary-bg/10">Thao tác</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l-2 border-primary-dark/20">
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20">
                               {caseObj.status !== "pending_approval" && caseObj.status !== "approved" && caseObj.status !== "closed" ? (
                                 <button
+                                  id="btn-request-approval"
                                   onClick={() => handleRequestApproval(q.id)}
                                   disabled={currentRole !== "procurement"}
-                                  className="w-full py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:opacity-50"
+                                  className="w-full py-1.5 bg-amber-50 hover:bg-amber-50 text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:opacity-50"
                                 >
                                   Trình duyệt PO
                                 </button>
                               ) : (
-                                <span className="text-primary-dark/50 italic text-[9px] font-black">Đã chọn duyệt</span>
+                                <span className="text-primary-dark/50 italic text-[9px] font-bold">Đã chọn duyệt</span>
                               )}
                             </td>
                           ))}
@@ -2010,10 +2013,10 @@ export default function CaseDetailTimeline({
 
                   {/* AI Negotiation Workspace (Playful Card) */}
                   {caseObj.status !== "closed" && (
-                    <div className="bg-cream border-3 border-primary-dark p-5 rounded-3xl shadow-card space-y-4">
+                    <div className="bg-cream border border-primary-dark p-5 rounded-3xl shadow-card space-y-4">
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="w-4.5 h-4.5 text-accent-dark animate-pulse" />
-                        <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">AI Negotiation Hub – Đàm phán giảm giá thông minh</h4>
+                        <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">AI Negotiation Hub – Đàm phán giảm giá thông minh</h4>
                       </div>
                       <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
                         Bạn chưa ưng ý mức giá của nhà thầu? Chọn NCC và đặt mục tiêu. Trợ lý AI sẽ lập tức soạn thảo email Gmail thương thảo chuyên sâu. Đối tác khi phản hồi giảm giá, hệ thống sẽ tự động cập nhật bảng so sánh!
@@ -2021,11 +2024,11 @@ export default function CaseDetailTimeline({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col space-y-1.5">
-                          <label className="text-[9px] font-black text-primary-dark uppercase tracking-wider">NCC đàm phán:</label>
+                          <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">NCC đàm phán:</label>
                           <select
                             value={selectedNegSupplier}
                             onChange={e => setSelectedNegSupplier(e.target.value)}
-                            className="p-2.5 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                            className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                           >
                             <option value="">-- Chọn nhà cung cấp --</option>
                             {negotiationSupplierOptions.map((supplier) => (
@@ -2042,11 +2045,11 @@ export default function CaseDetailTimeline({
                         </div>
 
                         <div className="flex flex-col space-y-1.5">
-                          <label className="text-[9px] font-black text-primary-dark uppercase tracking-wider">Mục tiêu thương lượng:</label>
+                          <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">Mục tiêu thương lượng:</label>
                           <select
                             value={negGoal}
                             onChange={e => setNegGoal(e.target.value)}
-                            className="p-2.5 border-2 border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                            className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                           >
                             <option value="discount_5">Yêu cầu chiết khấu thêm 5% giá trị</option>
                             <option value="faster_delivery">Yêu cầu rút ngắn thời gian giao hàng</option>
@@ -2057,9 +2060,10 @@ export default function CaseDetailTimeline({
 
                       <div className="flex justify-end">
                         <button
+                          id="btn-draft-negotiation"
                           onClick={handleDraftNegotiation}
                           disabled={negLoading || !selectedNegSupplier || negotiationSupplierOptions.length === 0 || currentRole !== "procurement"}
-                          className="px-4 py-2.5 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                          className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           {negLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                           AI soạn thư đàm phán
@@ -2067,18 +2071,18 @@ export default function CaseDetailTimeline({
                       </div>
 
                       {negDraft && (
-                        <div className="border-2 border-primary-dark rounded-2xl bg-white p-4 space-y-3 shadow-md animate-scale-up">
+                        <div className="border border-primary-dark rounded-2xl bg-white p-4 space-y-3 shadow-md animate-scale-up">
                           <div className="flex flex-col space-y-1.5">
-                            <label className="text-[9px] font-black text-primary-dark uppercase">Bản thảo email đàm phán nháp:</label>
+                            <label className="text-[9px] font-bold text-primary-dark uppercase">Bản thảo email đàm phán nháp:</label>
                             <textarea 
                               rows={5}
                               value={negEditedBody}
                               onChange={e => setNegEditedBody(e.target.value)}
-                              className="p-2.5 border-2 border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed focus:outline-none"
+                              className="p-2.5 border border-primary-dark/30 bg-cream rounded-xl text-xs font-bold text-primary-dark leading-relaxed focus:outline-none"
                             />
                           </div>
                           <div className="flex justify-end gap-2.5">
-                            <button onClick={() => setNegDraft(null)} className="px-4 py-1.5 bg-white hover:bg-slate-55 border-2 border-primary-dark text-primary-dark rounded-full font-black text-xs uppercase cursor-pointer">Hủy</button>
+                            <button onClick={() => setNegDraft(null)} className="px-4 py-1.5 bg-white hover:bg-slate-55 border border-primary-dark text-primary-dark rounded-full font-bold text-xs uppercase cursor-pointer">Hủy</button>
                             <button
                               onClick={handleSendNegotiation}
                               disabled={loadingAction !== null || currentRole !== "procurement"}
@@ -2096,7 +2100,7 @@ export default function CaseDetailTimeline({
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
                   <AlertTriangle className="w-10 h-10 text-coral animate-bounce" />
-                  <h4 className="text-sm font-black text-primary-dark uppercase tracking-wider">Chưa nhận được báo giá thầu nào!</h4>
+                  <h4 className="text-sm font-bold text-primary-dark uppercase tracking-wider">Chưa nhận được báo giá thầu nào!</h4>
                   <p className="text-xs text-primary-dark/85 font-medium max-w-sm leading-relaxed">
                     Vui lòng bấm sang Bước 2 và sử dụng "Cổng giả lập đối tác nộp báo giá" để gửi dữ liệu thầu giả lập, AI sẽ phân tích ngay lập tức.
                   </p>
@@ -2110,30 +2114,30 @@ export default function CaseDetailTimeline({
             <div className="space-y-6">
               {renderPermissionLock(["manager"], "Giám Đốc Phê Duyệt Hồ Sơ Thầu")}
               <div>
-                <h3 className="text-base font-black text-[#00535b] flex items-center gap-2 font-display">
-                  <Award className="w-5 h-5 text-teal-600" /> Bước 4: Giám Đốc Phê Duyệt Hồ Sơ Thầu (CEO Review)
+                <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
+                  <Award className="w-5 h-5 text-accent-dark" /> Bước 4: Giám Đốc Phê Duyệt Hồ Sơ Thầu (CEO Review)
                 </h3>
               </div>
 
               {comparison && comparison.matrix && comparison.matrix.length > 0 ? (
                 <div className="space-y-6">
                   {/* Selected Quote Summary Card */}
-                  <div className="bg-cream border-2 border-primary-dark p-5 rounded-2xl space-y-3 shadow-md border-l-8 border-l-accent-gold">
-                    <h4 className="text-[10px] font-black text-primary-dark uppercase tracking-widest">Hồ sơ thầu được đề xuất ký PO:</h4>
+                  <div className="bg-cream border border-primary-dark p-5 rounded-2xl space-y-3 shadow-md border-l-8 border-l-accent-gold">
+                    <h4 className="text-[10px] font-bold text-primary-dark uppercase tracking-widest">Hồ sơ thầu được đề xuất ký PO:</h4>
                     
                     {comparison.matrix.filter((q: Quote) => q.status === "selected" || q.id === caseObj.selectedQuoteId).map((q: Quote) => (
-                      <div key={q.id} className="bg-white border-2 border-primary-dark p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+                      <div key={q.id} className="bg-white border border-primary-dark p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
                         <div className="space-y-1">
-                          <p className="font-black text-sm text-primary-dark uppercase tracking-wide">{q.supplierName}</p>
-                          <p className="text-[9px] text-primary-dark/50 font-black font-mono">Báo giá: {q.id} | Thời gian giao: {q.deliveryDays} ngày</p>
+                          <p className="font-bold text-sm text-primary-dark uppercase tracking-wide">{q.supplierName}</p>
+                          <p className="text-[9px] text-primary-dark/50 font-bold font-mono">Báo giá: {q.id} | Thời gian giao: {q.deliveryDays} ngày</p>
                           <p className="text-xs text-primary-dark font-bold mt-1.5">
-                            Thanh toán: <span className="text-primary font-black uppercase font-mono">{q.paymentTerms}</span>
+                            Thanh toán: <span className="text-primary font-bold uppercase font-mono">{q.paymentTerms}</span>
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] font-black text-primary-dark/50 uppercase leading-none">Tổng giá trị PO thầu:</p>
-                          <p className="text-base font-black text-primary-dark font-mono mt-1.5">{formatVND(q.totalAmount)}</p>
-                          <span className="text-[9px] bg-primary-bg text-primary border border-primary font-mono font-black px-2 py-0.5 rounded-md mt-1 block w-fit ml-auto shadow-sm">
+                          <p className="text-[9px] font-bold text-primary-dark/50 uppercase leading-none">Tổng giá trị PO thầu:</p>
+                          <p className="text-base font-bold text-primary-dark font-mono mt-1.5">{formatVND(q.totalAmount)}</p>
+                          <span className="text-[9px] bg-primary-bg text-primary border border-primary font-mono font-bold px-2 py-0.5 rounded-md mt-1 block w-fit ml-auto shadow-sm">
                             Đã đàm phán 10%
                           </span>
                         </div>
@@ -2141,26 +2145,26 @@ export default function CaseDetailTimeline({
                     ))}
 
                     {comparison.matrix.filter((q: Quote) => q.status === "selected" || q.id === caseObj.selectedQuoteId).length === 0 && (
-                      <p className="text-xs text-primary-dark/50 italic font-black">Chưa có NCC nào được chọn đề xuất. Hãy quay lại Bước 3 để đề xuất.</p>
+                      <p className="text-xs text-primary-dark/50 italic font-bold">Chưa có NCC nào được chọn đề xuất. Hãy quay lại Bước 3 để đề xuất.</p>
                     )}
                   </div>
 
                   {/* Comment box and controls */}
                   {caseObj.status === "pending_approval" ? (
-                    <div className="bg-surface-base border-2 border-primary-dark p-5 rounded-2xl space-y-4 shadow-sm">
+                    <div className="bg-surface-base border border-primary-dark p-5 rounded-2xl space-y-4 shadow-sm">
                       <div className="flex items-center gap-1.5">
                         <Info className="w-4.5 h-4.5 text-accent-dark animate-pulse" />
-                        <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">Quyết định phê duyệt của Giám Đốc (CEO)</h4>
+                        <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Quyết định phê duyệt của Giám Đốc (CEO)</h4>
                       </div>
                       
                       <div className="flex flex-col space-y-1.5">
-                        <label className="text-[10px] font-black text-primary-dark uppercase tracking-widest">Ý kiến phê duyệt hoặc lý do bác bỏ thầu:</label>
+                        <label className="text-[10px] font-bold text-primary-dark uppercase tracking-widest">Ý kiến phê duyệt hoặc lý do bác bỏ thầu:</label>
                         <textarea 
                           rows={3}
                           placeholder="Duyệt đơn vị này do tổng chi phí tốt nhất và giao nhận nhanh..."
                           value={approvalComment}
                           onChange={e => setApprovalComment(e.target.value)}
-                          className="p-2.5 border-2 border-primary-dark/30 bg-cream focus:border-primary-dark rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
+                          className="p-2.5 border border-primary-dark/30 bg-cream focus:border-primary-dark rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                         />
                       </div>
 
@@ -2174,6 +2178,7 @@ export default function CaseDetailTimeline({
                           Bác bỏ &amp; Đàm phán lại
                         </button>
                         <button
+                          id="btn-manager-approve-case"
                           onClick={handleApprove}
                           disabled={loadingAction !== null || currentRole !== "manager"}
                           className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
@@ -2184,7 +2189,7 @@ export default function CaseDetailTimeline({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex justify-between items-center bg-cream border-2 border-primary-dark p-4 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm">
+                    <div className="flex justify-between items-center bg-cream border border-primary-dark p-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm">
                       <span className="text-primary-dark/70">Trạng thái phê duyệt:</span>
                       {["approved", "po_draft", "po_sent", "receiving", "closed"].includes(caseObj.status) ? (
                         <span className="text-success flex items-center gap-1">
@@ -2200,9 +2205,10 @@ export default function CaseDetailTimeline({
                   {caseObj.status === "approved" && (
                     <div className="flex justify-end pt-2">
                       <button
+                        id="btn-create-po-draft"
                         onClick={handleCreatePoDraft}
                         disabled={loadingAction !== null}
-                        className="px-5 py-3 bg-accent-gold hover:bg-accent-dark text-primary-dark border-2 border-primary-dark font-black text-xs rounded-full flex items-center gap-1.5 shadow-accent-glow transition transform active:scale-95 cursor-pointer animate-pulse uppercase tracking-wider"
+                        className="px-5 py-3 bg-accent-gold hover:bg-accent-dark text-primary-dark border border-primary-dark font-bold text-xs rounded-full flex items-center gap-1.5 shadow-accent-glow transition transform active:scale-95 cursor-pointer animate-pulse uppercase tracking-wider"
                       >
                         {loadingAction === "po_draft" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-primary-dark" />}
                         Tạo Đơn đặt hàng nháp PO
@@ -2213,7 +2219,7 @@ export default function CaseDetailTimeline({
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
                   <AlertTriangle className="w-10 h-10 text-coral" />
-                  <h4 className="text-sm font-black text-primary-dark uppercase">Không tìm thấy hồ sơ báo giá!</h4>
+                  <h4 className="text-sm font-bold text-primary-dark uppercase">Không tìm thấy hồ sơ báo giá!</h4>
                 </div>
               )}
             </div>
@@ -2222,8 +2228,8 @@ export default function CaseDetailTimeline({
           {/* Milestone 5 View: PO Issuance, Goods Receipt and Close */}
           {activeMilestone === 5 && (
             <div className="space-y-6 animate-fade-slide-up">
-              <div className="pb-2 border-b-3 border-dashed border-primary/20">
-                <h3 className="text-base font-black text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
+              <div className="pb-2 border-b border-dashed border-primary/20">
+                <h3 className="text-base font-bold text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
                   <Boxes className="w-5 h-5 text-primary-light" /> Bước 5: Đơn Đặt Hàng PO &amp; Ghi Nhận Nhập Kho
                 </h3>
               </div>
@@ -2231,19 +2237,19 @@ export default function CaseDetailTimeline({
               {poList.length > 0 ? (
                 <div className="space-y-6">
                   {poList.map((po) => (
-                    <div key={po.id} className="border-3 border-primary-dark rounded-3xl overflow-hidden bg-white p-5 space-y-4 shadow-card">
-                      <div className="flex justify-between items-start border-b-2 border-dashed border-primary/20 pb-3 flex-wrap gap-2">
+                    <div key={po.id} className="border border-primary-dark rounded-3xl overflow-hidden bg-white p-5 space-y-4 shadow-card">
+                      <div className="flex justify-between items-start border-b border-dashed border-primary/20 pb-3 flex-wrap gap-2">
                         <div className="space-y-1">
-                          <p className="text-[9px] bg-cream border-2 border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-black shadow-sm">PO CODE: {po.id.toUpperCase()}</p>
-                          <h4 className="font-black text-sm text-primary-dark uppercase tracking-wider mt-2">Nhà cung ứng: {po.supplierName}</h4>
+                          <p className="text-[9px] bg-cream border border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-bold shadow-sm">PO CODE: {po.id.toUpperCase()}</p>
+                          <h4 className="font-bold text-sm text-primary-dark uppercase tracking-wider mt-2">Nhà cung ứng: {po.supplierName}</h4>
                         </div>
                         <div className="text-right">
-                          <span className={`px-2.5 py-0.5 rounded-full border-2 text-[8px] font-black uppercase font-mono ${
+                          <span className={`px-2.5 py-0.5 rounded-full border text-[8px] font-bold uppercase font-mono ${
                             po.status === "confirmed" ? "bg-emerald-50 border-success text-success" : "bg-accent-light/10 border-accent-gold text-accent-dark"
                           }`}>
                             {po.status === "confirmed" ? "Đã phát thầu" : "Nháp"}
                           </span>
-                          <p className="text-sm font-black text-primary-dark font-mono mt-1">{formatVND(po.totalAmount)}</p>
+                          <p className="text-sm font-bold text-primary-dark font-mono mt-1">{formatVND(po.totalAmount)}</p>
                         </div>
                       </div>
 
@@ -2255,17 +2261,17 @@ export default function CaseDetailTimeline({
                           {po.items.map((it, idx) => (
                             <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex justify-between items-center gap-4">
                               <div className="space-y-0.5 flex-1 pr-4">
-                                <p className="font-black text-xs text-slate-900">{it.name}</p>
+                                <p className="font-bold text-xs text-slate-900">{it.name}</p>
                                 <p className="text-[10px] text-slate-500 font-bold font-mono">Số lượng đặt: {it.quantity} {it.unit} | Đơn giá: {formatVND(it.unitPrice)}</p>
                               </div>
                               <div className="text-right shrink-0">
                                 <p className="text-xs font-mono font-bold text-slate-750">{formatVND(it.quantity * it.unitPrice)}</p>
                                 {caseObj.status === "closed" ? (
-                                  <span className="text-[10px] font-black text-emerald-700 mt-1 flex items-center gap-1 justify-end">
+                                  <span className="text-[10px] font-bold text-emerald-700 mt-1 flex items-center gap-1 justify-end">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600 animate-pulse" /> Đã nhập {it.quantity} {it.unit}
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] font-bold text-teal-600/80 mt-1 block">Chờ nhập kho</span>
+                                  <span className="text-[10px] font-bold text-accent-dark/80 mt-1 block">Chờ nhập kho</span>
                                 )}
                               </div>
                             </div>
@@ -2277,6 +2283,7 @@ export default function CaseDetailTimeline({
                       {po.status === "issued" && (
                         <div className="flex justify-end pt-3">
                           <button
+                            id="btn-send-case-po"
                             onClick={() => handleSendPo(po.id)}
                             disabled={loadingAction !== null || currentRole !== "procurement"}
                             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
@@ -2298,9 +2305,10 @@ export default function CaseDetailTimeline({
                       {po.status === "confirmed" && caseObj.status !== "closed" && (
                         <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
                           <button
+                            id="btn-receive-case-po"
                             onClick={() => handleReceiveAllAndClose(po.id, po.items)}
                             disabled={loadingAction === "receive_all" || currentRole !== "warehouse"}
-                            className="w-full sm:w-auto px-6 py-3 bg-[#006d77] hover:bg-[#00535b] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full sm:w-auto px-6 py-3 bg-[#9A6A2F] hover:bg-[#1A1A1A] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {loadingAction === "receive_all" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Boxes className="w-4 h-4" />}
                             Xác nhận Kiểm Kho &amp; Hoàn Tất Nhập Kho (1-Click)
@@ -2318,8 +2326,8 @@ export default function CaseDetailTimeline({
                   ))}
                 </div>
               ) : (
-                <div className="bg-cream border-2 border-primary-dark p-5 rounded-2xl space-y-3 shadow-md">
-                  <h4 className="text-xs font-black text-primary-dark uppercase tracking-wider">Chưa tạo đơn đặt hàng PO chính thức:</h4>
+                <div className="bg-cream border border-primary-dark p-5 rounded-2xl space-y-3 shadow-md">
+                  <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Chưa tạo đơn đặt hàng PO chính thức:</h4>
                   <p className="text-xs text-primary-dark/85 font-medium">
                     CEO đã duyệt phê duyệt thầu? Hãy click khởi tạo Bản thảo PO thầu để chính thức tạo đơn hàng gửi nhà thầu.
                   </p>
@@ -2329,7 +2337,7 @@ export default function CaseDetailTimeline({
                       <button
                         onClick={handleCreatePoDraft}
                         disabled={loadingAction !== null || currentRole !== "procurement"}
-                        className="px-5 py-3 bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
+                        className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
                       >
                         {loadingAction === "po_draft" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                         Khởi tạo bản thảo Đơn PO
@@ -2343,7 +2351,7 @@ export default function CaseDetailTimeline({
                       )}
                     </>
                   ) : (
-                    <div className="text-xs text-primary-dark/50 italic font-black">Chờ duyệt thầu của Giám đốc ở Bước 4...</div>
+                    <div className="text-xs text-primary-dark/50 italic font-bold">Chờ duyệt thầu của Giám đốc ở Bước 4...</div>
                   )}
                 </div>
               )}
@@ -2355,47 +2363,47 @@ export default function CaseDetailTimeline({
         <div className="lg:col-span-4 space-y-6">
           
           {/* Metadata Card */}
-          <div className="bg-white border-3 border-primary-dark rounded-3xl p-5 shadow-card space-y-4">
-            <h3 className="text-xs font-black text-primary-dark uppercase tracking-wider font-display pb-2 border-b-2 border-dashed border-primary/20">Thông tin nguồn phát:</h3>
+          <div className="bg-white border border-primary-dark rounded-3xl p-5 shadow-card space-y-4">
+            <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider font-display pb-2 border-b border-dashed border-primary/20">Thông tin nguồn phát:</h3>
             
             <div className="space-y-3 text-xs text-primary-dark font-bold">
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">Phòng ban đề xuất:</span>
-                <span className="text-primary-dark uppercase font-black">{caseObj.departmentName || "Bộ phận Bếp"}</span>
+                <span className="text-primary-dark uppercase font-bold">{caseObj.departmentName || "Bộ phận Bếp"}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">Người đề xuất:</span>
-                <span className="text-primary-dark font-black">{caseObj.requesterName || "Bếp Trưởng Bình"}</span>
+                <span className="text-primary-dark font-bold">{caseObj.requesterName || "Bếp Trưởng Bình"}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">Khởi tạo tự động:</span>
-                <span className="text-primary uppercase font-black font-mono">{caseObj.createdFrom}</span>
+                <span className="text-primary uppercase font-bold font-mono">{caseObj.createdFrom}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">Hạn giao hàng bếp:</span>
-                <span className="text-coral font-mono font-black">{caseObj.requiredDate}</span>
+                <span className="text-coral font-mono font-bold">{caseObj.requiredDate}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-primary-dark/65 font-medium">Ngày lập:</span>
-                <span className="text-primary-dark font-mono font-black">{new Date(caseObj.createdAt).toLocaleDateString("vi-VN")}</span>
+                <span className="text-primary-dark font-mono font-bold">{new Date(caseObj.createdAt).toLocaleDateString("vi-VN")}</span>
               </div>
             </div>
           </div>
 
           {/* Audit event timeline transition logs (retro board game lines) */}
-          <div className="bg-white border-3 border-primary-dark rounded-3xl p-5 shadow-card space-y-4">
-            <h3 className="text-xs font-black text-primary-dark uppercase tracking-wider font-display pb-2 border-b-2 border-dashed border-primary/20 flex items-center gap-1.5">
+          <div className="bg-white border border-primary-dark rounded-3xl p-5 shadow-card space-y-4">
+            <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider font-display pb-2 border-b border-dashed border-primary/20 flex items-center gap-1.5">
               <History className="w-4.5 h-4.5 text-primary" /> Nhật ký chuyển đổi Case thầu
             </h3>
 
-            <div className="space-y-4 relative pl-4.5 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-1 before:bg-primary-dark/15 before:border-l-2 before:border-dashed before:border-primary-dark/25">
+            <div className="space-y-4 relative pl-4.5 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-1 before:bg-primary-dark/15 before:border-l before:border-dashed before:border-primary-dark/25">
               {timeline.slice().reverse().map((t) => (
                 <div key={t.id} className="relative space-y-1 pl-1">
                   {/* Playful board game circular dot */}
-                  <div className="absolute -left-[24.5px] top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-primary-dark shadow-sm" />
+                  <div className="absolute -left-[24.5px] top-1.5 w-3 h-3 rounded-full bg-primary border border-primary-dark shadow-sm" />
                   
                   <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-primary-dark font-black uppercase tracking-wide">{getStatusLabel(t.toStatus)}</span>
+                    <span className="text-primary-dark font-bold uppercase tracking-wide">{getStatusLabel(t.toStatus)}</span>
                     <span className="text-primary-dark/50 font-mono font-bold">{new Date(t.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   
@@ -2403,7 +2411,7 @@ export default function CaseDetailTimeline({
                     {t.reason}
                   </p>
 
-                  <div className="flex items-center gap-1 mt-1 text-[8.5px] text-primary-dark/45 font-black uppercase tracking-widest font-mono">
+                  <div className="flex items-center gap-1 mt-1 text-[8.5px] text-primary-dark/45 font-bold uppercase tracking-widest font-mono">
                     <User className="w-3 h-3" />
                     <span>{t.actorRole} ({t.actorId})</span>
                   </div>

@@ -57,15 +57,15 @@ export default function StatsDashboard({
       {/* Upper header summary with luxury feel */}
       <div className="bg-white border border-slate-200 p-6 rounded-2xl executive-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-extrabold font-display text-[#00535b] tracking-tight flex items-center gap-2">
-            Tổng quan Vận hành <Sparkles className="w-4 h-4 text-teal-600" />
+          <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight flex items-center gap-2">
+            Tổng quan Vận hành <Sparkles className="w-4 h-4 text-accent-dark" />
           </h2>
           <p className="text-slate-500 text-xs mt-1">
             Báo cáo tức thời luồng thu mua và kiểm soát kho nguyên liệu thông minh.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 font-mono">
-          <Clock className="w-3.5 h-3.5 text-teal-600" />
+          <Clock className="w-3.5 h-3.5 text-accent-dark" />
           <span>Hệ thống trực tuyến</span>
         </div>
       </div>
@@ -79,7 +79,7 @@ export default function StatsDashboard({
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">Yêu cầu mua (PR)</p>
               <h3 className="text-2xl font-bold text-[#1e293b] mt-1.5 font-display">{activePrCount} Yêu cầu</h3>
             </div>
-            <div className="p-2.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
+            <div className="p-2.5 rounded-xl bg-amber-50 text-accent-dark border border-amber-200">
               <FileCheck className="w-5 h-5" />
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function StatsDashboard({
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">Chi tiêu Đã duyệt</p>
-              <h3 className="text-[18px] font-bold text-[#00535b] mt-2 font-display truncate">
+              <h3 className="text-[18px] font-bold text-[#1A1A1A] mt-2 font-display truncate">
                 {formatVND(approvedOrdersAmount)}
               </h3>
             </div>
@@ -152,12 +152,12 @@ export default function StatsDashboard({
           <div>
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-black text-[#00535b] flex items-center gap-1.5 font-display">
-                  <BarChart3 className="w-4 h-4 text-teal-600" /> Xu hướng chi tiêu thu mua (Tuần gần nhất)
+                <h3 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-1.5 font-display">
+                  <BarChart3 className="w-4 h-4 text-accent-dark" /> Xu hướng chi tiêu thu mua (Tuần gần nhất)
                 </h3>
                 <p className="text-[11px] text-slate-400 font-semibold">Lưu lượng tích lũy giá trị đơn đặt hàng PO thành công theo ngày.</p>
               </div>
-              <span className="text-[9px] bg-teal-50 text-teal-700 font-bold px-2 py-0.5 rounded border border-teal-150 font-mono">
+              <span className="text-[9px] bg-amber-50 text-accent-dark font-bold px-2 py-0.5 rounded border border-amber-200 font-mono">
                 Số liệu thực tế
               </span>
             </div>
@@ -232,14 +232,14 @@ export default function StatsDashboard({
 
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 flex items-center justify-between text-xs mt-4">
             <span className="text-slate-500 font-bold">Trung bình phản hồi của nhà cung ứng:</span>
-            <span className="text-[#00535b] font-black font-mono">3.4 báo giá / phiên thầu</span>
+            <span className="text-[#1A1A1A] font-bold font-mono">3.4 báo giá / phiên thầu</span>
           </div>
         </div>
 
         {/* Cân Đối Ngân Sách Danh Mục */}
         <div className="lg:col-span-5 bg-white border border-slate-200 p-6 rounded-2xl executive-shadow flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-black text-[#00535b] flex items-center gap-1.5 font-display">
+            <h3 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-1.5 font-display">
               <Coins className="w-4 h-4 text-emerald-600" /> Ngân Sách Nguyên Liệu Thực Phẩm
             </h3>
             <p className="text-[11px] text-slate-400 mt-1 font-semibold">
@@ -249,7 +249,7 @@ export default function StatsDashboard({
             <div className="space-y-4 mt-6">
               {[
                 { name: "Lương thực & Gạo thơm (ST25)", progress: 78, color: "bg-amber-500", raw: "5.4 M / 7 M", icon: ChefHat },
-                { name: "Thịt Sạch & Hải Sản tươi", progress: 62, color: "bg-teal-600", raw: "12.4 M / 20 M", icon: Utensils },
+                { name: "Thịt Sạch & Hải Sản tươi", progress: 62, color: "bg-primary-dark", raw: "12.4 M / 20 M", icon: Utensils },
                 { name: "Gia vị & Khối Bếp chế biến", progress: 41, color: "bg-indigo-500", raw: "2.1 M / 5 M", icon: Coins },
                 { name: "Rau củ hữu cơ Đà Lạt", progress: 91, color: "bg-emerald-500", raw: "4.5 M / 5 M", icon: ShoppingBag }
               ].map((category, idx) => {
@@ -281,19 +281,19 @@ export default function StatsDashboard({
             <span className="text-[11px] text-slate-500 font-bold flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Biến động ngân sách tổng quan:
             </span>
-            <span className="text-emerald-700 font-black text-xs font-mono">An Toàn (0% vượt mẫu)</span>
+            <span className="text-emerald-700 font-bold text-xs font-mono">An Toàn (0% vượt mẫu)</span>
           </div>
         </div>
       </div>
 
       {/* Critical Stock Warn & Quick AI Action Panel */}
       {lowStockCount > 0 && (
-        <div className="bg-gradient-to-r from-teal-50 via-white to-white border border-[#b2dfdb]/50 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl" />
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-lg" />
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-teal-700 uppercase tracking-wider font-mono flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-teal-600" /> Đề xuất bù tồn kho thông minh bằng AI
+              <p className="text-[10px] font-bold text-accent-dark uppercase tracking-wider font-mono flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-accent-dark" /> Đề xuất bù tồn kho thông minh bằng AI
               </p>
               <h4 className="text-sm font-bold text-slate-800">
                 Có {lowStockCount} mặt hàng thiết yếu sắp cạn kiệt! Bạn muốn khởi tạo đơn thầu ngay không?
@@ -305,7 +305,7 @@ export default function StatsDashboard({
             <div className="flex gap-2.5 shrink-0">
               <button 
                 onClick={() => setActiveTab("chatbot")}
-                className="bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                className="bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Dùng Trợ lý AI
               </button>
@@ -336,7 +336,7 @@ export default function StatsDashboard({
                     onCreatePrFromStock(it);
                     setActiveTab("pr");
                   }}
-                  className="p-1 px-2.5 text-[10px] bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 text-teal-700 rounded-lg transition-all font-semibold cursor-pointer"
+                  className="p-1 px-2.5 text-[10px] bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-200 text-accent-dark rounded-lg transition-all font-semibold cursor-pointer"
                 >
                   Bù hàng +
                 </button>
@@ -349,7 +349,7 @@ export default function StatsDashboard({
       {/* System operation Flowchart */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 executive-shadow space-y-6">
         <div>
-          <h3 className="text-sm font-extrabold text-[#00535b] font-display">Quy trình tự động hóa chuỗi cung ứng</h3>
+          <h3 className="text-sm font-extrabold text-[#1A1A1A] font-display">Quy trình tự động hóa chuỗi cung ứng</h3>
           <p className="text-xs text-slate-500 mt-1">
             Quy trình phối hợp khép kín giữa các bộ phận, từ yêu cầu nội bộ đến quản lý thầu và đối soát thực tồn.
           </p>
@@ -364,8 +364,8 @@ export default function StatsDashboard({
           </div>
 
           <div className="bg-[#e0f1f2]/40 p-4 rounded-xl border border-[#b2dfdb]/40 text-center space-y-2">
-            <div className="w-9 h-9 rounded-full bg-[#00535b] text-white flex items-center justify-center mx-auto text-xs font-bold">2</div>
-            <p className="text-xs font-bold text-teal-800 flex justify-center items-center gap-1">AI Thầu thầu (RFQ)</p>
+            <div className="w-9 h-9 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center mx-auto text-xs font-bold">2</div>
+            <p className="text-xs font-bold text-primary-dark flex justify-center items-center gap-1">AI Thầu thầu (RFQ)</p>
             <p className="text-[11px] text-slate-500 leading-normal">Hệ thống chọn NCC tiềm năng, lấy báo giá gửi duyệt bảng so sánh.</p>
           </div>
 
@@ -378,7 +378,7 @@ export default function StatsDashboard({
 
         {/* Security / Isolation declaration */}
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-start gap-3">
-          <Lock className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+          <Lock className="w-4 h-4 text-accent-dark shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <h4 className="text-xs font-bold text-slate-700">Cách ly dữ liệu đầu cuối an toàn</h4>
             <p className="text-[11px] text-slate-500 leading-relaxed">

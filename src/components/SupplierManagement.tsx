@@ -226,7 +226,7 @@ export default function SupplierManagement({
       {/* Title */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white border border-slate-200 p-5 rounded-2xl executive-shadow gap-4">
         <div>
-          <h2 className="text-xl font-extrabold font-display text-[#00535b] tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight flex items-center gap-2">
             Danh bạ Đối tác &amp; Nhà cung cấp
           </h2>
           <p className="text-xs text-slate-500 mt-1">
@@ -236,7 +236,7 @@ export default function SupplierManagement({
         {hasAccessToModify && (
           <button
             onClick={openAddForm}
-            className="bg-teal-600 hover:bg-[#00535b] text-white text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+            className="bg-primary-dark hover:bg-[#1A1A1A] text-white text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Thêm Đối tác NCC
           </button>
@@ -271,7 +271,7 @@ export default function SupplierManagement({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo tên NCC, tag, email..."
-              className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 pl-8 text-xs text-slate-800 placeholder-slate-400"
+              className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 pl-8 text-xs text-slate-800 placeholder-slate-400"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3.5" />
           </div>
@@ -279,7 +279,7 @@ export default function SupplierManagement({
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 font-sans">
             {loading ? (
               <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-teal-600" />
+                <RefreshCw className="w-4 h-4 animate-spin text-accent-dark" />
                 <span className="font-medium">Đang tải hồ sơ nhà thầu...</span>
               </div>
             ) : filteredSuppliers.length === 0 ? (
@@ -302,7 +302,7 @@ export default function SupplierManagement({
                     }}
                     className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left ${
                       isActive 
-                        ? "bg-[#00535b]/5 border-teal-500/35" 
+                        ? "bg-[#1A1A1A]/5 border-accent-gold/35" 
                         : "bg-white border-slate-150 hover:bg-slate-50/60"
                     }`}
                   >
@@ -344,7 +344,7 @@ export default function SupplierManagement({
             <form onSubmit={handleSave} className="space-y-4">
               <div className="border-b border-slate-150 pb-3 flex justify-between items-center">
                 <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-teal-600" /> 
+                  <Sparkles className="w-4 h-4 text-accent-dark" /> 
                   {isAdding ? "Khởi tạo Hồ sơ Đối tác mới" : `Cập nhật: ${name}`}
                 </h3>
                 <button
@@ -368,7 +368,7 @@ export default function SupplierManagement({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Công ty TNHH Thực phẩm..."
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
 
@@ -379,7 +379,7 @@ export default function SupplierManagement({
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
                     placeholder="Ông Nguyễn Văn A"
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
               </div>
@@ -393,7 +393,7 @@ export default function SupplierManagement({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="info@supplier.com"
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
 
@@ -405,7 +405,7 @@ export default function SupplierManagement({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="0912..."
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
 
@@ -414,7 +414,7 @@ export default function SupplierManagement({
                   <select
                     value={rating}
                     onChange={(e) => setRating(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   >
                     <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
                     <option value="4">⭐⭐⭐⭐ (4/5)</option>
@@ -432,7 +432,7 @@ export default function SupplierManagement({
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Số 102 Đường Láng, Hà Nội..."
-                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                 />
               </div>
 
@@ -451,7 +451,7 @@ export default function SupplierManagement({
                       }
                     }}
                     placeholder="Rau củ, Gạo ST25, Thiết bị..."
-                    className="flex-1 bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="flex-1 bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                   <button
                     type="button"
@@ -466,13 +466,13 @@ export default function SupplierManagement({
                   {tags.map((tg, idx) => (
                     <span 
                       key={idx} 
-                      className="text-[10px] bg-teal-50 border border-teal-200 text-teal-700 px-2.5 py-0.5 rounded-full flex items-center gap-1 font-bold"
+                      className="text-[10px] bg-amber-50 border border-amber-200 text-accent-dark px-2.5 py-0.5 rounded-full flex items-center gap-1 font-bold"
                     >
                       {tg}
                       <button 
                         type="button" 
                         onClick={() => handleRemoveTag(idx)} 
-                        className="text-teal-600 hover:text-rose-500 text-xs font-bold font-mono ml-0.5 cursor-pointer"
+                        className="text-accent-dark hover:text-rose-500 text-xs font-bold font-mono ml-0.5 cursor-pointer"
                       >
                         ×
                       </button>
@@ -490,7 +490,7 @@ export default function SupplierManagement({
                   onChange={(e) => setHistoricalPricing(e.target.value)}
                   placeholder="Ghi nhận luồng giá để AI khớp thầu. Ví dụ: Đơn thịt rọi sỉ 95k/kg sấy lạnh giảm 2%. Cố định biên độ thầu 6 tháng."
                   rows={3}
-                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800 leading-relaxed placeholder-slate-400 font-mono"
+                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800 leading-relaxed placeholder-slate-400 font-mono"
                 />
               </div>
 
@@ -507,7 +507,7 @@ export default function SupplierManagement({
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#00535b] hover:bg-[#003d44] text-white rounded-xl p-2 px-5 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-md shadow-teal-900/10"
+                  className="bg-[#1A1A1A] hover:bg-[#000000] text-white rounded-xl p-2 px-5 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-md shadow-accent-glow"
                 >
                   <Check className="w-4 h-4" /> Lưu thông tin
                 </button>
@@ -524,11 +524,11 @@ export default function SupplierManagement({
                       <span className="text-[10px] uppercase font-mono bg-slate-100 border border-slate-200 rounded px-2.5 py-0.5 text-slate-500 font-bold">
                         ID: {selectedSupplier.id.substring(0, 8).toUpperCase()}
                       </span>
-                      <span className="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded border border-teal-200 font-mono font-bold">
+                      <span className="text-[10px] bg-amber-50 text-accent-dark px-2 py-0.5 rounded border border-amber-200 font-mono font-bold">
                         Đang hoạt động (Isolated Tenant)
                       </span>
                     </div>
-                    <h3 className="text-lg font-black text-slate-800 capitalize leading-tight">{selectedSupplier.name}</h3>
+                    <h3 className="text-lg font-bold text-slate-800 capitalize leading-tight">{selectedSupplier.name}</h3>
                     <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       Đại diện giao dịch: <span className="text-slate-700 font-bold">{selectedSupplier.contactPerson || "N/A"}</span>
@@ -573,8 +573,8 @@ export default function SupplierManagement({
                       <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Sản phẩm đấu thầu chủ lực</h4>
                       <div className="flex flex-wrap gap-1.5 mt-2.5 select-none">
                         {selectedSupplier.tags && selectedSupplier.tags.map((tag, i) => (
-                          <span key={i} className="text-[10px] bg-teal-50 border border-teal-200 text-teal-700 font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <Tag className="w-2.5 h-2.5 text-teal-600" /> {tag}
+                          <span key={i} className="text-[10px] bg-amber-50 border border-amber-200 text-accent-dark font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                            <Tag className="w-2.5 h-2.5 text-accent-dark" /> {tag}
                           </span>
                         ))}
                         {(!selectedSupplier.tags || selectedSupplier.tags.length === 0) && (
@@ -588,7 +588,7 @@ export default function SupplierManagement({
                 {/* Historical Pricing details */}
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
                   <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-extrabold flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-teal-600" /> Biểu phí sỉ lịch sử trong thầu
+                    <DollarSign className="w-4 h-4 text-accent-dark" /> Biểu phí sỉ lịch sử trong thầu
                   </h4>
                   {selectedSupplier.historicalPricing ? (
                     <p className="text-xs text-slate-700 whitespace-pre-line leading-relaxed italic bg-white border border-slate-150 p-3.5 rounded-xl font-mono">
@@ -632,7 +632,7 @@ export default function SupplierManagement({
                       </button>
                       <button
                         onClick={() => openEditForm(selectedSupplier)}
-                        className="bg-[#00535b] hover:bg-[#003d44] text-white text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1 cursor-pointer transition-all"
+                        className="bg-[#1A1A1A] hover:bg-[#000000] text-white text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1 cursor-pointer transition-all"
                       >
                         <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa hồ sơ
                       </button>

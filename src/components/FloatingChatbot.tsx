@@ -10,7 +10,6 @@ import {
   Search, 
   ChevronDown, 
   ChevronUp, 
-  ArrowUpRight, 
   Check, 
   FilePlus2, 
   Compass, 
@@ -63,35 +62,35 @@ export default function FloatingChatbot({
   const welcomeMessage = useMemo(() => {
     switch (currentRole) {
       case "requester":
-        return `Xin chào **Bếp Trưởng Bình**! 👨‍🍳 Tôi là **Stally Sourcing AI Agent**.
+        return `Xin chào **Bếp Trưởng Bình**. Tôi là **Stally AI Agent**.
         
-Tôi có thể giúp bạn kiểm tra các sản phẩm sắp cạn trong kho hoặc tự động tạo phiếu đề xuất mua hàng (PR) nháp cho bếp.
+Tôi có thể giúp bạn kiểm tra tồn kho thấp, tạo phiếu PR nháp và theo dõi hàng đã được nhập kho sau khi PO hoàn tất.
         
-👉 Hãy thử hỏi tôi: *"Kho còn gạo không?"* hoặc nhắn: *"Lập PR mua 50kg gạo ST25 và 20 chai dầu ăn"*!`;
+Hãy thử hỏi: *"Kho còn gạo không?"* hoặc *"Lập PR mua 50kg gạo ST25 và 20 chai dầu ăn"*.`;
       
       case "procurement":
-        return `Chào **Staff Thu Mua Tâm**! 💼 Tôi là trợ lý **Stally Sourcing AI Agent**.
+        return `Chào **Staff Thu Mua Tâm**. Tôi là trợ lý **Stally Sourcing AI Agent**.
         
-Tôi sẵn sàng hỗ trợ bạn ghép nối nhà cung ứng CRM tiềm năng, lập dự thảo RFQ gửi Gmail, tự động bóc tách hóa đơn chào thầu qua OCR và đàm phán chiết khấu giá thầu.
+Tôi hỗ trợ mở case mua hàng, chọn nhà cung cấp, soạn RFQ gửi Gmail thật, đọc phản hồi báo giá và soạn thư đàm phán.
         
-👉 Hỏi tôi: *"Có báo giá mới nào chưa?"* hoặc *"Làm cách nào đàm phán giá?"*`;
+Hãy hỏi: *"Flow gửi RFQ làm sao?"* hoặc *"Làm cách nào đàm phán giá?"*.`;
       
       case "manager":
-        return `Kính chào **Giám Đốc Mai**! 🏢 Tôi là trợ lý đặc quyền **Stally Executive AI**.
+        return `Kính chào **Giám Đốc Mai**. Tôi là trợ lý **Stally Executive AI**.
         
-Tôi sẽ giúp Giám Đốc rà soát báo cáo tài chính giải ngân chuỗi cung ứng, đối chiếu ngân sách các nhóm hàng thực phẩm tháng này, và phân tích ma trận 3 Gold Metrics tối ưu thầu thầu để Giám đốc an tâm ký duyệt PO thầu.
+Tôi giúp rà hồ sơ chờ duyệt, xem bảng so sánh báo giá, kiểm tra lý do chọn nhà cung cấp và quyết định duyệt hoặc trả về đàm phán.
         
-👉 Hãy hỏi tôi: *"Tổng chi tiêu tháng này bao nhiêu?"* hoặc *"Hồ sơ nào cần duyệt?"*`;
+Hãy hỏi: *"Hồ sơ nào cần duyệt?"* hoặc *"Duyệt PO ở đâu?"*.`;
       
       case "warehouse":
-        return `Chào **Thủ Kho Khoa**! 📦 Tôi là trợ lý **Stally Warehouse AI**.
+        return `Chào **Thủ Kho Khoa**. Tôi là trợ lý **Stally Warehouse AI**.
         
-Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa giao về kho, hoặc điều chỉnh tồn kho tay, lập báo cáo lệch hỏng hao hụt nguyên liệu để gửi cho phòng thu mua xử lý.
+Tôi hướng dẫn mở case đang nhận hàng, xác nhận nhập kho theo PO và kiểm tra tồn kho đã tăng đúng số lượng.
         
-👉 Hỏi tôi: *"Làm thế nào nhận hàng PO?"* hoặc *"Cách báo cáo hỏng hóc?"*`;
+Hãy hỏi: *"Làm thế nào nhận hàng PO?"* hoặc *"Cách báo cáo hỏng hóc?"*.`;
 
       default:
-        return `Xin chào! Tôi là **Stally Sourcing AI Agent** 🤖. Tôi có thể hỗ trợ bạn rà duyệt kho, soạn thảo PR mua hàng và đàm phán thầu tự động.`;
+        return `Xin chào. Tôi là **Stally Sourcing AI Agent**. Tôi có thể hỗ trợ rà tồn kho, tạo PR, gửi RFQ, đàm phán và theo dõi PO.`;
     }
   }, [currentRole]);
 
@@ -117,28 +116,48 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
   // --- KNOWLEDGE BASE FAQ DATABASE ---
   const faqs: FAQItem[] = [
     {
-      q: "Làm cách nào để thêm một nhà cung cấp mới?",
-      a: "Để thêm nhà cung cấp mới vào hệ thống CRM:\n1. Bấm vào tab **Nhà Cung Cấp (Suppliers)** từ Sidebar bên trái.\n2. Chọn nút **Thêm Nhà Cung Cấp** ở trên cùng.\n3. Nhập đầy đủ thông tin bao gồm tên đối tác, đại diện liên hệ, địa chỉ email, số điện thoại, đánh giá sao (1-5), và các thẻ phân loại ngành hàng thầu (ví dụ: gạo, rau củ, hải sản).\n4. Bấm **Lưu** để hoàn tất. AI sẽ ngay lập tức ghi nhận nhà cung ứng này vào cơ sở dữ liệu để tự động ghép cặp thầu về sau!",
-      tags: ["crm", "nhà cung cấp", "supplier", "thêm ncc"]
+      q: "Tôi mới vào hệ thống thì đi theo luồng nào?",
+      a: "Luồng chuẩn của Stally là:\n1. **Bếp/Requester** kiểm tra tồn kho và tạo PR khi cần mua thêm.\n2. **Thu mua/Procurement** mở hoặc tạo case, chọn NCC, soạn RFQ bằng AI rồi gửi Gmail thật.\n3. Hệ thống đọc Gmail reply của NCC, trích xuất báo giá và cập nhật bảng so sánh.\n4. Thu mua chọn NCC tốt nhất, có thể đàm phán bằng AI, rồi trình duyệt PO.\n5. **Manager** duyệt hoặc trả về đàm phán.\n6. Thu mua gửi PO chính thức.\n7. **Thủ kho/Warehouse** xác nhận hàng về, hệ thống tự cập nhật tồn kho.",
+      tags: ["hướng dẫn", "workflow", "luồng", "mới dùng", "onboarding"]
     },
     {
-      q: "Làm cách nào để Giám Đốc duyệt một báo giá thầu?",
-      a: "Quy trình phê duyệt thông minh dành cho Giám Đốc:\n1. Chọn vai trò **Giám Đốc (Manager)** để đăng nhập vào workspace cách ly đặc quyền.\n2. Trên bảng điều khiển Tổng quan, di chuyển đến **Hộp Thư Phê Duyệt** hoặc tab **Thầu & Giá (RFQ)**.\n3. Nhấp chọn một Case thầu đang chờ duyệt để xem **Bản Tổng Hợp 3 Gold Metrics** (nhà thầu tối ưu, tổng chi phí so với dự toán ngân sách, và lý do đề xuất).\n4. Bấm **Xem so sánh chi tiết** để trượt Drawer kiểm toán so sánh giá thầu, file PDF gốc và email đàm phán.\n5. Bấm **Ký & Duyệt PO** để hoàn tất. PO sẽ tự động gửi email đến nhà thầu được duyệt!",
-      tags: ["duyệt", "manager", "phê duyệt", "po", "báo giá", "giám đốc"]
+      q: "Requester/Bếp tạo yêu cầu mua hàng như thế nào?",
+      a: "Vào tab **Yêu cầu** để lập PR.\n1. Kiểm tra trước tab **Tổng quan** để biết mặt hàng nào đang thấp tồn.\n2. Tạo PR với tên nhu cầu, mức ưu tiên, ngày cần hàng và danh sách mặt hàng.\n3. Gửi PR cho phòng thu mua.\n4. Sau khi case đi hết quy trình PO và thủ kho nhận hàng, quay lại **Tồn kho** để kiểm tra số lượng đã tăng.",
+      tags: ["requester", "bếp", "pr", "yêu cầu", "tồn kho"]
     },
     {
-      q: "Làm sao để Mark nhận đủ hàng hóa giao về kho?",
-      a: "Đối với Thủ kho thực hiện check-in nhận hàng:\n1. Truy cập workspace của **Thủ Kho (Warehouse)** và chọn tab **Quản Lý Kho**.\n2. Trong mục **Incoming Deliveries (Hàng sắp về)**, chọn lô hàng PO thầu đang giao tới.\n3. Kiểm tra chất lượng và số lượng thực tế giao. Nếu khớp 100%, chỉ cần bấm nút lớn màu xanh **Nhận Đủ Toàn Bộ (Mark All Received)** để hệ thống tự tăng lượng tồn khả dụng trong kho và hạ lượng hàng đang order.\n4. Nếu có hỏng hóc hoặc thiếu hụt, nhấp vào dòng mặt hàng đó để chỉnh tay số lượng nhận và tích chọn **Hao hụt/Hỏng**. Hệ thống sẽ tự tạo Exception gửi cho phòng thu mua đối soát!",
-      tags: ["thủ kho", "nhận hàng", "nhập kho", "hao hụt", "warehouse"]
+      q: "Thu mua gửi yêu cầu báo giá Gmail thật ra sao?",
+      a: "Vào tab **Quy trình**, mở case cần xử lý.\n1. Kiểm tra hoặc chọn danh sách NCC phù hợp.\n2. Bấm AI soạn RFQ để tạo bản nháp email.\n3. Review nội dung, chỉnh nếu cần.\n4. Bấm **Gửi thầu Gmail chính thức**. Đây là gửi thật qua provider email đang cấu hình, không phải mô phỏng.\n5. Sau khi gửi, case chuyển sang trạng thái chờ phản hồi và dashboard sẽ theo dõi NCC nào đã reply.",
+      tags: ["rfq", "gmail", "gửi mail", "procurement", "case"]
     },
     {
-      q: "AI đàm phán giá thầu tự động hoạt động như thế nào?",
-      a: "Sau khi gửi email RFQ đến các nhà thầu và nhận phản hồi, AI đàm phán của Stally sẽ tự bóc tách file chao_gia.pdf qua OCR. Nếu đơn giá sản phẩm cao hơn giá lịch sử hoặc mức kỳ vọng, AI sẽ tự soạn thảo một email đàm phán thương lượng giảm giá (Round 2, Round 3) dựa trên các luận điểm thuyết phục (cam kết số lượng đặt hàng định kỳ hàng tuần, đối chiếu giá thầu đối thủ). Nhân viên thu mua chỉ cần duyệt nội dung thư do AI soạn và bấm gửi để hoàn tất đàm phán giảm chi phí nhanh chóng!",
+      q: "Nhận báo giá từ Gmail reply hoạt động như thế nào?",
+      a: "Hệ thống đang dùng inbound Gmail polling.\n1. NCC reply vào email RFQ hoặc negotiation có subject đúng mã STALLY.\n2. Worker định kỳ đọc mail chưa xử lý.\n3. AI trích xuất tổng tiền, ngày giao, điều khoản công nợ và nội dung phản hồi.\n4. Dashboard trong case cập nhật bảng so sánh báo giá.\n5. Nếu chưa thấy cập nhật, kiểm tra mail có đúng thread/subject không, worker inbound có bật không, và chờ thêm một vòng polling.",
+      tags: ["gmail", "reply", "báo giá", "polling", "inbound", "dashboard"]
+    },
+    {
+      q: "AI đàm phán giá hoạt động như thế nào?",
+      a: "Trong case có báo giá, chọn NCC cần thương lượng rồi bấm AI soạn thư đàm phán.\n1. Chọn mục tiêu như giảm 5%, giảm giá vận chuyển hoặc cải thiện ngày giao.\n2. AI tạo email negotiation dựa trên báo giá hiện tại.\n3. Thu mua phải review và bấm gửi thì email mới đi thật.\n4. Khi NCC reply đồng ý, hệ thống cập nhật trạng thái đàm phán và giá trên bảng so sánh.\n5. Nếu NCC chỉ trả lời chung chung, AI sẽ ghi nhận nội dung nhưng có thể cần người dùng kiểm tra lại trước khi trình duyệt.",
       tags: ["ai", "đàm phán", "thương lượng", "giảm giá", "sourcing", "rfq"]
     },
     {
+      q: "Manager duyệt PO ở đâu?",
+      a: "Đăng nhập vai trò **Manager**, vào **Tổng quan** hoặc **Quy trình**.\n1. Mở case đang ở trạng thái chờ duyệt.\n2. Kiểm tra NCC được đề xuất, tổng thanh toán, lịch giao, điều khoản và lịch sử đàm phán.\n3. Bấm duyệt nếu đạt yêu cầu.\n4. Nếu chưa ổn, trả về để thu mua tiếp tục đàm phán.\n5. Sau khi duyệt, thu mua sẽ tạo và gửi PO chính thức cho NCC.",
+      tags: ["manager", "duyệt", "po", "approval", "giám đốc"]
+    },
+    {
+      q: "Thủ kho xác nhận hàng về thì tồn kho có tự tăng không?",
+      a: "Có. Khi PO đã gửi và hàng về, thủ kho mở case ở trạng thái nhận hàng rồi bấm xác nhận kiểm kho.\n1. Hệ thống tự cộng số lượng vào tồn khả dụng.\n2. Lượng hàng đang đặt sẽ giảm tương ứng.\n3. Một stock movement được ghi lại để đối soát.\n4. Nếu nhập lệch hoặc phát hiện hao hụt sau đó, dùng chức năng điều chỉnh tồn kho để ghi lý do.",
+      tags: ["thủ kho", "warehouse", "nhập kho", "tồn kho", "po"]
+    },
+    {
+      q: "Cào nhà cung cấp xong có tự đưa hết vào danh sách chính không?",
+      a: "Không nên đưa hết tự động. Luồng đúng là:\n1. Thu mua chạy crawl/discovery theo nhóm hàng.\n2. Hệ thống hiển thị danh sách NCC đề xuất cùng nguồn, email, website và độ tin cậy nếu có.\n3. Người dùng chọn NCC phù hợp.\n4. Chỉ các NCC được chọn mới được thêm vào danh sách chính hoặc dùng để gửi RFQ.\n5. Với NCC thiếu email hoặc thông tin mơ hồ, nên kiểm tra thủ công trước khi gửi thư thật.",
+      tags: ["crawl", "nhà cung cấp", "supplier", "ncc", "discovery"]
+    },
+    {
       q: "Hệ thống tự động cảnh báo vơi kho và bù hàng ra sao?",
-      a: "Hệ thống Stally giám sát liên tục số lượng tồn kho khả dụng của các nguyên liệu thiết yếu. Khi tồn kho của mặt hàng rơi xuống dưới mức an toàn tối thiểu (minStockLevel):\n1. Một cảnh báo màu đỏ sẽ sáng lên trong tab **Tổng Quan**.\n2. Hệ thống sẽ tự động đề xuất một thẻ bù kho nhanh. Bạn chỉ cần bấm nút **Tạo PR bù tồn nhanh** hoặc ra lệnh cho Chatbot AI: *'Tạo PR bù kho'*.\n3. AI sẽ tự động tính toán chính xác số lượng thâm hụt cần mua để đạt mức an toàn, soạn thảo PR nháp ở trạng thái **Draft** và chuyển bạn đến danh mục gửi thầu RFQ chỉ trong 1 chạm!",
+      a: "Stally theo dõi tồn khả dụng và mức tồn tối thiểu của từng mặt hàng.\n1. Khi tồn dưới mức an toàn, tab **Tổng quan** hiển thị cảnh báo.\n2. Requester có thể tạo PR bù tồn từ cảnh báo hoặc nhờ AI soạn PR nháp.\n3. PR được gửi cho phòng thu mua để mở case, gửi RFQ và mua hàng.\n4. Khi thủ kho xác nhận nhận hàng, tồn kho tự cập nhật lại.",
       tags: ["cảnh báo", "vơi kho", "bù hàng", "tồn kho", "pr", "nháp"]
     }
   ];
@@ -160,23 +179,23 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
 
     if (currentRole === "requester") {
       list.push(
-        { title: "➕ Tạo Yêu Cầu Mới", tab: "pr", query: "Tôi muốn mở danh mục Tạo Yêu Cầu và nhờ bạn hướng dẫn lập PR nháp.", icon: PlusCircle },
-        { title: "📋 Lịch Sử Đặt Hàng", tab: "pr", query: "Cho tôi xem danh sách lịch sử yêu cầu PR mua nguyên liệu của bếp.", icon: History }
+        { title: "Tạo Yêu Cầu Mới", tab: "pr", query: "Tôi muốn mở danh mục Tạo Yêu Cầu và nhờ bạn hướng dẫn lập PR nháp.", icon: PlusCircle },
+        { title: "Lịch Sử Đặt Hàng", tab: "pr", query: "Cho tôi xem danh sách lịch sử yêu cầu PR mua nguyên liệu của bếp.", icon: History }
       );
     } else if (currentRole === "procurement") {
       list.push(
-        { title: "⚖️ So Sánh Báo Giá RFQ", tab: "rfq", query: "Tôi muốn so sánh các báo giá thầu đang có trong phiên thầu hiện tại.", icon: GitMerge },
-        { title: "🏢 Quản Lý Nhà Cung Cấp", tab: "suppliers", query: "Hãy hướng dẫn tôi cách quản lý và thêm nhà cung cấp mới vào CRM.", icon: Compass }
+        { title: "Quy Trình Case", tab: "cases", query: "Hãy hướng dẫn tôi xử lý một case từ gửi RFQ tới trình duyệt PO.", icon: GitMerge },
+        { title: "Quản Lý NCC", tab: "suppliers", query: "Hãy hướng dẫn tôi cách quản lý, crawl và chọn nhà cung cấp vào danh sách chính.", icon: Compass }
       );
     } else if (currentRole === "manager") {
       list.push(
-        { title: "📊 Báo Cáo Tài Chính", tab: "overview", query: "Tóm tắt chi tiêu giải ngân PO và ngân sách nhóm hàng thực phẩm tháng này.", icon: Sparkles },
-        { title: "📥 Hộp Duyệt PO Chờ", tab: "overview", query: "Có hồ sơ thầu nào đang chờ Giám Đốc duyệt ký PO khẩn cấp không?", icon: Bot }
+        { title: "Báo Cáo Tài Chính", tab: "overview", query: "Tóm tắt chi tiêu giải ngân PO và ngân sách nhóm hàng thực phẩm tháng này.", icon: Sparkles },
+        { title: "Hộp Duyệt PO", tab: "cases", query: "Có hồ sơ thầu nào đang chờ Giám Đốc duyệt ký PO không?", icon: Bot }
       );
     } else if (currentRole === "warehouse") {
       list.push(
-        { title: "🚚 Kiểm Tra Lô Hàng Sắp Về", tab: "inventory", query: "Kho sắp đón nhận các chuyến giao hàng PO nào hôm nay?", icon: Compass },
-        { title: "🔧 Điều Chỉnh Tồn Kho Tay", tab: "inventory", query: "Làm thế nào để điều chỉnh lượng tồn bột gạo, dầu ăn khi có hao hụt?", icon: History }
+        { title: "Lô Hàng Sắp Về", tab: "cases", query: "Kho sắp đón nhận các chuyến giao hàng PO nào hôm nay?", icon: Compass },
+        { title: "Điều Chỉnh Tồn", tab: "inventory", query: "Làm thế nào để điều chỉnh lượng tồn khi có hao hụt?", icon: History }
       );
     }
 
@@ -265,10 +284,10 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
         <div className="space-y-3">
           {cleanText && <div className="text-primary-dark font-bold text-xs leading-relaxed"><MarkdownText text={cleanText} /></div>}
           {draftData && (
-            <div className={`border-2 rounded-[16px] p-3.5 transition-all duration-300 text-xs ${
+            <div className={`border rounded-[16px] p-3.5 transition-all duration-300 text-xs ${
               msg.isDraftConfirmed 
                 ? "bg-slate-100/50 border-slate-300 text-slate-400" 
-                : "bg-[#FFF8E7] border-primary-dark shadow-sm text-primary-dark"
+                : "bg-cream border-primary-dark/10 shadow-sm text-primary-dark"
             }`}>
               <div className="flex items-center justify-between border-b border-dashed border-primary-dark/20 pb-1.5 mb-2.5">
                 <div className="flex items-center gap-1.5">
@@ -283,15 +302,15 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-black text-primary-dark leading-snug">{draftData.title}</h4>
-                <div className="space-y-1 pl-2 border-l-2 border-primary-dark/30 text-[10.5px]">
+                <h4 className="font-bold text-primary-dark leading-snug">{draftData.title}</h4>
+                <div className="space-y-1 pl-2 border-l border-primary-dark/30 text-[10.5px]">
                   {draftData.items?.map((it: any, i: number) => (
                     <div key={i} className="flex justify-between items-center py-0.5">
                       <div className="flex items-center gap-1">
                         <ItemIcon name={it.name} size="sm" className="scale-75 opacity-80 border border-primary-dark/25" />
                         <span className="truncate max-w-[120px] font-bold">{it.name}</span>
                       </div>
-                      <span className="font-mono font-black text-primary-dark">{it.quantity} {it.unit}</span>
+                      <span className="font-mono font-bold text-primary-dark">{it.quantity} {it.unit}</span>
                     </div>
                   ))}
                 </div>
@@ -306,7 +325,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                     <button
                       type="button"
                       onClick={() => handleConfirmDraft(draftData, msg.id)}
-                      className="bg-[#2BA8A2] hover:bg-[#1E8C86] text-white border border-primary-dark font-black p-1.5 px-3 rounded-full flex items-center gap-1 transition-all hover:scale-[1.03] active:scale-[0.95] cursor-pointer shadow-teal-glow text-[10px]"
+                      className="bg-accent-gold hover:bg-primary-dark hover:text-white text-primary-dark border border-primary-dark/10 font-bold p-1.5 px-3 rounded-full flex items-center gap-1 transition-all cursor-pointer shadow-accent-glow text-[10px]"
                     >
                       <span>✓ Phát Hành PR Nháp</span>
                     </button>
@@ -333,55 +352,55 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
       {/* Floating Glassmorphic Mint Orb Bubble Button with active pulse */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 bg-[#2BA8A2] hover:bg-[#3CC4BD] border-3 border-primary-dark text-white shadow-teal-glow rounded-full p-4 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center group animate-pulse"
+        className="fixed bottom-6 right-6 z-50 bg-[#1A1A1A] hover:bg-accent-gold hover:text-primary-dark border border-white/20 text-white shadow-accent-glow rounded-full p-4 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center group"
         title="Trợ lý Stally Procurement AI"
       >
         <div className="relative">
-          <Bot className="w-6 h-6 text-[#FFF8E7] group-hover:rotate-12 transition-transform duration-300" />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#FFD23F] border-2 border-primary-dark" />
+          <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-gold border border-primary-dark" />
         </div>
-        <div className="absolute right-16 bg-primary-dark text-white border-2 border-primary-dark text-[10px] font-black py-1.5 px-3 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-teal-glow">
-          Chat với Trợ Lý Stally AI ⚡
+        <div className="absolute right-16 bg-primary-dark text-white border border-white/10 text-[10px] font-bold py-1.5 px-3 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-accent-glow">
+          Chat với Trợ Lý Stally AI
         </div>
       </div>
 
       {/* Playful Floating Chatbot Window in Cream */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[340px] sm:w-[380px] h-[550px] bg-cream border-3 border-primary-dark shadow-teal-glow rounded-[32px] flex flex-col overflow-hidden animate-fade-slide-up text-primary-dark font-sans">
+        <div className="fixed bottom-24 right-6 z-50 w-[340px] sm:w-[380px] h-[550px] lux-card flex flex-col overflow-hidden animate-fade-slide-up text-primary-dark font-sans">
           
           {/* Header in Gold Light */}
-          <div className="p-4 border-b-3 border-primary-dark bg-[#FFE47A] flex items-center justify-between">
+          <div className="p-4 border-b border-primary-dark/10 bg-[#1A1A1A] text-white flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8.5 h-8.5 rounded-xl bg-white border-2 border-primary-dark flex items-center justify-center text-primary-dark font-bold relative shadow-sm">
-                <Bot className="w-4 h-4 text-primary animate-bounce" />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#FFD23F] border border-primary-dark" />
+              <div className="w-8.5 h-8.5 rounded-full bg-accent-gold flex items-center justify-center text-primary-dark font-bold relative shadow-sm">
+                <Bot className="w-4 h-4 text-primary-dark" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success border border-primary-dark" />
               </div>
               <div>
-                <h3 className="text-xs font-black text-primary-dark flex items-center gap-1">
-                  Stally Sourcing AI <Sparkles className="w-3.5 h-3.5 text-coral animate-pulse" />
+                <h3 className="text-sm font-display font-normal text-white flex items-center gap-1">
+                  Stally Sourcing AI <Sparkles className="w-3.5 h-3.5 text-accent-gold" />
                 </h3>
-                <span className="text-[8px] font-mono text-primary-dark/70 uppercase font-bold tracking-wider block">Hệ thống Trợ lý số hóa kho &amp; thầu</span>
+                <span className="text-[8px] font-mono text-white/45 uppercase font-bold tracking-wider block">Hệ thống trợ lý kho &amp; thầu</span>
               </div>
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="p-1.5 hover:bg-[#FFF8E7] rounded-xl text-primary-dark/70 hover:text-primary-dark transition-all cursor-pointer border-2 border-transparent hover:border-primary-dark/20"
+              className="p-1.5 hover:bg-white/10 rounded-xl text-white/60 hover:text-white transition-all cursor-pointer border border-transparent hover:border-white/10"
             >
               <X className="w-4.5 h-4.5" />
             </button>
           </div>
 
           {/* Contextual Action Links (Pill-shaped) */}
-          <div className="p-2 border-b-2 border-primary-dark/15 bg-white/40 flex gap-2 overflow-x-auto select-none no-scrollbar">
+          <div className="p-2 border-b border-primary-dark/10 bg-[#F7F5F0]/70 flex gap-2 overflow-x-auto select-none no-scrollbar">
             {contextualActions.map((act, i) => {
               const Icon = act.icon;
               return (
                 <button
                   key={i}
                   onClick={() => handleContextActionClick(act)}
-                  className="text-[9px] bg-white hover:bg-[#FFF8E7] border-2 border-primary-dark px-3 py-1.5 rounded-full text-primary-dark font-black transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  className="text-[9px] bg-white hover:bg-primary-dark hover:text-white border border-primary-dark/10 px-3 py-1.5 rounded-full text-primary-dark font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-sm"
                 >
-                  <Icon className="w-3 h-3 text-[#2BA8A2]" />
+                  <Icon className="w-3 h-3 text-accent-dark" />
                   <span>{act.title}</span>
                 </button>
               );
@@ -389,31 +408,31 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
           </div>
 
           {/* Navigation Panel Tabs (Pills) */}
-          <div className="flex border-b-2 border-primary-dark/15 bg-white/20 p-1.5 gap-1.5">
+          <div className="flex border-b border-primary-dark/10 bg-white/35 p-1.5 gap-1.5">
             <button
               onClick={() => setActiveTabPanel("chat")}
-              className={`flex-1 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all border-2 ${
+                  className={`flex-1 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-1.5 transition-all border ${
                 activeTabPanel === "chat" 
-                  ? "bg-[#FFE47A] text-primary-dark border-primary-dark shadow-sm" 
+                  ? "bg-accent-gold text-primary-dark border-accent-gold shadow-sm" 
                   : "text-slate-500 hover:text-slate-800 border-transparent hover:bg-white/30"
               }`}
             >
-              <Compass className="w-3.5 h-3.5 text-[#2BA8A2]" /> Trò Chuyện AI
+              <Compass className="w-3.5 h-3.5 text-accent-dark" /> Trò Chuyện AI
             </button>
             <button
               onClick={() => setActiveTabPanel("faq")}
-              className={`flex-1 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all border-2 ${
+                  className={`flex-1 py-2 rounded-full font-bold text-xs flex items-center justify-center gap-1.5 transition-all border ${
                 activeTabPanel === "faq" 
-                  ? "bg-[#FFE47A] text-primary-dark border-primary-dark shadow-sm" 
+                  ? "bg-accent-gold text-primary-dark border-accent-gold shadow-sm" 
                   : "text-slate-500 hover:text-slate-800 border-transparent hover:bg-white/30"
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5 text-[#2BA8A2]" /> Thẩm Định &amp; FAQ
+              <BookOpen className="w-3.5 h-3.5 text-accent-dark" /> Hướng Dẫn &amp; FAQ
             </button>
           </div>
 
           {/* Body Content Panels */}
-          <div className="flex-1 overflow-y-auto p-4 bg-white/20 flex flex-col relative">
+          <div className="flex-1 overflow-y-auto p-4 bg-[#F7F5F0]/70 flex flex-col relative">
             
             {/* PANEL 1: AI CHAT FEED */}
             {activeTabPanel === "chat" && (
@@ -427,19 +446,19 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                         className={`flex items-start space-x-2.5 max-w-[90%] ${isBot ? "" : "ml-auto flex-row-reverse space-x-reverse"}`}
                       >
                         {/* Avatar */}
-                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm ${
+                        <div className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 shadow-sm ${
                           isBot 
-                            ? "bg-white border-primary-dark text-[#2BA8A2]" 
-                            : "bg-[#2BA8A2] border-primary-dark text-white"
+                            ? "bg-white border-primary-dark/10 text-accent-dark" 
+                            : "bg-primary-dark border-primary-dark text-white"
                         }`}>
                           {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
 
                         {/* Bubble */}
-                        <div className={`p-3 rounded-[20px] text-[11px] border-2 leading-relaxed shadow-card ${
+                        <div className={`p-3 rounded-[20px] text-[11px] border leading-relaxed shadow-card ${
                           isBot 
-                            ? "bg-white border-primary-dark text-primary-dark rounded-tl-none" 
-                            : "bg-[#E8F6F5] border-primary-dark text-primary-dark rounded-tr-none shadow-teal-glow"
+                            ? "bg-white border-primary-dark/10 text-primary-dark rounded-tl-none" 
+                            : "bg-[#F2F0EA] border-primary-dark/10 text-primary-dark rounded-tr-none shadow-accent-glow"
                         }`}>
                           {renderMessageContent(msg)}
                         </div>
@@ -449,11 +468,11 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
 
                   {sending && (
                     <div className="flex items-start space-x-2.5 max-w-[85%]">
-                      <div className="w-8 h-8 rounded-full bg-white border-2 border-primary-dark text-[#2BA8A2] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white border border-primary-dark/10 text-accent-dark flex items-center justify-center shrink-0">
                         <Bot className="w-4 h-4" />
                       </div>
-                      <div className="p-3 rounded-[20px] text-[10.5px] bg-white border-2 border-primary-dark text-slate-500 rounded-tl-none flex items-center gap-1.5 shadow-sm font-bold">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#2BA8A2]" />
+                      <div className="p-3 rounded-[20px] text-[10.5px] bg-white border border-primary-dark/10 text-slate-500 rounded-tl-none flex items-center gap-1.5 shadow-sm font-bold">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent-dark" />
                         <span>AI Agent đang rà soát tồn kho...</span>
                       </div>
                     </div>
@@ -467,22 +486,22 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                     e.preventDefault();
                     handleSendMessage(inputValue);
                   }}
-                  className="mt-3 flex gap-2 border-t-2 border-dashed border-primary-dark/20 pt-3 shrink-0"
+                  className="mt-3 flex gap-2 border-t border-dashed border-primary-dark/20 pt-3 shrink-0"
                 >
                   <input
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Hỏi kho, thầu, hoặc yêu cầu mua hàng..."
-                    className="flex-1 bg-white border-2 border-primary-dark focus:outline-none focus:border-[#2BA8A2] rounded-full p-2.5 px-4 text-xs text-primary-dark placeholder-slate-400 font-bold shadow-inner"
+                    className="flex-1 bg-white border border-primary-dark/10 focus:outline-none focus:border-accent-gold rounded-full p-2.5 px-4 text-xs text-primary-dark placeholder-slate-400 font-medium"
                   />
                   <button
                     type="submit"
                     disabled={!inputValue.trim() || sending}
-                    className={`p-2.5 px-4 rounded-full border-2 border-primary-dark font-black text-xs flex items-center gap-1 transition-all cursor-pointer shadow-teal-glow ${
+                    className={`p-2.5 px-4 rounded-full border border-primary-dark/10 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shadow-accent-glow ${
                       !inputValue.trim() || sending
                         ? "bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed shadow-none"
-                        : "bg-[#2BA8A2] hover:bg-[#1E8C86] text-white hover:scale-[1.03] active:scale-[0.95]"
+                        : "bg-accent-gold hover:bg-primary-dark text-primary-dark hover:text-white"
                     }`}
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -504,8 +523,8 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                       setSearchQuery(e.target.value);
                       setExpandedFaqIndex(null);
                     }}
-                    placeholder="Tìm kiếm tài liệu HD vận hành..."
-                    className="w-full bg-white border-2 border-primary-dark focus:outline-none focus:border-[#2BA8A2] rounded-full p-2.5 pl-10 text-xs text-primary-dark placeholder-slate-400 font-bold shadow-inner"
+                    placeholder="Tìm hướng dẫn: RFQ, Gmail, PO, nhập kho..."
+                    className="w-full bg-white border border-primary-dark/10 focus:outline-none focus:border-accent-gold rounded-full p-2.5 pl-10 text-xs text-primary-dark placeholder-slate-400 font-medium"
                   />
                   <Search className="absolute left-4 top-3 w-4 h-4 text-primary" />
                 </div>
@@ -515,7 +534,7 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                   {filteredFaqs.length === 0 ? (
                     <div className="py-12 text-center text-slate-500 flex flex-col items-center gap-2">
                       <ShieldAlert className="w-8 h-8 text-coral animate-bounce" />
-                      <p className="text-xs font-black text-primary-dark">Không tìm thấy tài liệu liên quan</p>
+                      <p className="text-xs font-bold text-primary-dark">Không tìm thấy tài liệu liên quan</p>
                       <p className="text-[10px] max-w-[180px] mx-auto text-slate-400 font-bold">Thử gõ các từ khóa đơn giản: kho, ncc, duyệt, đàm phán, po.</p>
                     </div>
                   ) : (
@@ -524,10 +543,10 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                       return (
                         <div 
                           key={idx}
-                          className={`border-2 rounded-[16px] transition-all duration-200 overflow-hidden ${
+                          className={`border rounded-[16px] transition-all duration-200 overflow-hidden ${
                             isExpanded 
-                              ? "bg-[#FFF8E7] border-primary-dark shadow-sm" 
-                              : "bg-white border-primary-dark/10 hover:border-primary-dark hover:bg-[#FFF8E7]/30"
+                              ? "bg-cream border-accent-gold/60 shadow-sm" 
+                              : "bg-white border-primary-dark/10 hover:border-accent-gold hover:bg-cream/50"
                           }`}
                         >
                           <div 
@@ -535,11 +554,11 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                             className="p-3 flex justify-between items-center cursor-pointer select-none text-xs font-extrabold text-primary-dark"
                           >
                             <span className="leading-snug pr-2">{faq.q}</span>
-                            {isExpanded ? <ChevronUp className="w-4 h-4 text-[#2BA8A2] shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
+                            {isExpanded ? <ChevronUp className="w-4 h-4 text-accent-dark shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
                           </div>
 
                           {isExpanded && (
-                            <div className="p-3 pt-0 border-t-2 border-dashed border-primary-dark/20 text-[10.5px] text-slate-600 leading-relaxed bg-white/20 font-bold font-sans">
+                            <div className="p-3 pt-0 border-t border-dashed border-primary-dark/20 text-[10.5px] text-slate-600 leading-relaxed bg-white/20 font-bold font-sans">
                               <MarkdownText text={faq.a} />
                             </div>
                           )}
@@ -550,9 +569,9 @@ Tôi sẵn sàng hướng dẫn bạn quy trình Mark Nhận đủ hàng hóa gi
                 </div>
 
                 {/* Bottom Guide info */}
-                <div className="bg-[#E8F6F5] border-2 border-primary-dark p-2.5 rounded-[16px] text-[9.5px] text-primary-dark flex items-center gap-2 shadow-inner shrink-0 font-bold">
-                  <Compass className="w-4 h-4 text-[#2BA8A2] shrink-0" />
-                  <span>Mẹo: Chuyển đổi giữa các Vai trò bên dưới Sidebar để kiểm nghiệm toàn bộ quy trình isolated.</span>
+                <div className="bg-cream border border-primary-dark/10 p-2.5 rounded-[16px] text-[9.5px] text-primary-dark flex items-center gap-2 shrink-0 font-bold">
+                  <Compass className="w-4 h-4 text-accent-dark shrink-0" />
+                  <span>Mẹo: Nếu mới dùng, đăng nhập lại và chọn CHƯA BIẾT để mở tour chỉ từng nút theo vai trò.</span>
                 </div>
 
               </div>

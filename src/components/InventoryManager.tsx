@@ -64,24 +64,24 @@ export default function InventoryManager({
     <div className="space-y-6 animate-fade-slide-up">
       {/* Title */}
       <div>
-        <h2 className="text-xl font-extrabold font-display text-[#00535b] tracking-tight">Cân đối Tồn kho (Stock)</h2>
+        <h2 className="text-3xl font-normal font-display text-[#1A1A1A] tracking-tight">Cân đối Tồn kho (Stock)</h2>
         <p className="text-xs text-slate-500 mt-1">Quản lý số dư tồn thực tế, theo dõi đơn thầu thợ đang giao và kiểm kê luồng nhập xuất.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* INVENTORY TABLE - STOCK BALANCE (EPIC I) */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 p-6 rounded-2xl executive-shadow space-y-4">
+        <div className="lg:col-span-8 lux-card p-6 space-y-4">
           <div className="flex justify-between items-center border-b border-slate-150 pb-3">
-            <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-              <Boxes className="w-4 h-4 text-teal-600" /> Bảng cân đối tồn kho hiện tại
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <Boxes className="w-4 h-4 text-accent-dark" /> Bảng cân đối tồn kho hiện tại
             </h3>
-            <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-mono font-bold text-slate-500 uppercase tracking-wider">Hệ thống Auto-Tải</span>
+            <span className="text-[10px] bg-[#F7F5F0] border border-[#E6A756]/30 px-2 py-0.5 rounded font-mono font-bold text-accent-dark uppercase tracking-wider">Tồn kho realtime</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold bg-slate-50">
+                <tr className="border-b border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold bg-[#F7F5F0]">
                   <th className="p-3 pl-2">Vật tư / SKU</th>
                   <th className="p-3">Ngành hàng</th>
                   <th className="p-3 text-center">Ngưỡng tối thiểu</th>
@@ -113,9 +113,9 @@ export default function InventoryManager({
                       <td className={`p-3 text-center font-extrabold font-mono ${isLow ? "text-rose-700 bg-rose-50 rounded-xl" : "text-slate-800"}`}>
                         {item.quantityAvailable} {item.unit}
                       </td>
-                      <td className="p-3 text-center font-mono text-teal-700 font-extrabold">
+                      <td className="p-3 text-center font-mono text-accent-dark font-extrabold">
                         {item.quantityOnOrder > 0 ? (
-                          <span className="bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-200/50 animate-pulse text-[11px]">
+                          <span className="bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/50 animate-pulse text-[11px]">
                             + {item.quantityOnOrder} {item.unit}
                           </span>
                         ) : (
@@ -128,7 +128,7 @@ export default function InventoryManager({
                             <button
                               id="btn-receive-po"
                               onClick={() => handleReceiveGoodsSubmit(item.id, item.quantityOnOrder)}
-                              className="bg-teal-600 hover:bg-[#00535b] text-white text-[10px] p-2 leading-none rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1 ml-auto"
+                              className="bg-primary-dark hover:bg-[#000000] text-white text-[10px] p-2 leading-none rounded-lg font-bold cursor-pointer transition-all flex items-center gap-1 ml-auto"
                             >
                               <Truck className="w-3.5 h-3.5" /> Xác nhận Nhập PO
                             </button>
@@ -142,7 +142,7 @@ export default function InventoryManager({
                                 onClick={() => onCreatePrFromStock(item)}
                                 className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[10px] font-bold p-1 px-2.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 select-none"
                               >
-                                🎯 Khởi tạo thầu bù kho
+                                Khởi tạo thầu bù kho
                               </button>
                             )}
                           </div>
@@ -161,10 +161,10 @@ export default function InventoryManager({
         {/* CONTROLS AREA - RECEIPT & MANUAL ADJUSTMENTS */}
         <div className="lg:col-span-4 space-y-5">
           {/* ADJUSTMENT FORM */}
-          <div className="bg-white border border-slate-200 p-5 rounded-2xl executive-shadow space-y-4">
+          <div className="lux-card p-5 space-y-4">
             <div className="border-b border-slate-150 pb-3">
-              <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                <Settings2 className="w-4 h-4 text-teal-600" /> Cân đối kho thủ công
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Settings2 className="w-4 h-4 text-accent-dark" /> Cân đối kho thủ công
               </h3>
               <p className="text-[11px] text-slate-500 mt-0.5">Xử lý hao hụt vật tư thực tế tại bếp ăn.</p>
             </div>
@@ -176,7 +176,7 @@ export default function InventoryManager({
                   <select
                     value={selectedItemForAdjust}
                     onChange={(e) => setSelectedItemForAdjust(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-850"
+                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-850"
                   >
                     <option value="">-- Bấm chọn vật tư --</option>
                     {inventory.map(it => (
@@ -191,7 +191,7 @@ export default function InventoryManager({
                     <select
                       value={adjustType}
                       onChange={(e) => setAdjustType(e.target.value as "in" | "out")}
-                      className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-850"
+                      className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-850"
                     >
                       <option value="in">Cộng thêm (+ In)</option>
                       <option value="out">Trừ bớt (- Out)</option>
@@ -205,7 +205,7 @@ export default function InventoryManager({
                       value={adjustQty}
                       onChange={(e) => setAdjustQty(Number(e.target.value))}
                       min="1"
-                      className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2 text-xs text-slate-850"
+                      className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2 text-xs text-slate-850"
                     />
                   </div>
                 </div>
@@ -217,14 +217,14 @@ export default function InventoryManager({
                     value={adjustNotes}
                     onChange={(e) => setAdjustNotes(e.target.value)}
                     placeholder="Ví dụ: Bếp hỏng, kiểm sẩy lạnh..."
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-850 placeholder-slate-400"
+                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-850 placeholder-slate-400"
                   />
                 </div>
 
                 <button
                   type="submit"
                   id="btn-adjust-inventory"
-                  className="w-full bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  className="w-full lux-button justify-center"
                 >
                   <PlusCircle className="w-3.5 h-3.5" /> Ghi biến động kho
                 </button>
@@ -239,9 +239,9 @@ export default function InventoryManager({
       </div>
 
       {/* STOCK MOVEMENTS CHRONOLOGY LEDGER (Nhật ký dòng kho) */}
-      <div className="bg-white border border-slate-200 p-6 rounded-2xl executive-shadow space-y-4">
-        <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5 border-b border-slate-150 pb-3">
-          <History className="w-4 h-4 text-teal-600" /> Nhật ký vòng biến động dòng kho
+      <div className="lux-card p-6 space-y-4">
+        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-150 pb-3">
+          <History className="w-4 h-4 text-accent-dark" /> Nhật ký vòng biến động dòng kho
         </h3>
         
         <div className="max-h-64 overflow-y-auto pr-1">
@@ -255,7 +255,7 @@ export default function InventoryManager({
                 const isOut = mov.movementType === "out";
 
                 return (
-                  <div key={mov.id} className="bg-slate-50 p-3 rounded-xl border border-slate-250/50 flex items-center justify-between text-xs">
+                  <div key={mov.id} className="bg-[#F7F5F0]/70 p-3 rounded-xl border border-[#E6A756]/20 flex items-center justify-between text-xs">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded font-mono ${
@@ -274,7 +274,7 @@ export default function InventoryManager({
                     </div>
 
                     <div className="text-right">
-                      <span className={`text-xs font-black font-mono ${isIn ? "text-emerald-700" : isOut ? "text-rose-700" : "text-teal-700"}`}>
+                      <span className={`text-xs font-bold font-mono ${isIn ? "text-emerald-700" : isOut ? "text-rose-700" : "text-accent-dark"}`}>
                         {isIn ? "+" : isOut ? "-" : ""} {mov.quantity} {itemObj?.unit}
                       </span>
                       <p className="text-[9.5px] text-slate-400 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleTimeString("vi-VN")}</p>

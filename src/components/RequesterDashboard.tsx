@@ -256,13 +256,13 @@ export default function RequesterDashboard({
   return (
     <div className="space-y-6 animate-fade-slide-up">
       {/* Top Banner (Flipped Gold/Teal theme) */}
-      <div className="bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white border border-primary-dark p-6 rounded-3xl shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-primary-bg text-primary border-2 border-primary-dark shadow-teal-glow shrink-0">
+          <div className="p-3 rounded-2xl bg-primary-bg text-primary border border-primary-dark shadow-accent-glow shrink-0">
             <ChefHat className="w-6 h-6 text-primary-dark" />
           </div>
           <div>
-            <h2 className="text-lg font-black font-display text-primary-dark uppercase tracking-tight">
+            <h2 className="text-lg font-bold font-display text-primary-dark uppercase tracking-tight">
               Không Gian Bếp Trưởng &amp; Cung Ứng
             </h2>
             <p className="text-primary-dark/80 text-xs mt-0.5 font-bold">
@@ -272,10 +272,10 @@ export default function RequesterDashboard({
         </div>
         
         {/* Playful Pill Toggle Switch */}
-        <div className="flex bg-primary-bg p-1.5 rounded-full border-2 border-primary-dark shrink-0 shadow-sm">
+        <div className="flex bg-primary-bg p-1.5 rounded-full border border-primary-dark shrink-0 shadow-sm">
           <button
             onClick={() => setActiveSubTab("create")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all border-2 ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-all border ${
               activeSubTab === "create"
                 ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow"
                 : "text-primary border-transparent hover:text-primary-dark"
@@ -286,7 +286,7 @@ export default function RequesterDashboard({
           </button>
           <button
             onClick={() => setActiveSubTab("history")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-all border-2 ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-all border ${
               activeSubTab === "history"
                 ? "bg-accent-gold text-primary-dark border-primary-dark shadow-accent-glow"
                 : "text-primary border-transparent hover:text-primary-dark"
@@ -300,13 +300,13 @@ export default function RequesterDashboard({
 
       {/* Low stock alerts render with Flip7 Coral BOOM style */}
       {lowStockCount > 0 && activeSubTab === "create" && (
-        <div className="bg-white border-3 border-coral p-5 rounded-3xl shadow-coral-glow flex items-center justify-between gap-4 animate-boom-pulse">
+        <div className="bg-white border border-coral p-5 rounded-3xl shadow-coral-glow flex items-center justify-between gap-4 animate-boom-pulse">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-coral-light/25 border-2 border-coral flex items-center justify-center text-coral shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-coral-light/25 border border-coral flex items-center justify-center text-coral shrink-0">
               <AlertCircle className="w-5 h-5 text-coral-dark" />
             </div>
             <div>
-              <h4 className="text-sm font-black text-coral-dark uppercase tracking-wider">CẢNH BÁO: PHÁT HIỆN THÂM HỤT TỒN KHO</h4>
+              <h4 className="text-sm font-bold text-coral-dark uppercase tracking-wider">CẢNH BÁO: PHÁT HIỆN THÂM HỤT TỒN KHO</h4>
               <p className="text-xs text-primary-dark font-bold mt-0.5">
                 Hiện có <span className="text-coral-dark font-extrabold">{lowStockCount} mặt hàng</span> trong kho nhà bếp đang vơi dưới ngưỡng an toàn tối thiểu.
               </p>
@@ -316,7 +316,7 @@ export default function RequesterDashboard({
             onClick={() => {
               if (setActiveTab) setActiveTab("inventory");
             }}
-            className="px-4 py-2 bg-coral hover:bg-coral-dark border-2 border-primary-dark text-white text-xs font-black uppercase tracking-wider rounded-full shadow-coral-glow transition-all transform active:scale-95 cursor-pointer shrink-0"
+            className="px-4 py-2 bg-coral hover:bg-coral-dark border border-primary-dark text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-coral-glow transition-all transform active:scale-95 cursor-pointer shrink-0"
           >
             Kiểm kho ngay
           </button>
@@ -326,10 +326,10 @@ export default function RequesterDashboard({
       {activeSubTab === "create" ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Autocomplete Form Table */}
-          <div className="lg:col-span-8 bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card space-y-5">
-            <div className="pb-3 border-b-3 border-dashed border-primary/30 flex justify-between items-center">
+          <div className="lg:col-span-8 bg-white border border-primary-dark p-6 rounded-3xl shadow-card space-y-5">
+            <div className="pb-3 border-b border-dashed border-primary/30 flex justify-between items-center">
               <div>
-                <h3 className="text-sm font-black text-primary-dark flex items-center gap-1.5 uppercase tracking-wider font-display">
+                <h3 className="text-sm font-bold text-primary-dark flex items-center gap-1.5 uppercase tracking-wider font-display">
                   <span>🧑‍🍳</span> Autocomplete Yêu Cầu Vật Tư
                 </h3>
                 <p className="text-[11px] text-primary-dark/70 font-bold mt-0.5">Điền nguyên liệu để nhận gợi ý tức thì. Nhấn phím Enter để thêm hàng loạt.</p>
@@ -337,21 +337,21 @@ export default function RequesterDashboard({
               <button
                 type="button"
                 onClick={handleAddItemRow}
-                className="bg-primary-bg hover:bg-primary-light hover:text-white text-primary border-2 border-primary-dark text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
+                className="bg-primary-bg hover:bg-primary-light hover:text-white text-primary border border-primary-dark text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-primary-dark hover:text-white" /> Thêm hàng
               </button>
             </div>
 
             {errorText && (
-              <div className="bg-white border-3 border-error p-3.5 rounded-2xl text-xs flex items-center gap-2.5 text-error font-black shadow-md">
+              <div className="bg-white border border-error p-3.5 rounded-2xl text-xs flex items-center gap-2.5 text-error font-bold shadow-md">
                 <AlertCircle className="w-5 h-5 text-error shrink-0" />
                 <span>{errorText}</span>
               </div>
             )}
 
             {successText && (
-              <div className="bg-white border-3 border-success p-3.5 rounded-2xl text-xs flex items-center gap-2.5 text-success font-black shadow-md">
+              <div className="bg-white border border-success p-3.5 rounded-2xl text-xs flex items-center gap-2.5 text-success font-bold shadow-md">
                 <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                 <span>{successText}</span>
               </div>
@@ -360,7 +360,7 @@ export default function RequesterDashboard({
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Form title */}
               <div className="space-y-1.5">
-                <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest font-display block">
+                <label className="text-[10px] text-primary-dark/80 font-bold uppercase tracking-widest font-display block">
                   Tiêu đề phiếu mua sắm
                 </label>
                 <input
@@ -368,7 +368,7 @@ export default function RequesterDashboard({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ví dụ: Bổ sung rau củ tươi cho ca tối cuối tuần"
-                  className="w-full bg-cream border-2 border-primary-dark/40 focus:border-primary-dark rounded-xl p-3 text-xs text-primary-dark font-bold placeholder-primary-dark/40 shadow-inner focus:outline-none"
+                  className="w-full bg-cream border border-primary-dark/40 focus:border-primary-dark rounded-xl p-3 text-xs text-primary-dark font-bold placeholder-primary-dark/40 shadow-inner focus:outline-none"
                 />
               </div>
 
@@ -377,7 +377,7 @@ export default function RequesterDashboard({
                 {formRows.map((row, index) => (
                   <div 
                     key={index} 
-                    className="relative group bg-surface-base border-2 border-primary-dark/20 hover:border-primary-dark rounded-2xl p-4 transition-all shadow-sm"
+                    className="relative group bg-surface-base border border-primary-dark/20 hover:border-primary-dark rounded-2xl p-4 transition-all shadow-sm"
                   >
                     {/* Visual left bar decoration */}
                     <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-primary-light rounded-l-xl" />
@@ -385,9 +385,9 @@ export default function RequesterDashboard({
                     <div className="grid grid-cols-12 gap-3 items-center pl-2">
                       {/* Autocomplete Input */}
                       <div className="col-span-12 md:col-span-6 relative" ref={el => suggestionContainerRefs.current[index] = el}>
-                        <label className="text-[9px] text-primary-dark/70 font-black uppercase tracking-widest block mb-1">Tên nguyên liệu</label>
+                        <label className="text-[9px] text-primary-dark/70 font-bold uppercase tracking-widest block mb-1">Tên nguyên liệu</label>
                         <div className="flex items-center gap-2">
-                          <ItemIcon name={row.name} size="sm" className="scale-90 border-2 border-primary-dark shrink-0" />
+                          <ItemIcon name={row.name} size="sm" className="scale-90 border border-primary-dark shrink-0" />
                           <div className="relative w-full">
                             <input
                               type="text"
@@ -396,12 +396,12 @@ export default function RequesterDashboard({
                               onChange={(e) => handleItemNameChange(index, e.target.value)}
                               onKeyDown={(e) => handleNameKeyDown(e, index)}
                               placeholder="Nhập nguyên liệu cần bổ sung..."
-                              className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 px-3 text-xs text-primary-dark font-bold focus:outline-none"
+                              className="w-full bg-cream border border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 px-3 text-xs text-primary-dark font-bold focus:outline-none"
                             />
                             
                             {/* Suggestions Dropdown */}
                             {row.showSuggestions && row.filteredSuggestions.length > 0 && (
-                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-primary-dark rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto divide-y divide-primary-dark/15 overflow-hidden">
+                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-primary-dark rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto divide-y divide-primary-dark/15 overflow-hidden">
                                 {row.filteredSuggestions.map((item) => (
                                   <button
                                     key={item.id}
@@ -412,11 +412,11 @@ export default function RequesterDashboard({
                                     <div className="flex items-center gap-2">
                                       <ItemIcon name={item.name} size="sm" className="scale-75 border-none" />
                                       <div>
-                                        <p className="font-black text-primary-dark group-hover:text-primary">{item.name}</p>
-                                        <p className="text-[9px] text-primary-dark/60 font-black font-mono mt-0.5">Tồn: {item.quantityAvailable} {item.unit} (Safety: {item.minStockLevel})</p>
+                                        <p className="font-bold text-primary-dark group-hover:text-primary">{item.name}</p>
+                                        <p className="text-[9px] text-primary-dark/60 font-bold font-mono mt-0.5">Tồn: {item.quantityAvailable} {item.unit} (Safety: {item.minStockLevel})</p>
                                       </div>
                                     </div>
-                                    <span className="text-[10px] bg-cream text-primary-dark border border-primary-dark/30 group-hover:border-primary-dark px-2 py-0.5 rounded font-mono font-black">
+                                    <span className="text-[10px] bg-cream text-primary-dark border border-primary-dark/30 group-hover:border-primary-dark px-2 py-0.5 rounded font-mono font-bold">
                                       {item.unit}
                                     </span>
                                   </button>
@@ -429,7 +429,7 @@ export default function RequesterDashboard({
 
                       {/* Quantity Input */}
                       <div className="col-span-6 md:col-span-3">
-                        <label className="text-[9px] text-primary-dark/70 font-black uppercase tracking-widest block mb-1">Số lượng</label>
+                        <label className="text-[9px] text-primary-dark/70 font-bold uppercase tracking-widest block mb-1">Số lượng</label>
                         <input
                           type="number"
                           id={`quantity-input-${index}`}
@@ -438,19 +438,19 @@ export default function RequesterDashboard({
                           onKeyDown={(e) => handleQtyKeyDown(e, index)}
                           min="1"
                           placeholder="Số lượng"
-                          className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 text-xs text-primary-dark font-mono font-black text-center focus:outline-none"
+                          className="w-full bg-cream border border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 text-xs text-primary-dark font-mono font-bold text-center focus:outline-none"
                         />
                       </div>
 
                       {/* Unit Input */}
                       <div className="col-span-6 md:col-span-3">
-                        <label className="text-[9px] text-primary-dark/70 font-black uppercase tracking-widest block mb-1">Đơn vị</label>
+                        <label className="text-[9px] text-primary-dark/70 font-bold uppercase tracking-widest block mb-1">Đơn vị</label>
                         <input
                           type="text"
                           value={row.unit}
                           onChange={(e) => handleItemFieldChange(index, "unit", e.target.value)}
                           placeholder="kg, gói,..."
-                          className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 text-xs text-primary-dark font-bold focus:outline-none"
+                          className="w-full bg-cream border border-primary-dark/30 focus:border-primary-dark rounded-xl p-2 text-xs text-primary-dark font-bold focus:outline-none"
                         />
                       </div>
                     </div>
@@ -473,7 +473,7 @@ export default function RequesterDashboard({
                           <button
                             type="button"
                             onClick={() => handleRemoveItemRow(index)}
-                            className="p-1.5 text-primary-dark/40 hover:text-coral hover:bg-coral-light/10 border-2 border-transparent hover:border-coral rounded-xl transition-all cursor-pointer"
+                            className="p-1.5 text-primary-dark/40 hover:text-coral hover:bg-coral-light/10 border border-transparent hover:border-coral rounded-xl transition-all cursor-pointer"
                             title="Xóa dòng này"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -488,29 +488,29 @@ export default function RequesterDashboard({
           </div>
 
           {/* Setup Sidebar Controls */}
-          <div className="lg:col-span-4 bg-white border-3 border-primary-dark p-6 rounded-3xl shadow-card space-y-5 h-fit">
-            <div className="pb-2 border-b-2 border-dashed border-primary/20">
-              <h3 className="text-sm font-black text-primary-dark flex items-center gap-1.5 uppercase tracking-wider">
+          <div className="lg:col-span-4 bg-white border border-primary-dark p-6 rounded-3xl shadow-card space-y-5 h-fit">
+            <div className="pb-2 border-b border-dashed border-primary/20">
+              <h3 className="text-sm font-bold text-primary-dark flex items-center gap-1.5 uppercase tracking-wider">
                 <span>📅</span> Hạn Nhận & Độ Khẩn
               </h3>
             </div>
 
             {/* Date select */}
             <div className="space-y-1.5">
-              <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest font-display flex items-center gap-1">
+              <label className="text-[10px] text-primary-dark/80 font-bold uppercase tracking-widest font-display flex items-center gap-1">
                 Ngày mong muốn nhận
               </label>
               <input
                 type="date"
                 value={requiredDate}
                 onChange={(e) => setRequiredDate(e.target.value)}
-                className="w-full bg-cream border-2 border-primary-dark/30 focus:border-primary-dark rounded-xl p-2.5 text-xs text-primary-dark font-bold focus:outline-none"
+                className="w-full bg-cream border border-primary-dark/30 focus:border-primary-dark rounded-xl p-2.5 text-xs text-primary-dark font-bold focus:outline-none"
               />
             </div>
 
             {/* Priority Select */}
             <div className="space-y-1.5">
-              <label className="text-[10px] text-primary-dark/80 font-black uppercase tracking-widest font-display block">
+              <label className="text-[10px] text-primary-dark/80 font-bold uppercase tracking-widest font-display block">
                 Mức độ khẩn cấp
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -525,11 +525,11 @@ export default function RequesterDashboard({
                       key={p.value}
                       type="button"
                       onClick={() => setPriority(p.value as PriorityLevel)}
-                      className={`py-2 px-1 text-center text-[10px] font-black uppercase tracking-wide border-2 rounded-xl transition-all cursor-pointer ${
+                      className={`py-2 px-1 text-center text-[10px] font-bold uppercase tracking-wide border rounded-xl transition-all cursor-pointer ${
                         isSelected 
                           ? p.value === "high" 
                             ? "bg-coral text-white border-primary-dark shadow-coral-glow transform scale-[1.03]" 
-                            : "bg-primary text-white border-primary-dark shadow-teal-glow transform scale-[1.03]" 
+                            : "bg-primary text-white border-primary-dark shadow-accent-glow transform scale-[1.03]" 
                           : p.style
                       }`}
                     >
@@ -547,7 +547,7 @@ export default function RequesterDashboard({
               onClick={handleSubmit}
               disabled={isSubmitting}
               id="btn-submit-requester-pr"
-              className="w-full bg-accent-gold hover:bg-accent-dark disabled:bg-accent-light/40 text-primary-dark font-black text-xs py-3.5 rounded-full flex items-center justify-center gap-1.5 transition-all border-2 border-primary-dark shadow-accent-glow transform active:scale-95 cursor-pointer uppercase tracking-wider"
+              className="w-full bg-accent-gold hover:bg-accent-dark disabled:bg-accent-light/40 text-primary-dark font-bold text-xs py-3.5 rounded-full flex items-center justify-center gap-1.5 transition-all border border-primary-dark shadow-accent-glow transform active:scale-95 cursor-pointer uppercase tracking-wider"
             >
               {isSubmitting ? (
                 <span>Đang gửi thầu...</span>
@@ -563,21 +563,21 @@ export default function RequesterDashboard({
       ) : (
         /* History View Tab */
         <div className="space-y-4">
-          <div className="bg-white border-3 border-primary-dark p-4 rounded-3xl shadow-card flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-black text-primary-dark uppercase tracking-wider">
+          <div className="bg-white border border-primary-dark p-4 rounded-3xl shadow-card flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-primary-dark uppercase tracking-wider">
               <span>📋</span> Lịch Sử Giao Nhận & Đặt Thầu ({filteredPrs.length})
             </div>
-            <span className="text-[9px] bg-cream border border-primary-dark/30 text-primary-dark/70 font-mono font-black px-2 py-0.5 rounded-md">Cách ly: org-1</span>
+            <span className="text-[9px] bg-cream border border-primary-dark/30 text-primary-dark/70 font-mono font-bold px-2 py-0.5 rounded-md">Cách ly: org-1</span>
           </div>
 
           {filteredPrs.length === 0 ? (
-            <div className="text-center py-20 bg-white border-3 border-primary-dark rounded-3xl shadow-card">
+            <div className="text-center py-20 bg-white border border-primary-dark rounded-3xl shadow-card">
               <Clock className="w-12 h-12 text-primary-light mx-auto animate-pulse" />
-              <p className="text-primary-dark font-black text-sm mt-4 uppercase tracking-wider">Chưa có yêu cầu mua sắm nào</p>
+              <p className="text-primary-dark font-bold text-sm mt-4 uppercase tracking-wider">Chưa có yêu cầu mua sắm nào</p>
               <p className="text-primary-dark/75 text-xs mt-1 font-bold">Các phiếu thầu bạn lập sẽ hiển thị tiến trình nhận hàng tại đây.</p>
               <button 
                 onClick={() => setActiveSubTab("create")} 
-                className="mt-5 bg-accent-gold hover:bg-accent-dark text-primary-dark px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider border-2 border-primary-dark shadow-accent-glow transition-all transform active:scale-95 cursor-pointer"
+                className="mt-5 bg-accent-gold hover:bg-accent-dark text-primary-dark px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider border border-primary-dark shadow-accent-glow transition-all transform active:scale-95 cursor-pointer"
               >
                 Tạo yêu cầu mới ngay
               </button>
@@ -593,7 +593,7 @@ export default function RequesterDashboard({
                 return (
                   <div 
                     key={pr.id} 
-                    className={`bg-white border-3 border-primary-dark rounded-3xl shadow-card overflow-hidden transition-all relative border-l-8 ${
+                    className={`bg-white border border-primary-dark rounded-3xl shadow-card overflow-hidden transition-all relative border-l-8 ${
                       isCancelled ? "border-l-coral" : pr.status === "completed" ? "border-l-success" : "border-l-primary"
                     }`}
                   >
@@ -604,28 +604,28 @@ export default function RequesterDashboard({
                     >
                       <div className="space-y-1.5 flex-1 pl-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] bg-cream border-2 border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-black shadow-sm">
+                          <span className="text-[9px] bg-cream border border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-bold shadow-sm">
                             {pr.id.toUpperCase()}
                           </span>
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase font-mono border ${
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase font-mono border ${
                             isHigh ? "bg-coral-light/10 border-coral text-coral-dark" : "bg-primary-bg border-primary/20 text-primary-dark"
                           }`}>
                             {pr.priority === "high" ? "🚨 KHẨN CẤP" : "THƯỜNG"}
                           </span>
-                          <span className="text-[9px] text-primary-dark/60 font-black font-mono">
+                          <span className="text-[9px] text-primary-dark/60 font-bold font-mono">
                             Khởi tạo: {new Date(pr.createdAt).toLocaleDateString("vi-VN")}
                           </span>
                         </div>
-                        <h4 className="text-sm font-black text-primary-dark uppercase tracking-wider">{pr.title}</h4>
+                        <h4 className="text-sm font-bold text-primary-dark uppercase tracking-wider">{pr.title}</h4>
                         <p className="text-xs text-primary-dark/80 font-bold">
-                          Danh mục: <span className="text-primary font-black">{pr.items.length} mặt hàng</span> | Hạn nhận thầu: <span className="text-coral font-black font-mono">{pr.requiredDate}</span>
+                          Danh mục: <span className="text-primary font-bold">{pr.items.length} mặt hàng</span> | Hạn nhận thầu: <span className="text-coral font-bold font-mono">{pr.requiredDate}</span>
                         </p>
                       </div>
 
                       {/* Right Stepper State badge */}
                       <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
                         <div className="text-right">
-                          <span className={`text-[10px] px-3 py-1 rounded-full font-black border-2 ${
+                          <span className={`text-[10px] px-3 py-1 rounded-full font-bold border ${
                             isCancelled 
                               ? "bg-coral-light/10 border-coral text-coral-dark"
                               : pr.status === "completed" 
@@ -648,7 +648,7 @@ export default function RequesterDashboard({
 
                     {/* Progress Stepper Visual Trail (Game board visual styling) */}
                     {!isCancelled ? (
-                      <div className="px-6 pb-6 pt-2 border-t-2 border-dashed border-primary/10 bg-primary-bg/5">
+                      <div className="px-6 pb-6 pt-2 border-t border-dashed border-primary/10 bg-primary-bg/5">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
                           
                           {/* Playful Thick Connector Bar */}
@@ -669,11 +669,11 @@ export default function RequesterDashboard({
                             return (
                               <div key={idx} className="flex sm:flex-col items-center gap-2.5 sm:gap-2 z-10 flex-1 relative">
                                 {/* Dot indicator */}
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs border-2 shadow-sm transition-all duration-300 ${
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border shadow-sm transition-all duration-300 ${
                                   isPast 
                                     ? "bg-primary border-primary-dark text-white"
                                     : isCurrent 
-                                      ? "bg-accent-gold border-primary-dark text-primary-dark font-black ring-4 ring-accent-light/35 shadow-accent-glow transform scale-[1.1]"
+                                      ? "bg-accent-gold border-primary-dark text-primary-dark font-bold ring-4 ring-accent-light/35 shadow-accent-glow transform scale-[1.1]"
                                       : "bg-white border-primary-dark/30 text-primary-dark/45"
                                 }`}>
                                   {isPast ? <CheckCircle2 className="w-4.5 h-4.5 text-white" /> : idx + 1}
@@ -681,7 +681,7 @@ export default function RequesterDashboard({
                                 
                                 {/* Label details */}
                                 <div className="text-left sm:text-center">
-                                  <p className={`text-[10px] font-black uppercase tracking-wider leading-none ${isCurrent ? "text-primary-dark font-black" : isPast ? "text-primary-dark/80" : "text-primary-dark/40"}`}>
+                                  <p className={`text-[10px] font-bold uppercase tracking-wider leading-none ${isCurrent ? "text-primary-dark font-bold" : isPast ? "text-primary-dark/80" : "text-primary-dark/40"}`}>
                                     {step.label}
                                   </p>
                                   <p className="text-[8px] font-bold text-primary-dark/50 uppercase tracking-widest mt-0.5">{step.desc}</p>
@@ -692,21 +692,21 @@ export default function RequesterDashboard({
                         </div>
                       </div>
                     ) : (
-                      <div className="px-6 py-3 border-t-2 border-dashed border-coral/30 bg-coral-light/5 text-coral-dark text-[10px] font-black uppercase tracking-wider">
+                      <div className="px-6 py-3 border-t border-dashed border-coral/30 bg-coral-light/5 text-coral-dark text-[10px] font-bold uppercase tracking-wider">
                         Phiếu PR này đã bị hủy bỏ và không thể tiếp tục thực hiện quy trình thầu.
                       </div>
                     )}
 
                     {/* Expandable Items Table */}
                     {isExpanded && (
-                      <div className="p-5 border-t-2 border-primary-dark/15 bg-cream/10 space-y-3">
-                        <div className="text-[9px] text-primary-dark/60 font-black uppercase tracking-wider font-mono">
+                      <div className="p-5 border-t border-primary-dark/15 bg-cream/10 space-y-3">
+                        <div className="text-[9px] text-primary-dark/60 font-bold uppercase tracking-wider font-mono">
                           Bảng chi tiết nguyên liệu yêu cầu ({pr.items.length} mặt hàng)
                         </div>
-                        <div className="bg-white border-2 border-primary-dark rounded-2xl overflow-hidden shadow-sm">
+                        <div className="bg-white border border-primary-dark rounded-2xl overflow-hidden shadow-sm">
                           <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                              <tr className="bg-primary-bg border-b-2 border-primary-dark text-[9px] font-black text-primary-dark uppercase tracking-wider">
+                              <tr className="bg-primary-bg border-b border-primary-dark text-[9px] font-bold text-primary-dark uppercase tracking-wider">
                                 <th className="p-3 pl-4">Tên sản phẩm</th>
                                 <th className="p-3 text-center">Số lượng</th>
                                 <th className="p-3">Đơn vị</th>
@@ -718,9 +718,9 @@ export default function RequesterDashboard({
                                 <tr key={idx} className="hover:bg-primary-bg/5">
                                   <td className="p-3 pl-4 flex items-center gap-2">
                                     <ItemIcon name={it.name} size="sm" className="scale-75 border" />
-                                    <span className="font-black text-primary-dark">{it.name}</span>
+                                    <span className="font-bold text-primary-dark">{it.name}</span>
                                   </td>
-                                  <td className="p-3 text-center font-mono font-black text-primary-dark">{it.quantity}</td>
+                                  <td className="p-3 text-center font-mono font-bold text-primary-dark">{it.quantity}</td>
                                   <td className="p-3 font-mono text-primary-dark/60 uppercase">{it.unit}</td>
                                   <td className="p-3 text-primary-dark/50 text-[10px] font-medium italic">{it.notes || "---"}</td>
                                 </tr>

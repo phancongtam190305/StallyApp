@@ -90,7 +90,7 @@ export default function PurchaseRequestsList({
     <div className="space-y-6 animate-fade-slide-up">
       {/* Title & Stats */}
       <div>
-        <h2 className="text-xl font-extrabold font-display text-[#00535b] tracking-tight">Yêu cầu Mua sắm (PR)</h2>
+        <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight">Yêu cầu Mua sắm (PR)</h2>
         <p className="text-xs text-slate-500 mt-1">Quản lý và chuyển tiếp yêu cầu vật tư, thực phẩm dự trữ từ nhà bếp.</p>
       </div>
 
@@ -99,7 +99,7 @@ export default function PurchaseRequestsList({
         <div className="lg:col-span-5 bg-white border border-slate-200 p-6 rounded-2xl executive-shadow h-fit">
           <div className="mb-4">
             <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-              <FileEdit className="w-4 h-4 text-teal-600" /> Bản ghi yêu cầu mới
+              <FileEdit className="w-4 h-4 text-accent-dark" /> Bản ghi yêu cầu mới
             </h3>
             <p className="text-[11px] text-slate-500">Khởi tạo phiếu vật tư gửi sơ tuyển nhà cung cấp.</p>
           </div>
@@ -120,7 +120,7 @@ export default function PurchaseRequestsList({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ví dụ: Nguyên liệu nhà bếp cuối tuần"
-                className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400"
+                className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400"
               />
             </div>
 
@@ -131,7 +131,7 @@ export default function PurchaseRequestsList({
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as PriorityLevel)}
-                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                 >
                   <option value="low">Thường (Low)</option>
                   <option value="medium">Trung bình (Medium)</option>
@@ -145,7 +145,7 @@ export default function PurchaseRequestsList({
                   type="date"
                   value={requiredDate}
                   onChange={(e) => setRequiredDate(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-teal-500 rounded-xl p-2 text-xs text-slate-800"
+                  className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2 text-xs text-slate-800"
                 />
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function PurchaseRequestsList({
                 <button
                   type="button"
                   onClick={handleAddItem}
-                  className="text-[10px] text-teal-700 hover:text-teal-800 font-extrabold flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] text-accent-dark hover:text-primary-dark font-extrabold flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Thêm dòng
                 </button>
@@ -222,7 +222,7 @@ export default function PurchaseRequestsList({
             <button
               type="submit"
               id="btn-create-pr"
-              className="w-full bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-xs p-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+              className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" /> Gửi Lên Ban Mua Sắm (PR)
             </button>
@@ -233,7 +233,7 @@ export default function PurchaseRequestsList({
         <div className="lg:col-span-7 space-y-4">
           <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-sm">
             <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-              <History className="w-4 h-4 text-teal-600" /> Danh sách yêu cầu mua sắm ({purchaseRequests.length})
+              <History className="w-4 h-4 text-accent-dark" /> Danh sách yêu cầu mua sắm ({purchaseRequests.length})
             </span>
           </div>
 
@@ -287,7 +287,7 @@ export default function PurchaseRequestsList({
                       {/* Status indicator */}
                       <div className="text-right">
                         <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
-                          isApproved ? "bg-teal-50 border border-teal-200 text-teal-700 font-bold" : "bg-amber-50 border border-amber-200 text-amber-700 font-bold"
+                          isApproved ? "bg-amber-50 border border-amber-200 text-accent-dark font-bold" : "bg-amber-50 border border-amber-200 text-amber-700 font-bold"
                         }`}>
                           {pr.status === "submitted" ? "Đang chào giá" : pr.status || "Chờ gửi"}
                         </span>
@@ -326,7 +326,7 @@ export default function PurchaseRequestsList({
                               pr.status = "submitted";
                               onSelectPrForSourcing(pr);
                             }}
-                            className="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-[10px] p-2 px-3 rounded-lg font-bold cursor-pointer"
+                            className="bg-amber-50 hover:bg-amber-50 text-accent-dark border border-amber-200 text-[10px] p-2 px-3 rounded-lg font-bold cursor-pointer"
                           >
                             Xác thực nháp &amp; Gửi
                           </button>
@@ -340,7 +340,7 @@ export default function PurchaseRequestsList({
                               onSelectPrForSourcing(pr);
                               setActiveTab("rfq");
                             }}
-                            className="bg-[#00535b] hover:bg-[#003d44] text-white font-bold text-[10px] p-2 px-3 rounded-lg flex items-center gap-1 cursor-pointer"
+                            className="bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-[10px] p-2 px-3 rounded-lg flex items-center gap-1 cursor-pointer"
                           >
                             <span>Tiếp quản &amp; Khảo giá NCC (RFQ)</span>
                             <ArrowRight className="w-3 h-3" />
