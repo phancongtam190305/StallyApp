@@ -29,6 +29,7 @@ import {
   Lock
 } from "lucide-react";
 import { UserRole, ProcurementCase, PurchaseRequestItem, Supplier, Quote, CaseTransition, PurchaseOrder } from "../types";
+import { getQuoteRiskFlags, quoteNeedsHumanReview } from "../quoteRisk";
 import ItemIcon from "./ItemIcon";
 import { useToast } from "../context/ToastContext";
 
@@ -45,6 +46,10 @@ interface SupplierMatch {
   supplierId: string;
   name: string;
   email: string;
+  rating?: number;
+  tags?: string[];
+  source?: string;
+  rerankedBy?: string;
   score: number;
   reasons: string[];
   riskFlags: string[];
@@ -284,6 +289,8 @@ export default function CaseDetailTimeline({
   const [activeMilestone, setActiveMilestone] = useState<number>(1);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const fetchInFlightRef = useRef(false);
+  const supplierRerankInFlightRef = useRef(false);
+  const supplierRerankedSignatureRef = useRef("");
   const { showToast } = useToast();
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
 
@@ -295,6 +302,13 @@ export default function CaseDetailTimeline({
 
   // Sourcing States
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [supplierFilterKeyword, setSupplierFilterKeyword] = useState("");
+  const [supplierMinScore, setSupplierMinScore] = useState(0);
+  const [supplierMinRating, setSupplierMinRating] = useState(0);
+  const [supplierSourceFilter, setSupplierSourceFilter] = useState("all");
+  const [hideRiskySuppliers, setHideRiskySuppliers] = useState(false);
+  const [isSupplierReranking, setIsSupplierReranking] = useState(false);
+  const [lastSupplierRerankedAt, setLastSupplierRerankedAt] = useState<string>("");
   const [aiSearchQuery, setAiSearchQuery] = useState("");
   const [discoveryCandidates, setDiscoveryCandidates] = useState<SupplierDiscoveryCandidate[]>([]);
   const [selectedDiscoveryCandidateIds, setSelectedDiscoveryCandidateIds] = useState<string[]>([]);
@@ -347,6 +361,28 @@ export default function CaseDetailTimeline({
   const isDraftingRfq = loadingAction === "draft_rfq";
   const canEditSourcing = caseObj?.status === "supplier_matching" && !hasRfqDrafts && !isDraftingRfq;
   const isRfqDraftSyncing = caseObj?.status === "rfq_draft" && !hasRfqDrafts && !isDraftingRfq;
+  const llmRerankedCount = matchedSuppliers.filter(item => item.rerankedBy === "llm").length;
+  const getSupplierMatchSignature = (items: SupplierMatch[]) =>
+    items
+      .map(item => `${item.supplierId}:${item.score}`)
+      .sort()
+      .join("|");
+  const filteredMatchedSuppliers = matchedSuppliers.filter(item => {
+    const keyword = supplierFilterKeyword.trim().toLowerCase();
+    const haystack = [
+      item.name,
+      item.email,
+      ...(item.tags || []),
+      ...item.reasons,
+      ...item.riskFlags
+    ].join(" ").toLowerCase();
+    if (keyword && !haystack.includes(keyword)) return false;
+    if (item.score < supplierMinScore) return false;
+    if ((item.rating || 0) < supplierMinRating) return false;
+    if (supplierSourceFilter !== "all" && (item.source || "crm") !== supplierSourceFilter) return false;
+    if (hideRiskySuppliers && item.riskFlags.length > 0) return false;
+    return true;
+  });
 
   useEffect(() => {
     if (!isCurrentlyScanning) {
@@ -437,11 +473,42 @@ export default function CaseDetailTimeline({
 
       // Always fetch matched suppliers if status is step 2
       if (["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"].includes(status)) {
-        const matchesRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/supplier-matches`), {
+        const matchesRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/supplier-matches?rerank=false`), {
           headers: { "X-Organization-Id": orgId }
         });
         const matchesData = await matchesRes.json();
-        setMatchedSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(matchesData.data || []) ? (matchesData.data || []) : prev);
+        const ruleMatches = matchesData.data || [];
+        const ruleSignature = getSupplierMatchSignature(ruleMatches);
+        setMatchedSuppliers(prev => {
+          if (supplierRerankedSignatureRef.current === ruleSignature && prev.some(item => item.rerankedBy === "llm")) {
+            return prev;
+          }
+          return JSON.stringify(prev) !== JSON.stringify(ruleMatches) ? ruleMatches : prev;
+        });
+
+        if (
+          status === "supplier_matching" &&
+          !supplierRerankInFlightRef.current &&
+          supplierRerankedSignatureRef.current !== ruleSignature
+        ) {
+          supplierRerankInFlightRef.current = true;
+          setIsSupplierReranking(true);
+          fetch(apiUrl(`/api/v1/cases/${caseId}/supplier-matches?rerank=true`), {
+            headers: { "X-Organization-Id": orgId }
+          })
+            .then(res => res.json())
+            .then(data => {
+              const rerankedMatches = data.data || [];
+              supplierRerankedSignatureRef.current = ruleSignature;
+              setMatchedSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(rerankedMatches) ? rerankedMatches : prev);
+              setLastSupplierRerankedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+            })
+            .catch(() => {})
+            .finally(() => {
+              supplierRerankInFlightRef.current = false;
+              setIsSupplierReranking(false);
+            });
+        }
 
         // Fetch discovery candidates
         const candRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/suppliers/discovery-candidates`), {
@@ -755,7 +822,7 @@ export default function CaseDetailTimeline({
       });
       const draftData = await draftRes.json();
       setRfqDrafts(draftData.data || []);
-      showToast("AI đã tự động soạn thư mời thầu nháp chuyên biệt!", "success");
+      showToast("Đã tạo bản nháp RFQ từ template. Vui lòng review trước khi gửi.", "success");
       fetchData();
     } catch (e: any) {
       showToast("Tạo bản thảo RFQ thất bại.", "error");
@@ -1393,14 +1460,14 @@ export default function CaseDetailTimeline({
                           <RefreshCw className="w-5 h-5 animate-spin" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">AI đang soạn thư mời thầu</p>
+                          <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">Đang tạo bản nháp RFQ từ template</p>
                           <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
-                            Đang viết email riêng cho {selectedSuppliers.length} NCC đã chọn. Bước này có thể mất 1-2 phút.
+                            Hệ thống điền sẵn tên NCC, danh sách hàng và hạn báo giá. Bạn vẫn có thể biên tập trước khi gửi.
                           </p>
                         </div>
                       </div>
                       <p className="text-[10px] text-slate-500 font-bold">
-                        Vui lòng giữ trang mở cho đến khi bản nháp xuất hiện.
+                        Bản nháp sẽ xuất hiện gần như ngay lập tức, không cần chờ LLM viết lại từng email.
                       </p>
                     </div>
                   )}
@@ -1572,12 +1639,129 @@ export default function CaseDetailTimeline({
 
               {/* Suggested matched suppliers grid */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">
-                  Đề xuất nhà thầu phù hợp nhất ({matchedSuppliers.length}):
-                </h4>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">
+                        Đề xuất nhà thầu phù hợp nhất ({filteredMatchedSuppliers.length}/{matchedSuppliers.length}):
+                      </h4>
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold">
+                        {isSupplierReranking ? (
+                          <span className="inline-flex items-center gap-1.5 bg-amber-50 text-accent-dark border border-amber-200 px-2.5 py-1 rounded-full">
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                            AI đang rerank top NCC...
+                          </span>
+                        ) : llmRerankedCount > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 bg-primary-dark text-white border border-primary-dark px-2.5 py-1 rounded-full">
+                            <Sparkles className="w-3 h-3" />
+                            AI đã rerank {llmRerankedCount} NCC{lastSupplierRerankedAt ? ` lúc ${lastSupplierRerankedAt}` : ""}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full">
+                            Rule score tức thì, AI rerank chạy nền
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (supplierRerankInFlightRef.current) return;
+                          const currentSignature = getSupplierMatchSignature(matchedSuppliers);
+                          supplierRerankedSignatureRef.current = "";
+                          supplierRerankInFlightRef.current = true;
+                          setIsSupplierReranking(true);
+                          fetch(apiUrl(`/api/v1/cases/${caseId}/supplier-matches?rerank=true`), {
+                            headers: { "X-Organization-Id": orgId }
+                          })
+                            .then(res => res.json())
+                            .then(data => {
+                              const rerankedMatches = data.data || [];
+                              supplierRerankedSignatureRef.current = currentSignature || getSupplierMatchSignature(rerankedMatches);
+                              setMatchedSuppliers(rerankedMatches);
+                              setLastSupplierRerankedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+                            })
+                            .catch(() => {})
+                            .finally(() => {
+                              supplierRerankInFlightRef.current = false;
+                              setIsSupplierReranking(false);
+                            });
+                        }}
+                        disabled={isSupplierReranking}
+                        className="text-[10px] font-bold text-accent-dark hover:text-primary-dark disabled:text-slate-400"
+                      >
+                        Rerank lại
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSupplierFilterKeyword("");
+                          setSupplierMinScore(0);
+                          setSupplierMinRating(0);
+                          setSupplierSourceFilter("all");
+                          setHideRiskySuppliers(false);
+                        }}
+                        className="text-[10px] font-bold text-slate-500 hover:text-primary-dark"
+                      >
+                        Reset filter
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-2 bg-white border border-primary-dark/10 rounded-2xl p-3">
+                    <input
+                      type="text"
+                      value={supplierFilterKeyword}
+                      onChange={(event) => setSupplierFilterKeyword(event.target.value)}
+                      placeholder="Lọc tên, email, tag..."
+                      className="md:col-span-2 p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
+                    />
+                    <select
+                      value={supplierMinScore}
+                      onChange={(event) => setSupplierMinScore(Number(event.target.value))}
+                      className="p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
+                    >
+                      <option value={0}>Mọi điểm khớp</option>
+                      <option value={50}>Khớp từ 50%</option>
+                      <option value={70}>Khớp từ 70%</option>
+                      <option value={85}>Khớp từ 85%</option>
+                    </select>
+                    <select
+                      value={supplierMinRating}
+                      onChange={(event) => setSupplierMinRating(Number(event.target.value))}
+                      className="p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
+                    >
+                      <option value={0}>Mọi rating</option>
+                      <option value={3.5}>Rating từ 3.5</option>
+                      <option value={4}>Rating từ 4.0</option>
+                      <option value={4.5}>Rating từ 4.5</option>
+                    </select>
+                    <select
+                      value={supplierSourceFilter}
+                      onChange={(event) => setSupplierSourceFilter(event.target.value)}
+                      className="p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
+                    >
+                      <option value="all">Mọi nguồn</option>
+                      <option value="crm">CRM</option>
+                      <option value="manual">Thủ công</option>
+                      <option value="discovered">Discovered</option>
+                      <option value="crawled">Crawled</option>
+                    </select>
+                    <label className="md:col-span-5 flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={hideRiskySuppliers}
+                        onChange={(event) => setHideRiskySuppliers(event.target.checked)}
+                        className="accent-accent-gold"
+                      />
+                      Ẩn NCC có cảnh báo rủi ro
+                    </label>
+                  </div>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {matchedSuppliers.map((item) => (
+                  {filteredMatchedSuppliers.map((item) => (
                     <div 
                       key={item.supplierId} 
                       onClick={() => {
@@ -1602,11 +1786,33 @@ export default function CaseDetailTimeline({
                           </span>
                         </div>
                         <p className="text-[10px] text-primary-dark/50 font-bold font-mono">{item.email}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {(item.tags || []).slice(0, 4).map(tag => (
+                            <span key={tag} className="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 rounded px-1.5 py-0.5 font-bold">
+                              {tag}
+                            </span>
+                          ))}
+                          {item.source && (
+                            <span className="text-[9px] bg-amber-50 text-accent-dark border border-amber-200 rounded px-1.5 py-0.5 font-bold">
+                              {item.source}
+                            </span>
+                          )}
+                          {item.rerankedBy === "llm" && (
+                            <span className="text-[9px] bg-primary-dark text-white border border-primary-dark rounded px-1.5 py-0.5 font-bold">
+                              AI rerank
+                            </span>
+                          )}
+                        </div>
                         
                         <div className="space-y-1 pt-1.5">
                           {item.reasons.map((r, i) => (
                             <p key={i} className="text-[10px] text-primary-dark/70 font-bold leading-normal flex items-start gap-1">
                               <span className="text-primary font-bold">✔</span> {r}
+                            </p>
+                          ))}
+                          {item.riskFlags.map((risk) => (
+                            <p key={risk} className="text-[10px] text-coral-dark font-bold leading-normal flex items-start gap-1">
+                              <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" /> {risk}
                             </p>
                           ))}
                         </div>
@@ -1621,6 +1827,11 @@ export default function CaseDetailTimeline({
                       )}
                     </div>
                   ))}
+                  {filteredMatchedSuppliers.length === 0 && (
+                    <div className="md:col-span-2 bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center text-xs text-slate-500 font-bold">
+                      Không có NCC nào khớp bộ lọc hiện tại.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1632,7 +1843,7 @@ export default function CaseDetailTimeline({
                   <div className="space-y-1 min-w-0">
                     <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">Đang đồng bộ bản nháp RFQ...</p>
                     <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
-                      AI đang hoàn tất thư mời thầu cho các NCC đã chọn. Bản nháp sẽ tự xuất hiện khi xử lý xong.
+                      Hệ thống đang đồng bộ bản nháp RFQ theo template cho các NCC đã chọn.
                     </p>
                   </div>
                 </div>
@@ -1642,11 +1853,17 @@ export default function CaseDetailTimeline({
               {rfqDrafts.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-dashed border-primary/20">
                   <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-accent-gold" /> AI Dự thảo thư mời thầu RFQ chi tiết:
+                    <Sparkles className="w-4 h-4 text-accent-gold" /> Dự thảo RFQ có kiểm duyệt:
                   </h4>
                   <p className="text-[11px] text-slate-600 font-bold">
-                    Review thư mời thầu trước khi gửi. Sau khi gửi, hệ thống sẽ chuyển sang chờ báo giá từ email.
+                    Review nội dung, người nhận và điều kiện báo giá trước khi gửi. AI chỉ hỗ trợ soạn thảo, người mua là người chịu trách nhiệm phát hành.
                   </p>
+                  <div className="bg-coral-light/10 border border-coral/30 rounded-xl p-3 flex items-start gap-2 text-[11px] text-coral-dark font-bold leading-relaxed">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>
+                      Kiểm tra mô tả sản phẩm/attachment lạ để tránh prompt injection. Với nhà cung cấp thật, ưu tiên email công ty đã cấu hình SPF/DKIM hoặc CC người phụ trách để giảm rủi ro vào spam.
+                    </span>
+                  </div>
                   <div className="bg-amber-50 border border-accent-gold rounded-xl p-3 flex items-start gap-2 text-[11px] text-primary-dark font-bold leading-relaxed">
                     <Info className="w-4 h-4 text-accent-gold shrink-0 mt-0.5" />
                     <span>
@@ -1800,14 +2017,14 @@ export default function CaseDetailTimeline({
                           className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {loadingAction === "draft_rfq" || isRfqDraftSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                          {isRfqDraftSyncing ? "Đang đồng bộ RFQ" : "AI Soạn thư thầu"}
+                          {isRfqDraftSyncing ? "Đang đồng bộ RFQ" : "Soạn RFQ nháp"}
                         </button>
                       ) : (
                         <button
                           id="btn-send-case-rfq"
                           onClick={handleSendRfqs}
                           disabled={loadingAction !== null || currentRole !== "procurement" || editingDraftId !== null || savingDraftId !== null}
-                          className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer animate-bounce disabled:opacity-50"
+                          className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "send_rfqs" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                           Gửi thầu Gmail chính thức
@@ -1908,9 +2125,15 @@ export default function CaseDetailTimeline({
                   {/* AI Sourcing recommendation card (Gold glow) */}
                   <div className="bg-cream border border-primary-dark p-5 rounded-3xl shadow-accent-glow">
                     <p className="text-[9px] font-bold text-primary-dark uppercase tracking-widest font-mono flex items-center gap-1.5">
-                      <Award className="w-4.5 h-4.5 text-accent-dark animate-bounce" /> Đề xuất lựa chọn tốt nhất từ AI Sourcing
+                      <Award className="w-4.5 h-4.5 text-accent-dark" /> Đề xuất lựa chọn có kiểm soát
                     </p>
                     <p className="text-xs text-primary-dark font-bold mt-2.5 leading-relaxed" dangerouslySetInnerHTML={{ __html: comparison.summary.recommendationReason }} />
+                    {comparison.matrix.some((q: Quote) => quoteNeedsHumanReview(q)) && (
+                      <div className="mt-3 bg-coral-light/10 border border-coral/30 rounded-xl p-3 text-[11px] text-coral-dark font-bold flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>Có báo giá bị red-flag. Không nên trình duyệt PO cho tới khi người mua đối chiếu file gốc/email gốc.</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border border-primary-dark rounded-2xl overflow-x-auto bg-white shadow-sm">
@@ -1930,6 +2153,11 @@ export default function CaseDetailTimeline({
                                 )}
                                 {q.id === comparison.summary.lowestTotalQuoteId && (
                                   <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-bold uppercase tracking-wider shadow-sm">Tối ưu nhất</span>
+                                )}
+                                {quoteNeedsHumanReview(q) && (
+                                  <span className="inline-flex w-fit px-2 py-0.5 rounded bg-coral-light/10 border border-coral/40 text-[8px] text-coral-dark font-bold uppercase tracking-wider">
+                                    Cần review
+                                  </span>
                                 )}
                               </div>
                             </th>
@@ -1962,10 +2190,22 @@ export default function CaseDetailTimeline({
                           ))}
                         </tr>
                         <tr>
-                          <td className="p-3.5 bg-primary-bg/10">Độ tin cậy trích xuất OCR</td>
+                          <td className="p-3.5 bg-primary-bg/10">Độ tin cậy & red-flag</td>
                           {comparison.matrix.map((q: Quote) => (
-                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-mono font-bold text-accent-dark">
-                              ⭐ {q.aiConfidenceScore}/100
+                            <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-bold text-primary-dark">
+                              <div className="font-mono text-accent-dark">{q.aiConfidenceScore}/100</div>
+                              {getQuoteRiskFlags(q).length > 0 ? (
+                                <ul className="mt-2 space-y-1 text-[9px] text-coral-dark">
+                                  {getQuoteRiskFlags(q).map(flag => (
+                                    <li key={flag} className="flex items-start gap-1">
+                                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                      <span>{flag}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <span className="text-[9px] text-emerald-700">Đạt ngưỡng kiểm tra</span>
+                              )}
                             </td>
                           ))}
                         </tr>
@@ -1996,10 +2236,10 @@ export default function CaseDetailTimeline({
                                 <button
                                   id="btn-request-approval"
                                   onClick={() => handleRequestApproval(q.id)}
-                                  disabled={currentRole !== "procurement"}
-                                  className="w-full py-1.5 bg-amber-50 hover:bg-amber-50 text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:opacity-50"
+                                  disabled={currentRole !== "procurement" || quoteNeedsHumanReview(q)}
+                                  className="w-full py-1.5 bg-primary-dark hover:bg-black text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                                 >
-                                  Trình duyệt PO
+                                  {quoteNeedsHumanReview(q) ? "Cần kiểm tra" : "Trình duyệt PO"}
                                 </button>
                               ) : (
                                 <span className="text-primary-dark/50 italic text-[9px] font-bold">Đã chọn duyệt</span>

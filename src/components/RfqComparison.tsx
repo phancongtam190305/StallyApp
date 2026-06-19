@@ -13,6 +13,7 @@ import {
   UserCheck
 } from "lucide-react";
 import { PurchaseRequest, RfqCase, Quote, Supplier, UserRole } from "../types";
+import { getQuoteRiskFlags, quoteNeedsHumanReview } from "../quoteRisk";
 import ItemIcon from "./ItemIcon";
 import MarkdownText from "./MarkdownText";
 
@@ -79,6 +80,7 @@ export default function RfqComparison({
   // Find the associated RFQ Case for selected PR to show comparison matrix
   const currentRfq = selectedPr ? rfqs.find(r => r.purchaseRequestId === selectedPr.id) : null;
   const currentQuotes = currentRfq ? quotes.filter(q => q.rfqCaseId === currentRfq.id) : [];
+  const riskyQuoteCount = currentQuotes.filter(quoteNeedsHumanReview).length;
   const quoteOverviewSignature = currentQuotes
     .map(q => `${q.id}:${q.totalAmount}:${q.deliveryDays}:${q.paymentTerms}:${q.negotiationStatus || "none"}:${q.versionCount || 0}`)
     .join("|");
@@ -98,19 +100,19 @@ export default function RfqComparison({
         const lowPriceQuote = [...currentQuotes].sort((a,b) => a.totalAmount - b.totalAmount)[0];
         const fastDeliveryQuote = [...currentQuotes].sort((a,b) => a.deliveryDays - b.deliveryDays)[0];
 
-        adviceHtml = `### 🌟 KHẢO SÁT & ĐỀ XUẤT CHỌN NHÀ CUNG CẤP (Stally Procurement AI)
+        adviceHtml = `### KIỂM SOÁT BÁO GIÁ & ĐỀ XUẤT CHỌN NHÀ CUNG CẤP
 
-Dựa trên dữ liệu tài chính bóc tách tự động bới AI đối chiếu với nhu cầu của nhà bếp:
+Dựa trên dữ liệu báo giá đã bóc tách, hệ thống đề xuất phương án để phòng mua hàng kiểm tra và lưu audit trail:
 
-1. **🏆 Đề xuất tối ưu nhất: ${lowPriceQuote.supplierName}**
+1. **Đề xuất tối ưu nhất: ${lowPriceQuote.supplierName}**
    - **Ưu điểm:** Giá trị đơn đặt hàng thấp nhất (${lowPriceQuote.totalAmount.toLocaleString()}đ, bao gồm VAT). Tiết kiệm chi phí kho tối ưu.
    - **Hạn chế:** Thời gian giao hàng là ${lowPriceQuote.deliveryDays} ngày (chậm hơn đối thủ).
    
-2. **⚡ Phương án khẩn cấp: ${fastDeliveryQuote.supplierName}**
+2. **Phương án khẩn cấp: ${fastDeliveryQuote.supplierName}**
    - **Ưu điểm:** Giao hàng cực kỳ nhanh chóng (${fastDeliveryQuote.deliveryDays} ngày). Đảm bảo vận hành bếp ngay.
    - **Hạn chế:** Chi phí tổng thể nhỉnh hơn khoảng 8-10%.
 
-**👉 KHUYẾN NGHỊ:** Ưu tiên phê duyệt đơn hàng cho **${lowPriceQuote.supplierName}** để giữ đúng bài toán tối ưu hóa chi phí hàng tháng của tổ chức.`;
+**Khuyến nghị:** Chỉ trình duyệt **${lowPriceQuote.supplierName}** sau khi người mua kiểm tra các dòng red-flag, file gốc và điều khoản thanh toán.`;
         
         setAiAdvice(adviceHtml);
         setGeneratingAdvice(false);
@@ -316,6 +318,12 @@ Vận chuyển 80k. Giao hàng trong ngày.
                 <div>
                   <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-accent-dark font-mono font-bold uppercase tracking-wider">Bước 2: Ma trận giá</span>
                   <h3 className="text-sm font-bold text-slate-800 mt-2">Bảng đối chiếu so sánh phương án</h3>
+                  {riskyQuoteCount > 0 && (
+                    <p className="text-[11px] text-coral-dark font-bold mt-1 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {riskyQuoteCount} báo giá cần kiểm tra thủ công trước khi trình duyệt PO.
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-slate-500 font-bold font-mono">CODE RFQ: #{currentRfq ? currentRfq.id.toUpperCase() : "CHƯA TẠO"}</p>
@@ -343,6 +351,11 @@ Vận chuyển 80k. Giao hàng trong ngày.
                               <div className="space-y-0.5">
                                 <p className="font-extrabold text-slate-700">{q.supplierName}</p>
                                 <p className="text-[9.5px] text-slate-400 font-mono font-medium">{q.originalFileUrl}</p>
+                                {quoteNeedsHumanReview(q) && (
+                                  <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-coral-light/10 border border-coral/40 text-[9px] text-coral-dark font-bold uppercase tracking-wider">
+                                    Cần review
+                                  </span>
+                                )}
                                 {q.negotiationStatus === "supplier_responded" && (
                                   <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
                                     Đã đồng ý đàm phán V{q.versionCount || 2}
@@ -439,10 +452,22 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* AI Confidence Score */}
                         <tr className="text-[10px] text-slate-400">
-                          <td className="p-4 font-medium uppercase tracking-wider font-mono">Độ tin cậy trích xuất AI</td>
+                          <td className="p-4 font-medium uppercase tracking-wider font-mono">Độ tin cậy & red-flag</td>
                           {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-[10px] font-bold">
-                              {q.aiConfidenceScore}% Confidence
+                            <td key={q.id} className="p-4 border-l border-slate-200 text-[10px] font-bold">
+                              <div className="font-mono text-primary-dark">{q.aiConfidenceScore}% Confidence</div>
+                              {getQuoteRiskFlags(q).length > 0 ? (
+                                <ul className="mt-2 space-y-1 text-coral-dark font-sans">
+                                  {getQuoteRiskFlags(q).map(flag => (
+                                    <li key={flag} className="flex items-start gap-1">
+                                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                      <span>{flag}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <span className="mt-1 inline-flex text-emerald-700 font-sans">Đạt ngưỡng kiểm tra</span>
+                              )}
                             </td>
                           ))}
                         </tr>
@@ -457,9 +482,10 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                   <button
                                     id="btn-approve-po"
                                     onClick={() => onApproveQuote(currentRfq.id, q.id)}
-                                    className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm"
+                                    disabled={quoteNeedsHumanReview(q)}
+                                    className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                                   >
-                                    <UserCheck className="w-4 h-4" /> Duyệt &amp; Ký PO
+                                    <UserCheck className="w-4 h-4" /> {quoteNeedsHumanReview(q) ? "Cần kiểm tra lại" : "Duyệt & Ký PO"}
                                   </button>
                                 ) : (
                                   <div className="text-slate-400 text-[10px] italic text-center p-2.5 bg-slate-50 rounded-xl border border-slate-200 font-bold">

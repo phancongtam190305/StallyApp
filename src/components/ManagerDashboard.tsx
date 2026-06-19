@@ -21,6 +21,7 @@ import {
   Filter
 } from "lucide-react";
 import { PurchaseRequest, RfqCase, Quote, Supplier } from "../types";
+import { getQuoteRiskFlags, quoteNeedsHumanReview } from "../quoteRisk";
 import ItemIcon from "./ItemIcon";
 
 interface ManagerDashboardProps {
@@ -122,6 +123,7 @@ export default function ManagerDashboard({
     if (!recommendedQuote) return null;
     return suppliers.find(s => s.id === recommendedQuote.supplierId) || null;
   }, [recommendedQuote, suppliers]);
+  const recommendedRiskFlags = recommendedQuote ? getQuoteRiskFlags(recommendedQuote) : [];
 
   const formatVND = (num: number) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(num);
@@ -129,6 +131,14 @@ export default function ManagerDashboard({
 
   const handleApproveClick = () => {
     if (!activeRfq || !recommendedQuote) return;
+    if (quoteNeedsHumanReview(recommendedQuote)) {
+      setDecisionAlert({
+        type: "error",
+        message: `Báo giá của ${recommendedQuote.supplierName} đang bị red-flag. Vui lòng yêu cầu phòng thu mua đối chiếu email/file gốc trước khi duyệt PO.`
+      });
+      setTimeout(() => setDecisionAlert(null), 4500);
+      return;
+    }
     onApproveQuote(activeRfq.id, recommendedQuote.id);
     setDecisionAlert({
       type: "success",
@@ -677,7 +687,7 @@ export default function ManagerDashboard({
               <div className="bg-[#F7F5F0] border border-primary-dark rounded-2xl p-5 shadow-inner space-y-4">
                 <div className="flex items-center gap-1.5 border-b border-dashed border-primary-dark/30 pb-3">
                   <Sparkles className="w-4 h-4 text-[#E6A756] shrink-0 animate-pulse" />
-                  <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-primary-dark">BẢN TỔNG HỢP 3 GOLD METRICS (STALLY AI)</span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-primary-dark">BẢN TỔNG HỢP 3 GOLD METRICS + RED-FLAG</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -687,12 +697,17 @@ export default function ManagerDashboard({
                     <div>
                       <p className="text-[9px] uppercase font-extrabold text-slate-400">1. Đối Tác Khuyên Dùng</p>
                       <h4 className="text-xs font-bold text-primary-dark mt-2">{recommendedQuote?.supplierName}</h4>
+                      {recommendedQuote && quoteNeedsHumanReview(recommendedQuote) && (
+                        <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-coral-light/10 border border-coral/40 text-[9px] text-coral-dark font-bold uppercase tracking-wider">
+                          Cần review trước khi duyệt
+                        </span>
+                      )}
                       {recommendedQuote?.negotiationStatus === "supplier_responded" && (
                         <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
                           Đã đồng ý đàm phán V{recommendedQuote.versionCount || 2}
                         </span>
                       )}
-                      <p className="text-[10.5px] text-emerald-700 font-extrabold mt-1.5">⭐️ Giá tốt nhất &amp; Điểm thầu 96%</p>
+                      <p className="text-[10.5px] text-emerald-700 font-extrabold mt-1.5">Giá tốt nhất, cần đối chiếu chứng từ gốc</p>
                     </div>
                     <div className="pt-2 text-[10px] text-slate-400 font-mono font-bold">
                       Giao: {recommendedQuote?.deliveryDays} ngày | Hạn nợ: {recommendedQuote?.paymentTerms}
@@ -722,6 +737,19 @@ export default function ManagerDashboard({
                   </div>
 
                 </div>
+                {recommendedRiskFlags.length > 0 && (
+                  <div className="bg-coral-light/10 border border-coral/30 rounded-2xl p-4 text-[11px] text-coral-dark font-bold flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="uppercase tracking-wider">Red-flag trước phê duyệt</p>
+                      <ul className="mt-1 space-y-1">
+                        {recommendedRiskFlags.map(flag => (
+                          <li key={flag}>- {flag}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Items List in this RFQ */}
@@ -1177,9 +1205,10 @@ export default function ManagerDashboard({
                     setDrawerOpen(false);
                     handleApproveClick();
                   }}
-                  className="text-primary-dark bg-accent-gold border border-primary-dark font-bold text-xs p-2.5 px-5 rounded-full transition-all shadow-accent-glow cursor-pointer flex items-center gap-1.5 hover:scale-[1.03] active:scale-[0.95]"
+                  disabled={Boolean(recommendedQuote && quoteNeedsHumanReview(recommendedQuote))}
+                  className="text-primary-dark bg-accent-gold border border-primary-dark font-bold text-xs p-2.5 px-5 rounded-full transition-all shadow-accent-glow cursor-pointer flex items-center gap-1.5 hover:scale-[1.03] active:scale-[0.95] disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:scale-100"
                 >
-                  <UserCheck className="w-4.5 h-4.5" /> Duyệt &amp; Ký PO
+                  <UserCheck className="w-4.5 h-4.5" /> {recommendedQuote && quoteNeedsHumanReview(recommendedQuote) ? "Cần kiểm tra" : "Duyệt & Ký PO"}
                 </button>
               )}
             </div>

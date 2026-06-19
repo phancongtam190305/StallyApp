@@ -77,8 +77,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       accentBorder: "border-primary",
       accentBg: "bg-primary-bg",
       textAccent: "text-primary-dark",
-      desc: "Trực ban rà duyệt yêu cầu, gán cặp nhà cung cấp NCC ưu tú, phát thầu RFQ và đàm phán tối ưu biểu giá.",
-      responsibilities: ["Gửi thầu RFQ cho NCC đối tác", "So sánh đơn thầu tự động", "Chuyển duyệt báo giá tối ưu lên CEO"]
+      desc: "Chuẩn hóa yêu cầu, kiểm soát danh sách nhà cung cấp, phát thầu RFQ và giữ audit trail cho từng quyết định mua hàng.",
+      responsibilities: ["Gửi RFQ có kiểm duyệt", "So sánh báo giá có red-flag", "Chuyển duyệt kèm dấu vết quyết định"]
     },
     {
       id: "manager" as UserRole,
@@ -90,8 +90,8 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       accentBorder: "border-accent-gold",
       accentBg: "bg-accent-light/10",
       textAccent: "text-accent-dark",
-      desc: "Phê duyệt các quyết toán đơn PO dựa trên bảng đối chiếu thầu thông minh đa chiều tự động do phòng mua sắm đệ trình.",
-      responsibilities: ["Ký duyệt thầu chính thức (PO)", "Phân tích tài chính mua sắm tổng", "Bản đồ nhiệt chấm điểm NCC"]
+      desc: "Phê duyệt PO dựa trên bảng đối chiếu, cảnh báo rủi ro trích xuất và lịch sử trao đổi rõ ràng từ phòng mua sắm.",
+      responsibilities: ["Ký duyệt PO có kiểm soát", "Xem spend trong 30 giây", "Truy vết lý do chọn NCC"]
     },
     {
       id: "warehouse" as UserRole,
@@ -170,10 +170,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
             <div className="mt-4 text-center sm:text-left">
               <h2 className="text-4xl md:text-5xl font-normal text-primary-dark font-display tracking-tight leading-[0.95] max-w-xl">
-                Điều phối mua sắm và cung ứng bằng AI.
+                Procurement OS cho doanh nghiệp cần kiểm soát, không chỉ tốc độ.
               </h2>
               <p className="text-primary-dark/60 text-sm mt-5 max-w-lg leading-relaxed font-medium">
-                Chọn vai trò nghiệp vụ để vào đúng workspace: tạo PR, gửi RFQ Gmail, đàm phán, duyệt PO và nhập kho.
+                Chuẩn hóa yêu cầu mua hàng từ bếp, gửi RFQ có kiểm duyệt, đọc báo giá và giữ audit trail để CFO/COO nhìn rõ chi tiêu trong vài giây.
               </p>
             </div>
 

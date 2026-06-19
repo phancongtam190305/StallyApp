@@ -802,7 +802,20 @@ apiV1Router.delete("/cases/:caseId/items/:itemIndex", (req: Request, res: Respon
 // ----------------------------------------------------
 // SUPPLIER MATCHING & CRM APIs
 // ----------------------------------------------------
-const handleSupplierMatchesList = (req: Request, res: Response) => {
+type SupplierMatchResult = {
+  supplierId: string;
+  name: string;
+  email: string;
+  rating: number;
+  tags: string[];
+  source: string;
+  score: number;
+  reasons: string[];
+  riskFlags: string[];
+  rerankedBy?: "llm";
+};
+
+const handleSupplierMatchesList = async (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;
   
@@ -811,53 +824,167 @@ const handleSupplierMatchesList = (req: Request, res: Response) => {
     return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy case" } });
   }
   
-  const itemNames = caseObj.items.map(it => it.name.toLowerCase());
+  const normalizeMatchText = (value: string) =>
+    String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d");
+  const requestText = normalizeMatchText(caseObj.items
+    .map(it => `${it.name} ${it.unit} ${it.notes || ""}`)
+    .join(" "));
+  const requestTokens = Array.from(new Set(requestText.split(/[^a-z0-9]+/).filter(token => token.length >= 3)));
   
-  const matches = dbState.suppliers
+  const matches: SupplierMatchResult[] = dbState.suppliers
     .filter(s => s.organizationId === orgId)
     .map(sup => {
-      let score = 50; // Base score
+      let score = 35;
+      const supplierText = normalizeMatchText([
+        sup.name,
+        sup.contactPerson,
+        sup.email,
+        sup.address,
+        sup.tags.join(" "),
+        sup.historicalPricing || "",
+        sup.source || ""
+      ].join(" "));
+      const matchedTags: string[] = [];
+      const matchedTokens = requestTokens.filter(token => supplierText.includes(token));
       
-      // Match tags
       sup.tags.forEach(tag => {
-        const matchesTag = itemNames.some(name => name.includes(tag.toLowerCase()) || tag.toLowerCase().includes(name));
-        if (matchesTag) score += 25;
+        const normalizedTag = normalizeMatchText(tag);
+        const matchesTag = requestText.includes(normalizedTag) || requestTokens.some(token => normalizedTag.includes(token));
+        if (matchesTag) {
+          matchedTags.push(tag);
+          score += 18;
+        }
       });
+
+      score += Math.min(24, matchedTokens.length * 6);
       
-      // Rating impact
       score += Math.round((sup.rating - 3.0) * 10);
+      if (sup.historicalPricing) score += 8;
+      if (sup.source === "crm" || sup.source === "manual") score += 6;
+      if (sup.email) score += 3;
+      if (sup.phone) score += 3;
       
-      // Max score cap
       score = Math.min(99, Math.max(15, score));
       
-      const reasons = [];
-      if (score >= 75) {
-        reasons.push(`Chuyên cung cấp mặt hàng thuộc danh mục thầu thợ ${sup.tags.join(", ")}`);
-        reasons.push(`Lịch sử đánh giá chất lượng cực tốt: ⭐ ${sup.rating}/5.0`);
-      } else {
-        reasons.push("Được đề cử từ danh bạ B2B của bạn");
-      }
+      const reasons: string[] = [];
+      if (matchedTags.length > 0) reasons.push(`Khớp danh mục: ${matchedTags.slice(0, 3).join(", ")}`);
+      if (matchedTokens.length > 0) reasons.push(`Khớp từ khóa yêu cầu: ${matchedTokens.slice(0, 4).join(", ")}`);
+      if (sup.historicalPricing) reasons.push("Có lịch sử báo giá/ghi chú mua hàng trong CRM");
+      if (sup.rating >= 4.5) reasons.push(`Đánh giá NCC cao: ${sup.rating}/5.0`);
+      if (reasons.length === 0) reasons.push("Có trong danh bạ NCC nhưng mức khớp mặt hàng còn thấp");
       
       return {
         supplierId: sup.id,
         name: sup.name,
         email: sup.email,
+        rating: sup.rating,
+        tags: sup.tags,
+        source: sup.source || "crm",
         score,
         reasons,
-        riskFlags: score < 40 ? ["Lịch sử phản hồi báo giá chậm"] : []
+        riskFlags: [
+          ...(score < 50 ? ["Mức khớp thấp, cần kiểm tra thủ công"] : []),
+          ...(sup.source === "discovered" || sup.source === "crawled" ? ["NCC mới/crawl, cần xác minh trước khi gửi thật"] : [])
+        ]
       };
     })
     .sort((a, b) => b.score - a.score);
+
+  let finalMatches: SupplierMatchResult[] = matches;
+  const rerankParam = String(req.query.rerank || "true").toLowerCase();
+  const rerankEnabled = process.env.SUPPLIER_MATCH_LLM_RERANK_ENABLED !== "false" && rerankParam !== "false";
+  if (ai && rerankEnabled && matches.length > 1) {
+    const topCandidates = matches.slice(0, 10);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Bạn là chuyên gia mua hàng B2B. Hãy rerank danh sách nhà cung cấp CÓ SẴN cho yêu cầu mua hàng bên dưới.
+
+YÊU CẦU MUA:
+${caseObj.items.map((item, index) => `${index + 1}. ${item.name} - ${item.quantity} ${item.unit}${item.notes ? ` - ghi chú: ${item.notes}` : ""}`).join("\n")}
+
+DANH SÁCH ỨNG VIÊN:
+${topCandidates.map((item, index) => `${index + 1}. supplierId=${item.supplierId}
+Tên: ${item.name}
+Email: ${item.email}
+Rating: ${item.rating || 0}
+Nguồn: ${item.source || "crm"}
+Tags: ${(item.tags || []).join(", ")}
+Rule score: ${item.score}
+Rule reasons: ${item.reasons.join(" | ")}
+Rule risks: ${item.riskFlags.join(" | ") || "không có"}`).join("\n\n")}
+
+QUY TẮC:
+- Chỉ được chọn/rerank trong danh sách supplierId đã cho, không bịa NCC mới.
+- Chấm score 0-100 theo độ phù hợp mặt hàng, năng lực, dữ liệu lịch sử, rủi ro xác minh.
+- Nếu thông tin thiếu, thêm risk flag.
+- Trả về JSON array thuần, không markdown, mỗi phần tử:
+[
+  {
+    "supplierId": "id",
+    "score": 0-100,
+    "reasons": ["lý do cụ thể"],
+    "riskFlags": ["rủi ro cần kiểm tra"]
+  }
+]`
+      });
+      const text = response.text?.trim() || "";
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const reranked: any[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      const byId = new Map(matches.map(item => [item.supplierId, item]));
+      const usedIds = new Set<string>();
+      const llmMatches = reranked.reduce<SupplierMatchResult[]>((acc, item: any) => {
+          const existing = byId.get(String(item.supplierId || ""));
+          if (!existing) return acc;
+          usedIds.add(existing.supplierId);
+          const nextScore = Number(item.score);
+          acc.push({
+            ...existing,
+            score: Number.isFinite(nextScore) ? Math.min(99, Math.max(0, Math.round(nextScore))) : existing.score,
+            reasons: Array.isArray(item.reasons) && item.reasons.length ? item.reasons.slice(0, 4).map(String) : existing.reasons,
+            riskFlags: Array.isArray(item.riskFlags)
+              ? Array.from(new Set([...existing.riskFlags, ...item.riskFlags.map(String)])).slice(0, 4)
+              : existing.riskFlags,
+            rerankedBy: "llm"
+          });
+          return acc;
+        }, []);
+      finalMatches = [
+        ...llmMatches.sort((a: any, b: any) => b.score - a.score),
+        ...matches.filter(item => !usedIds.has(item.supplierId))
+      ];
+      logFlow("info", "supplier.matches.llm_rerank.success", {
+        traceId: req.traceId || createTraceId("supplier-matches"),
+        caseId,
+        orgId,
+        candidateCount: topCandidates.length,
+        rerankedCount: llmMatches.length,
+      });
+    } catch (err: any) {
+      logFlow("warn", "supplier.matches.llm_rerank.failed", {
+        traceId: req.traceId || createTraceId("supplier-matches"),
+        caseId,
+        orgId,
+        error: safeError(err),
+      });
+      finalMatches = matches;
+    }
+  }
     
   logFlow("info", "supplier.matches.list", {
     traceId: req.traceId || createTraceId("supplier-matches"),
     caseId,
     orgId,
     method: req.method,
-    matchesCount: matches.length,
+    matchesCount: finalMatches.length,
+    rerankEnabled: Boolean(ai && rerankEnabled),
   });
 
-  res.json({ data: matches });
+  res.json({ data: finalMatches });
 };
 
 apiV1Router.get("/cases/:caseId/supplier-matches", handleSupplierMatchesList);
@@ -1341,43 +1468,51 @@ apiV1Router.post("/cases/:caseId/rfq-draft", async (req: Request, res: Response)
     resolvedCount: selectedSuppliers.length,
     suppliers: selectedSuppliers.map(s => ({ supplierId: s.id, email: maskEmail(s.email), name: s.name })),
   });
-  const prItemsText = caseObj.items.map(it => `- ${it.name}: ${it.quantity} ${it.unit} (${it.notes || "không có ghi chú"})`).join("\n");
+  const escapeHtml = (value: string) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  const formatRfqDueDate = (value?: string) => {
+    const fallback = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const normalized = value || fallback;
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? normalized : parsed.toLocaleDateString("vi-VN");
+  };
+  const normalizedDueDate = dueDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const prItemsHtml = caseObj.items.map((it, index) => `
+    <tr>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;">${index + 1}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;"><strong>${escapeHtml(it.name)}</strong>${it.notes ? `<br><span style="color:#64748b;">${escapeHtml(it.notes)}</span>` : ""}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:right;">${Number(it.quantity).toLocaleString("vi-VN")}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;">${escapeHtml(it.unit)}</td>
+    </tr>
+  `).join("");
   
   const drafts = [];
   
   for (const supplier of selectedSuppliers) {
     const draftId = `rfq-draft-${Date.now()}-${supplier.id}`;
-    let emailSubject = `[STALLY RFQ-${caseId.toUpperCase()}] Thư mời chào giá cung cấp nguyên liệu`;
-    let emailBody = `<p>Kính chào quý đối tác <strong>${supplier.name}</strong>,</p>
-<p>Ban mua sắm <strong>Stally Food & Beverage Group</strong> trân trọng mời quý đơn vị gửi bảng chào thầu báo giá cho các hạng mục nguyên liệu sau:</p>
-<blockquote>
-  ${prItemsText.replace(/\n/g, "<br>")}
-</blockquote>
-<p>Hạn chót tiếp nhận bảng báo giá: <strong>${dueDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString("vi-VN")}</strong>.</p>
-<p>Vui lòng đính kèm báo giá định dạng PDF/Excel khi phản hồi lại email này. Chân thành cảm ơn!</p>
-<p>Trân trọng,<br><strong>Phan Công Tâm</strong><br>Procurement & Sourcing Staff</p>`;
-
-    // Call Gemini to personalize email style if available
-    if (ai) {
-      try {
-        const response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: `Hãy viết lại thư mời chào thầu chuyên nghiệp gửi đến NCC ${supplier.name} bán mặt hàng liên quan.
-Hàng cần báo giá:
-${prItemsText}
-Yêu cầu trả về định dạng HTML trong hòm thư điện tử. Chỉ trả về nội dung HTML thô. Tuyệt đối không thêm bất kỳ ghi chú, lời thoại, lời giải thích hay thẻ định dạng markdown (như \`\`\`html) ngoài mã HTML.`
-        });
-        if (response.text) {
-          let cleanText = response.text.trim();
-          if (cleanText.includes("```")) {
-            cleanText = cleanText.replace(/```html?/g, "").replace(/```/g, "").trim();
-          }
-          emailBody = cleanText;
-        }
-      } catch (err) {
-        // Fallback
-      }
-    }
+    const emailSubject = `[STALLY RFQ-${caseId.toUpperCase()}] Yêu cầu báo giá - ${escapeHtml(caseObj.title || "Hồ sơ mua hàng")}`;
+    const emailBody = `
+<p>Kính gửi <strong>${escapeHtml(supplier.name)}</strong>,</p>
+<p>Phòng mua hàng gửi quý đối tác yêu cầu báo giá cho hồ sơ <strong>${escapeHtml(caseObj.title || caseId)}</strong>.</p>
+<p>Vui lòng phản hồi trực tiếp email này và đính kèm báo giá PDF/Excel nếu có. Khi phản hồi, vui lòng ghi rõ đơn giá, tổng tiền, thời gian giao hàng, điều khoản thanh toán và hiệu lực báo giá.</p>
+<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;">
+  <thead>
+    <tr style="background:#f7f5f0;">
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">#</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Mặt hàng</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:right;">Số lượng</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Đơn vị</th>
+    </tr>
+  </thead>
+  <tbody>${prItemsHtml}</tbody>
+</table>
+<p>Hạn tiếp nhận báo giá: <strong>${formatRfqDueDate(normalizedDueDate)}</strong>.</p>
+<p>Trân trọng,<br><strong>Phòng mua hàng</strong></p>`;
     
     const draft = {
       id: draftId,
@@ -1387,7 +1522,7 @@ Yêu cầu trả về định dạng HTML trong hòm thư điện tử. Chỉ tr
       supplierEmail: supplier.email,
       subject: emailSubject,
       bodyHtml: emailBody,
-      dueDate: dueDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: normalizedDueDate,
       status: "draft"
     };
     

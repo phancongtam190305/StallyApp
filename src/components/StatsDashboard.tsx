@@ -58,10 +58,10 @@ export default function StatsDashboard({
       <div className="bg-white border border-slate-200 p-6 rounded-2xl executive-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight flex items-center gap-2">
-            Tổng quan Vận hành <Sparkles className="w-4 h-4 text-accent-dark" />
+            Tổng quan kiểm soát mua hàng <Sparkles className="w-4 h-4 text-accent-dark" />
           </h2>
           <p className="text-slate-500 text-xs mt-1">
-            Báo cáo tức thời luồng thu mua và kiểm soát kho nguyên liệu thông minh.
+            Theo dõi PR, RFQ, báo giá, PO và tồn kho theo một audit trail chuẩn hóa cho doanh nghiệp nhiều phòng ban.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 font-mono">
@@ -102,7 +102,7 @@ export default function StatsDashboard({
           </div>
           <div className="h-[1px] bg-slate-100 my-3" />
           <p className="text-[11px] text-slate-500">
-            Tự động bóc tách hóa đơn chào giá.
+            Báo giá được bóc tách kèm red-flag khi confidence thấp.
           </p>
         </div>
 
@@ -293,13 +293,13 @@ export default function StatsDashboard({
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-accent-dark uppercase tracking-wider font-mono flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-accent-dark" /> Đề xuất bù tồn kho thông minh bằng AI
+            <Sparkles className="w-3.5 h-3.5 text-accent-dark" /> Đề xuất bù tồn kho có kiểm duyệt
               </p>
               <h4 className="text-sm font-bold text-slate-800">
                 Có {lowStockCount} mặt hàng thiết yếu sắp cạn kiệt! Bạn muốn khởi tạo đơn thầu ngay không?
               </h4>
               <p className="text-xs text-slate-500">
-                AI sẽ tính toán số lượng bù thâm hụt, gán ưu tiên Cao, tạo bản thảo PR để bạn gửi NCC khảo thầu chỉ trong 1 lượt bấm.
+                Hệ thống gợi ý số lượng bù thâm hụt, gán ưu tiên Cao và tạo PR nháp để đội mua hàng kiểm tra trước khi gửi RFQ.
               </p>
             </div>
             <div className="flex gap-2.5 shrink-0">
@@ -365,8 +365,8 @@ export default function StatsDashboard({
 
           <div className="bg-[#e0f1f2]/40 p-4 rounded-xl border border-[#b2dfdb]/40 text-center space-y-2">
             <div className="w-9 h-9 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center mx-auto text-xs font-bold">2</div>
-            <p className="text-xs font-bold text-primary-dark flex justify-center items-center gap-1">AI Thầu thầu (RFQ)</p>
-            <p className="text-[11px] text-slate-500 leading-normal">Hệ thống chọn NCC tiềm năng, lấy báo giá gửi duyệt bảng so sánh.</p>
+            <p className="text-xs font-bold text-primary-dark flex justify-center items-center gap-1">RFQ có audit trail</p>
+            <p className="text-[11px] text-slate-500 leading-normal">Gửi RFQ, ghi nhận phản hồi, red-flag báo giá rủi ro và trình duyệt có lý do.</p>
           </div>
 
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 text-center space-y-2">
@@ -390,4 +390,3 @@ export default function StatsDashboard({
     </div>
   );
 }
-

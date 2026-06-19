@@ -441,10 +441,10 @@ export function AppContent() {
           <div>
             <span className="text-[10px] uppercase font-bold tracking-[0.24em] text-primary-light font-sans">Bảng điều khiển</span>
             <div className="flex items-center gap-2.5 mt-0.5">
-              <span className="text-xl font-normal text-primary-dark font-display tracking-tight">Stally Procurement</span>
+              <span className="text-xl font-normal text-primary-dark font-display tracking-tight">Stally Procurement Control</span>
               <span className="w-1.5 h-1.5 rounded-full bg-primary-light" />
               <span className="text-[10px] text-primary-dark/70 font-bold bg-white/70 border border-primary-dark/10 px-2.5 py-0.5 rounded-full font-mono">
-                Mã chi nhánh: org-1
+                Audit workspace: org-1
               </span>
             </div>
           </div>
@@ -485,7 +485,7 @@ export function AppContent() {
         {loading ? (
           <div className="flex flex-col items-center justify-center flex-1 text-xs text-slate-400 space-y-3">
             <RefreshCw className="w-5 h-5 text-primary-light animate-spin" />
-            <span className="font-medium tracking-wide">Đang đồng bộ hồ sơ nhà hàng...</span>
+            <span className="font-medium tracking-wide">Đang đồng bộ hồ sơ mua hàng...</span>
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300">

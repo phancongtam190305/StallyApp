@@ -58,7 +58,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
             <span className="w-8 h-8 rounded-full bg-accent-gold text-primary-dark flex items-center justify-center font-display text-lg border border-white/10">S</span>
             <span className="font-display text-2xl tracking-tight text-white">Stally</span>
           </div>
-          <p className="text-[9px] text-white/40 font-sans tracking-[0.28em] font-bold mt-2.5 uppercase">Procurement OS</p>
+          <p className="text-[9px] text-white/40 font-sans tracking-[0.28em] font-bold mt-2.5 uppercase">Procurement Audit OS</p>
         </div>
 
         {/* Locked Profile Badge */}
@@ -105,7 +105,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
           <FolderKey className="w-4 h-4 text-accent-gold shrink-0" />
           <div className="overflow-hidden">
             <p className="text-[9px] text-white/45 font-bold uppercase tracking-[0.22em] font-sans">Cách ly dữ liệu</p>
-            <p className="text-xs text-white font-medium truncate">Stally Food Group</p>
+            <p className="text-xs text-white font-medium truncate">Multi-branch Procurement</p>
           </div>
         </div>
 
