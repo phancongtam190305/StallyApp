@@ -25,7 +25,21 @@ vi.mock("../db.ts", () => {
     parseQuote: (r: any) => r,
     parseQuoteVersion: (r: any) => r,
     parsePurchaseOrder: (r: any) => r,
-    parseEmailMessage: (r: any) => r
+    parseEmailMessage: (r: any) => r,
+    persistUser: vi.fn().mockResolvedValue(undefined),
+    persistRecord: vi.fn().mockResolvedValue(undefined),
+    deleteRecord: vi.fn().mockResolvedValue(undefined),
+    persistRecords: vi.fn().mockResolvedValue(undefined),
+    persistCase: vi.fn().mockResolvedValue(undefined),
+    persistCaseTransition: vi.fn().mockResolvedValue(undefined),
+    persistRfqDraft: vi.fn().mockResolvedValue(undefined),
+    persistRfqDrafts: vi.fn().mockResolvedValue(undefined),
+    persistRfqCase: vi.fn().mockResolvedValue(undefined),
+    persistQuote: vi.fn().mockResolvedValue(undefined),
+    persistEmailMessage: vi.fn().mockResolvedValue(undefined),
+    persistPurchaseOrder: vi.fn().mockResolvedValue(undefined),
+    persistInventoryItem: vi.fn().mockResolvedValue(undefined),
+    persistStockMovement: vi.fn().mockResolvedValue(undefined)
   };
 });
 

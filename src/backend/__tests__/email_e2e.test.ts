@@ -34,6 +34,20 @@ vi.mock("../db.ts", () => {
     parseQuoteVersion: (r: any) => r,
     parsePurchaseOrder: (r: any) => r,
     parseEmailMessage: (r: any) => r,
+    persistUser: vi.fn().mockResolvedValue(undefined),
+    persistRecord: vi.fn().mockResolvedValue(undefined),
+    deleteRecord: vi.fn().mockResolvedValue(undefined),
+    persistRecords: vi.fn().mockResolvedValue(undefined),
+    persistCase: vi.fn().mockResolvedValue(undefined),
+    persistCaseTransition: vi.fn().mockResolvedValue(undefined),
+    persistRfqDraft: vi.fn().mockResolvedValue(undefined),
+    persistRfqDrafts: vi.fn().mockResolvedValue(undefined),
+    persistRfqCase: vi.fn().mockResolvedValue(undefined),
+    persistQuote: vi.fn().mockResolvedValue(undefined),
+    persistEmailMessage: vi.fn().mockResolvedValue(undefined),
+    persistPurchaseOrder: vi.fn().mockResolvedValue(undefined),
+    persistInventoryItem: vi.fn().mockResolvedValue(undefined),
+    persistStockMovement: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -408,7 +422,9 @@ describe("Email E2E desired behavior", () => {
       .set("x-organization-id", ORG_ID);
     expect(comparisonRes.status).toBe(200);
     expect(comparisonRes.body.matrix).toHaveLength(1);
-    expect(comparisonRes.body.summary.recommendedQuoteId).toBe(dbState.quotes[0].id);
+    expect(dbState.quotes[0].totalAmount).toBe(0);
+    expect(comparisonRes.body.summary.recommendedQuoteId).toBe("");
+    expect(comparisonRes.body.summary.recommendationReason).toContain("red-flag");
   });
 
   it("keeps negotiation reply from overwriting an existing quote with zero values", async () => {

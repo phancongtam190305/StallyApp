@@ -231,7 +231,21 @@ const isSupplierMatchesRequest = (req: express.Request) =>
   req.method === "POST" && /^\/api\/v1\/cases\/[^/]+\/supplier-matches\/?$/.test(req.path);
 
 const isSelfPersistingRequest = (req: express.Request) =>
-  req.method === "POST" && /^\/api\/v1\/cases\/[^/]+\/suppliers\/discover\/?$/.test(req.path);
+  req.path.includes("/rfq-draft") ||
+  req.path.includes("/rfq-drafts") ||
+  req.path.includes("/rfq/send") ||
+  req.path.includes("/quotes") ||
+  req.path.includes("/purchase-orders") ||
+  req.path.includes("/approval-requests") ||
+  req.path.includes("/inventory") ||
+  req.path.includes("/stock-movements") ||
+  req.path.includes("/suppliers/select") ||
+  req.path.includes("/suppliers/discover") ||
+  req.path.includes("/webhooks/inbound-email") ||
+  req.path.includes("/negotiations") ||
+  req.path.includes("/negotiation-drafts") ||
+  req.path.includes("/approval/request") ||
+  req.path.includes("/po-draft");
 
 const shouldAutoPersistRequest = (req: express.Request) => {
   if (process.env.AUTO_PERSIST_ENABLED === "false") return false;
@@ -255,18 +269,15 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   const shouldPersist = shouldAutoPersistRequest(req);
   const originalJson = res.json;
   res.json = function (body) {
+    originalJson.call(res, body);
     if (shouldPersist && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
       persistDbState(dbState)
         .then(() => {
-          console.log(`[Stally Sync] 💾 Synchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);
-          originalJson.call(res, body);
+          console.log(`[Stally Sync] 💾 Asynchronously persisted mutating ${req.method} ${req.originalUrl} to Supabase.`);
         })
         .catch((err) => {
-          console.error("[Stally Sync] ❌ Failed to persist database state synchronously:", err);
-          originalJson.call(res, body);
+          console.error("[Stally Sync] ❌ Failed to persist database state asynchronously:", err);
         });
-    } else {
-      originalJson.call(res, body);
     }
     return res;
   };

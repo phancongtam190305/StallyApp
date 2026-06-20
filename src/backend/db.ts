@@ -10,6 +10,7 @@ import {
   PurchaseOrder,
   EmailMessage,
   SupplierDiscoveryCandidate,
+  InventoryItem,
 } from "../types.js";
 
 dotenv.config();
@@ -390,6 +391,157 @@ export async function initDb() {
   `);
 
   await seedIfEmpty();
+  await ensurePilotTestSuppliers();
+  await repairDuplicateInventoryMatches();
+}
+
+function normalizeInventoryNameForRepair(name: string) {
+  return String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-zA-Z0-9\s]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function getInventoryRepairTokens(name: string) {
+  const stopWords = new Set([
+    "cao",
+    "cap",
+    "loai",
+    "hang",
+    "premium",
+    "organic",
+    "tuoi",
+    "moi",
+    "nhap",
+    "khau"
+  ]);
+
+  return normalizeInventoryNameForRepair(name)
+    .split(" ")
+    .map(token => token.trim())
+    .filter(token => token.length >= 2 && !stopWords.has(token));
+}
+
+function scoreInventoryRepairMatch(source: InventoryItem, target: InventoryItem) {
+  const sourceName = normalizeInventoryNameForRepair(source.name);
+  const targetName = normalizeInventoryNameForRepair(target.name);
+  if (!sourceName || !targetName || source.id === target.id) return 0;
+
+  let score = 0;
+  if (sourceName === targetName) score += 100;
+  if (sourceName.includes(targetName) || targetName.includes(sourceName)) score += 70;
+
+  const sourceTokens = getInventoryRepairTokens(source.name);
+  const targetTokens = new Set(getInventoryRepairTokens(target.name));
+  if (sourceTokens.length > 0) {
+    const matchedTokens = sourceTokens.filter(token => targetTokens.has(token));
+    score += (matchedTokens.length / sourceTokens.length) * 60;
+  }
+
+  if (source.unit.trim().toLowerCase() === target.unit.trim().toLowerCase()) {
+    score += 15;
+  }
+
+  if (target.category !== "PO Received") {
+    score += 10;
+  }
+
+  return score;
+}
+
+function isAutoCreatedPoInventoryItem(item: InventoryItem) {
+  return item.category === "PO Received" || item.sku.startsWith(`PO-${item.organizationId}-`);
+}
+
+async function repairDuplicateInventoryMatches() {
+  const result = await db.query('SELECT * FROM "inventory_items"');
+  const items = result.rows as InventoryItem[];
+  const repairs: Array<{ duplicate: InventoryItem; target: InventoryItem; score: number }> = [];
+
+  for (const duplicate of items.filter(isAutoCreatedPoInventoryItem)) {
+    const target = items
+      .filter(item => item.organizationId === duplicate.organizationId && item.id !== duplicate.id && !isAutoCreatedPoInventoryItem(item))
+      .map(item => ({ item, score: scoreInventoryRepairMatch(duplicate, item) }))
+      .filter(match => match.score >= 75)
+      .sort((a, b) => b.score - a.score)[0];
+
+    if (target) {
+      repairs.push({ duplicate, target: target.item, score: target.score });
+    }
+  }
+
+  if (repairs.length === 0) return;
+
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    for (const { duplicate, target, score } of repairs) {
+      target.quantityAvailable += duplicate.quantityAvailable;
+      target.quantityOnOrder += duplicate.quantityOnOrder;
+      if (duplicate.lastPurchasePrice > 0) {
+        target.lastPurchasePrice = duplicate.lastPurchasePrice;
+      }
+      target.updatedAt = new Date().toISOString();
+
+      await upsert("inventory_items", target, client);
+      await client.query('UPDATE "stock_movements" SET "itemId" = $1 WHERE "itemId" = $2', [target.id, duplicate.id]);
+      await client.query('DELETE FROM "inventory_items" WHERE "id" = $1', [duplicate.id]);
+
+      console.log(`[Stally Inventory Repair] merged "${duplicate.name}" (${duplicate.id}) into "${target.name}" (${target.id}), score=${Math.round(score)}.`);
+    }
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+function getPilotTestSuppliers(): Supplier[] {
+  return [
+    {
+      id: "sup-test-tuan",
+      organizationId: "org-1",
+      name: "NCC Test - Tuan Minh",
+      contactPerson: "Tuan Minh",
+      email: "tuanminhdo1203@gmail.com",
+      phone: "0900000001",
+      address: "Test inbox",
+      rating: 4.5,
+      tags: ["Test", "RFQ", "Email thật"],
+      historicalPricing: "NCC fake dùng để test gửi RFQ/negotiation tới inbox thật.",
+      source: "manual",
+    },
+    {
+      id: "sup-test-tam",
+      organizationId: "org-1",
+      name: "NCC Test - Phan Cong Tam",
+      contactPerson: "Phan Công Tâm",
+      email: "phancongtam190305@gmail.com",
+      phone: "0900000002",
+      address: "Test inbox",
+      rating: 4.5,
+      tags: ["Test", "RFQ", "Email thật"],
+      historicalPricing: "NCC fake dùng để test gửi RFQ/negotiation tới inbox thật.",
+      source: "manual",
+    },
+  ];
+}
+
+async function ensurePilotTestSuppliers() {
+  const orgResult = await db.query('SELECT 1 FROM "organizations" WHERE "id" = $1 LIMIT 1', ["org-1"]);
+  if (orgResult.rowCount === 0) return;
+
+  for (const supplier of getPilotTestSuppliers()) {
+    await upsert("suppliers", supplier);
+  }
 }
 
 async function seedIfEmpty() {
@@ -454,6 +606,7 @@ async function seedIfEmpty() {
       historicalPricing: "Thịt Bò Mỹ Slicing: 235.000đ - 240.000đ/kg.",
       source: "crm",
     },
+    ...getPilotTestSuppliers(),
   ];
   for (const supplier of suppliers) await upsert("suppliers", supplier);
 
@@ -632,6 +785,63 @@ export function loadDbStateQueue(): Promise<any> {
 
 export async function persistUser(user: any) {
   await upsert("users", user);
+}
+
+export async function persistRecord(table: string, entity: any, client?: any) {
+  await upsert(table, entity, client);
+}
+
+export async function deleteRecord(table: string, id: string, client?: any) {
+  const c = client || db;
+  await c.query(`DELETE FROM ${quoteIdent(table)} WHERE "id" = $1`, [id]);
+}
+
+export async function persistRecords(table: string, entities: any[], client?: any) {
+  for (const entity of entities) {
+    await upsert(table, entity, client);
+  }
+}
+
+export async function persistCase(caseObj: any, client?: any) {
+  await upsert("procurement_cases", caseObj, client);
+}
+
+export async function persistCaseTransition(transition: any, client?: any) {
+  await upsert("case_transitions", transition, client);
+}
+
+export async function persistRfqDraft(draft: any, client?: any) {
+  await upsert("rfq_email_drafts", draft, client);
+}
+
+export async function persistRfqDrafts(drafts: any[], client?: any) {
+  for (const draft of drafts) {
+    await upsert("rfq_email_drafts", draft, client);
+  }
+}
+
+export async function persistRfqCase(rfqCase: any, client?: any) {
+  await upsert("rfq_cases", rfqCase, client);
+}
+
+export async function persistQuote(quote: any, client?: any) {
+  await upsert("quotes", quote, client);
+}
+
+export async function persistEmailMessage(emailMessage: any, client?: any) {
+  await upsert("email_messages", emailMessage, client);
+}
+
+export async function persistPurchaseOrder(po: any, client?: any) {
+  await upsert("purchase_orders", po, client);
+}
+
+export async function persistInventoryItem(item: any, client?: any) {
+  await upsert("inventory_items", item, client);
+}
+
+export async function persistStockMovement(movement: any, client?: any) {
+  await upsert("stock_movements", movement, client);
 }
 
 export async function persistDbStateNow(dbState: any) {

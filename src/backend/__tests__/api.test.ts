@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 
+function normalizeNameForTest(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-zA-Z0-9\s]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
 
 // Mock the Supabase DB module to prevent real PG pool connection
 vi.mock("../db.ts", () => {
@@ -26,7 +36,21 @@ vi.mock("../db.ts", () => {
     parseQuote: (r: any) => r,
     parseQuoteVersion: (r: any) => r,
     parsePurchaseOrder: (r: any) => r,
-    parseEmailMessage: (r: any) => r
+    parseEmailMessage: (r: any) => r,
+    persistUser: vi.fn().mockResolvedValue(undefined),
+    persistRecord: vi.fn().mockResolvedValue(undefined),
+    deleteRecord: vi.fn().mockResolvedValue(undefined),
+    persistRecords: vi.fn().mockResolvedValue(undefined),
+    persistCase: vi.fn().mockResolvedValue(undefined),
+    persistCaseTransition: vi.fn().mockResolvedValue(undefined),
+    persistRfqDraft: vi.fn().mockResolvedValue(undefined),
+    persistRfqDrafts: vi.fn().mockResolvedValue(undefined),
+    persistRfqCase: vi.fn().mockResolvedValue(undefined),
+    persistQuote: vi.fn().mockResolvedValue(undefined),
+    persistEmailMessage: vi.fn().mockResolvedValue(undefined),
+    persistPurchaseOrder: vi.fn().mockResolvedValue(undefined),
+    persistInventoryItem: vi.fn().mockResolvedValue(undefined),
+    persistStockMovement: vi.fn().mockResolvedValue(undefined)
   };
 });
 
@@ -279,7 +303,7 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
           supplierName: "NCC Thực Phẩm Sạch Cầu Đất",
           quoteId: "quote-receive-test",
           items: [
-            { name: "Gạo ST25 Cao Cấp", quantity: 150, unit: "kg", unitPrice: 28000, totalPrice: 4200000 },
+            { name: "gạo st25", quantity: 150, unit: "kg", unitPrice: 28000, totalPrice: 4200000 },
             { name: "Muối hạt mới", quantity: 20, unit: "kg", unitPrice: 5000, totalPrice: 100000 }
           ],
           subtotal: 4300000,
@@ -306,7 +330,7 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
         .send({
           receivedAt: "2026-06-04T05:00:00.000Z",
           items: [
-            { name: "Gạo ST25 Cao Cấp", quantityReceived: 150 },
+            { name: "gạo st25", quantityReceived: 150 },
             { name: "Muối hạt mới", quantityReceived: 20 }
           ]
         });
@@ -318,6 +342,7 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
       expect(rice?.quantityAvailable).toBe(195);
       expect(rice?.quantityOnOrder).toBe(0);
       expect(rice?.lastPurchasePrice).toBe(28000);
+      expect(dbState.inventory_items.filter((item: any) => normalizeNameForTest(item.name) === "gao st25").length).toBe(0);
 
       const salt = dbState.inventory_items.find((item: any) => item.name === "Muối hạt mới");
       expect(salt).toBeTruthy();

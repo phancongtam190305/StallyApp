@@ -76,10 +76,17 @@ interface RfqDraft {
   status: string;
 }
 
+interface RfqDraftItem {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
 interface RfqDraftEditForm {
   subject: string;
   greeting: string;
   notes: string;
+  items: RfqDraftItem[];
   dueDate: string;
   signature: string;
 }
@@ -106,12 +113,13 @@ const emptyRfqDraftEditForm: RfqDraftEditForm = {
   subject: "",
   greeting: "",
   notes: "",
+  items: [],
   dueDate: "",
   signature: ""
 };
 
 function escapeHtml(value: string): string {
-  return value
+  return (value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -139,8 +147,33 @@ function htmlToPlainText(html: string): string {
     .trim();
 }
 
-function normalizeDraftNotes(plainText: string, supplierName: string): string {
-  const supplier = supplierName.toLowerCase();
+function extractRfqItemsHtml(html: string): string {
+  if (!html) return "";
+  if (typeof document === "undefined") {
+    return html.match(/<table[\s\S]*?<\/table>/i)?.[0] || "";
+  }
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  container.querySelectorAll("script,style").forEach(node => node.remove());
+  return container.querySelector("table")?.outerHTML || "";
+}
+
+function htmlToPlainTextWithoutTables(html: string): string {
+  if (!html) return "";
+  if (typeof document === "undefined") {
+    return htmlToPlainText(html.replace(/<table[\s\S]*?<\/table>/gi, ""));
+  }
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  container.querySelectorAll("script,style,table").forEach(node => node.remove());
+  return htmlToPlainText(container.innerHTML);
+}
+
+function normalizeDraftNotes(plainText: string, supplierName?: string): string {
+  if (!plainText) return "";
+  const supplier = (supplierName || "").toLowerCase();
   const ignoredFragments = [
     "kính chào",
     "kính gửi",
@@ -148,7 +181,14 @@ function normalizeDraftNotes(plainText: string, supplierName: string): string {
     "phan công tâm",
     "procurement",
     "sourcing staff",
-    "stally food"
+    "stally food",
+    "hạn tiếp nhận",
+    "hạn chót",
+    "phòng mua hàng",
+    "yêu cầu báo giá",
+    "phản hồi trực tiếp",
+    "định dạng pdf/excel",
+    "vui lòng gửi báo giá chi tiết khi phản hồi email này"
   ];
 
   const lines = plainText
@@ -157,8 +197,8 @@ function normalizeDraftNotes(plainText: string, supplierName: string): string {
     .filter(Boolean)
     .filter(line => {
       const lower = line.toLowerCase();
-      if ((lower.includes("kính chào") || lower.includes("kính gửi")) && lower.includes(supplier)) return false;
-      return !ignoredFragments.some(fragment => lower === fragment || lower.startsWith(`${fragment},`));
+      if (supplier && (lower.includes("kính chào") || lower.includes("kính gửi")) && lower.includes(supplier)) return false;
+      return !ignoredFragments.some(fragment => lower.includes(fragment));
     });
 
   return lines.join("\n\n").trim();
@@ -187,6 +227,7 @@ function formatDueDateForEmail(value: string): string {
 }
 
 function textToHtmlParagraphs(value: string): string {
+  if (!value) return "";
   return value
     .trim()
     .split(/\n{2,}/)
@@ -196,31 +237,120 @@ function textToHtmlParagraphs(value: string): string {
     .join("\n");
 }
 
+function parseRfqItemsFromHtml(html: string): RfqDraftItem[] {
+  if (!html) return [];
+  
+  if (typeof document === "undefined") {
+    const items: RfqDraftItem[] = [];
+    const tbodyMatch = html.match(/<tbody>([\s\S]*?)<\/tbody>/i);
+    if (!tbodyMatch) return [];
+    
+    const tbodyContent = tbodyMatch[1];
+    const trMatches = tbodyContent.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+    
+    for (const tr of trMatches) {
+      const tdMatches = tr.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+      if (tdMatches.length >= 4) {
+        const cleanText = (str: string) => str.replace(/<[^>]+>/g, "").trim();
+        
+        const nameTd = tdMatches[1];
+        const strongMatch = nameTd.match(/<strong[^>]*>([\s\S]*?)<\/strong>/i);
+        const name = strongMatch ? cleanMatch(strongMatch[1]) : cleanMatch(nameTd);
+        
+        const qtyTd = tdMatches[2];
+        const qtyStr = cleanText(qtyTd).replace(/[^0-9]/g, "");
+        const quantity = parseInt(qtyStr, 10) || 0;
+        
+        const unitTd = tdMatches[3];
+        const unit = cleanText(unitTd);
+        
+        if (name) {
+          items.push({ name, quantity, unit });
+        }
+      }
+    }
+    return items;
+  }
+
+  function cleanMatch(str: string) {
+    return str.replace(/<[^>]+>/g, "").trim();
+  }
+
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  const rows = container.querySelectorAll("tbody tr");
+  const items: RfqDraftItem[] = [];
+
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length >= 4) {
+      const nameEl = cells[1].querySelector("strong") || cells[1];
+      const name = (nameEl.innerText || nameEl.textContent || "").trim();
+      
+      const qtyStr = (cells[2].innerText || cells[2].textContent || "").replace(/[^0-9]/g, "");
+      const quantity = parseInt(qtyStr, 10) || 0;
+      
+      const unit = (cells[3].innerText || cells[3].textContent || "").trim();
+      
+      if (name) {
+        items.push({ name, quantity, unit });
+      }
+    }
+  });
+
+  return items;
+}
+
 function createDraftEditForm(draft: RfqDraft): RfqDraftEditForm {
-  const plainText = htmlToPlainText(draft.bodyHtml);
-  const notes = normalizeDraftNotes(plainText, draft.supplierName);
+  const plainText = htmlToPlainTextWithoutTables(draft.bodyHtml || "");
+  const notes = normalizeDraftNotes(plainText, draft.supplierName || draft.supplierEmail || "");
 
   return {
-    subject: draft.subject,
-    greeting: `Kính gửi ${draft.supplierName},`,
+    subject: draft.subject || "",
+    greeting: `Kính gửi ${draft.supplierName || ""},`,
     notes: notes || "Vui lòng gửi báo giá chi tiết, điều kiện giao hàng, thời gian giao và hiệu lực báo giá khi phản hồi email này.",
-    dueDate: normalizeDateInput(draft.dueDate),
+    items: parseRfqItemsFromHtml(draft.bodyHtml || ""),
+    dueDate: normalizeDateInput(draft.dueDate || ""),
     signature: "Trân trọng,\nPhan Công Tâm\nProcurement & Sourcing Staff\nStally Food & Beverage Group"
   };
 }
 
 function buildFriendlyRfqHtml(form: RfqDraftEditForm): string {
-  const notesHtml = textToHtmlParagraphs(form.notes);
-  const signatureHtml = form.signature
+  const notesHtml = textToHtmlParagraphs(form.notes || "");
+  const signatureHtml = (form.signature || "")
     .split(/\n/)
     .map(line => escapeHtml(line.trim()))
     .filter(Boolean)
     .join("<br>");
 
+  const prItemsHtml = (form.items || []).map((it, index) => `
+    <tr>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;">${index + 1}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;"><strong>${escapeHtml(it.name)}</strong></td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:right;">${Number(it.quantity).toLocaleString("vi-VN")}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;">${escapeHtml(it.unit)}</td>
+    </tr>
+  `).join("");
+
+  const itemsTableHtml = `
+<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;margin:16px 0;">
+  <thead>
+    <tr style="background:#f7f5f0;">
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">#</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Mặt hàng</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:right;">Số lượng</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Đơn vị</th>
+    </tr>
+  </thead>
+  <tbody>${prItemsHtml}</tbody>
+</table>
+  `.trim();
+
   return `
 <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #24323f; background-color: #ffffff;">
   <p>${escapeHtml(form.greeting)}</p>
   ${notesHtml || "<p>Vui lòng gửi báo giá chi tiết khi phản hồi email này.</p>"}
+  ${itemsTableHtml}
   <p>Hạn chót tiếp nhận báo giá: <strong>${escapeHtml(formatDueDateForEmail(form.dueDate))}</strong>.</p>
   <p>Vui lòng đính kèm báo giá định dạng PDF/Excel nếu có.</p>
   <p>${signatureHtml}</p>
@@ -269,6 +399,24 @@ function getNegotiationSupplierOptions(comparison: any): NegotiationSupplierOpti
   return Array.from(byId.values());
 }
 
+function getNegotiationGoalLabel(goal?: string): string {
+  if (goal === "discount_5") return "Giảm giá 5%";
+  if (goal === "faster_delivery") return "Rút ngắn giao hàng";
+  if (goal === "longer_terms") return "Kéo dài công nợ";
+  return goal ? goal.replace(/_/g, " ") : "";
+}
+
+function getNegotiationBadgeText(quote: Quote): string {
+  const goalLabel = getNegotiationGoalLabel(quote.negotiationGoal);
+  if (quote.negotiationStatus === "supplier_responded") {
+    return goalLabel ? `NCC đã đồng ý: ${goalLabel}` : "NCC đã đồng ý đàm phán";
+  }
+  if (quote.negotiationStatus === "sent") {
+    return goalLabel ? `Đã gửi thương lượng: ${goalLabel}` : "Đã gửi thương lượng";
+  }
+  return "";
+}
+
 export default function CaseDetailTimeline({ 
   caseId, 
   onBackToList, 
@@ -283,6 +431,7 @@ export default function CaseDetailTimeline({
   const [caseObj, setCaseObj] = useState<ProcurementCase | null>(null);
   const [timeline, setTimeline] = useState<CaseTransition[]>([]);
   const [comparison, setComparison] = useState<any>(null);
+  const [reviewConfirmedQuoteIds, setReviewConfirmedQuoteIds] = useState<string[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [matchedSuppliers, setMatchedSuppliers] = useState<SupplierMatch[]>([]);
   const [rfqDrafts, setRfqDrafts] = useState<RfqDraft[]>([]);
@@ -293,6 +442,27 @@ export default function CaseDetailTimeline({
   const supplierRerankedSignatureRef = useRef("");
   const { showToast } = useToast();
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(`stally-reviewed-quotes:${caseId}`);
+      setReviewConfirmedQuoteIds(stored ? JSON.parse(stored) : []);
+    } catch {
+      setReviewConfirmedQuoteIds([]);
+    }
+  }, [caseId]);
+
+  const confirmQuoteManualReview = (quote: Quote) => {
+    const nextIds = Array.from(new Set([...reviewConfirmedQuoteIds, quote.id]));
+    setReviewConfirmedQuoteIds(nextIds);
+    try {
+      window.localStorage.setItem(`stally-reviewed-quotes:${caseId}`, JSON.stringify(nextIds));
+    } catch {}
+    showToast(`Đã ghi nhận bạn đã kiểm tra báo giá của ${quote.supplierName}.`, "success");
+  };
+
+  const quoteCanBeSubmitted = (quote: Quote) =>
+    !quoteNeedsHumanReview(quote) || reviewConfirmedQuoteIds.includes(quote.id);
 
   // Intake States
   const [newItemName, setNewItemName] = useState("");
@@ -809,23 +979,27 @@ export default function CaseDetailTimeline({
     }
     setLoadingAction("draft_rfq");
     try {
-      await fetch(apiUrl(`/api/v1/cases/${caseId}/suppliers/select`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
-        body: JSON.stringify({ supplierIds: selectedSuppliers })
-      });
-
-      const draftRes = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq-draft`), {
+      const response = await fetch(apiUrl(`/api/v1/cases/${caseId}/rfq-drafts/create`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
         body: JSON.stringify({ supplierIds: selectedSuppliers, dueDate: customRfqDueDate })
       });
-      const draftData = await draftRes.json();
-      setRfqDrafts(draftData.data || []);
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message || "Tạo bản thảo RFQ thất bại.");
+      }
+
+      if (data.data?.drafts) {
+        setRfqDrafts(data.data.drafts);
+      }
+      if (data.data?.case) {
+        setCaseObj(data.data.case);
+      }
+
       showToast("Đã tạo bản nháp RFQ từ template. Vui lòng review trước khi gửi.", "success");
-      fetchData();
+      fetchData(true);
     } catch (e: any) {
-      showToast("Tạo bản thảo RFQ thất bại.", "error");
+      showToast(e.message || "Tạo bản thảo RFQ thất bại.", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -990,19 +1164,34 @@ export default function CaseDetailTimeline({
   };
 
   const handleRequestApproval = async (quoteId: string) => {
+    const quote = comparison?.matrix?.find((item: Quote) => item.id === quoteId);
+    if (quote && quoteNeedsHumanReview(quote) && !reviewConfirmedQuoteIds.includes(quote.id)) {
+      showToast("Báo giá này đang có red-flag. Vui lòng bấm xác nhận đã kiểm tra trước khi trình duyệt.", "error");
+      return;
+    }
+
     setLoadingAction("request_app");
     try {
       const res = await fetch(apiUrl(`/api/v1/cases/${caseId}/approval/request`), {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Organization-Id": orgId },
-        body: JSON.stringify({ selectedQuoteId: quoteId, comment: "Đề xuất lựa chọn nhà cung cấp tối ưu nhất về chi phí." })
+        body: JSON.stringify({
+          selectedQuoteId: quoteId,
+          manualRiskAccepted: Boolean(quote && quoteNeedsHumanReview(quote) && reviewConfirmedQuoteIds.includes(quote.id)),
+          comment: quote && quoteNeedsHumanReview(quote)
+            ? "Người mua đã kiểm tra red-flag thủ công và xác nhận báo giá đủ điều kiện trình duyệt."
+            : "Đề xuất lựa chọn nhà cung cấp tối ưu nhất về chi phí."
+        })
       });
       const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Yêu cầu phê duyệt thất bại.");
+      }
       showToast("Đã trình hồ sơ lên cấp trên duyệt PO!", "success");
       if (onStateChanged) onStateChanged();
       setTimeout(fetchData, 650);
-    } catch (e) {
-      showToast("Yêu cầu phê duyệt thất bại.", "error");
+    } catch (e: any) {
+      showToast(e.message || "Yêu cầu phê duyệt thất bại.", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -1914,6 +2103,76 @@ export default function CaseDetailTimeline({
                               />
                             </div>
                           </div>
+
+                          {/* Editable Items Section */}
+                          <div className="flex flex-col space-y-1.5 border border-primary-dark/20 bg-cream rounded-xl p-3.5">
+                            <div className="flex justify-between items-center mb-1">
+                              <label className="text-[10px] font-bold text-primary-dark uppercase">Danh sách mặt hàng</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedItems = [...draftEditForm.items, { name: "", quantity: 1, unit: "kg" }];
+                                  setDraftEditForm(prev => ({ ...prev, items: updatedItems }));
+                                }}
+                                className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-primary-dark text-primary-dark rounded-md font-bold text-[9px] uppercase transition cursor-pointer"
+                              >
+                                + Thêm mặt hàng
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {draftEditForm.items.map((it, idx) => (
+                                <div key={idx} className="flex gap-2 items-center">
+                                  <input
+                                    type="text"
+                                    placeholder="Tên mặt hàng"
+                                    value={it.name}
+                                    onChange={e => {
+                                      const updatedItems = [...draftEditForm.items];
+                                      updatedItems[idx] = { ...it, name: e.target.value };
+                                      setDraftEditForm(prev => ({ ...prev, items: updatedItems }));
+                                    }}
+                                    className="flex-1 p-2 border border-primary-dark/35 bg-white rounded-lg text-xs font-bold text-primary-dark"
+                                  />
+                                  <input
+                                    type="number"
+                                    placeholder="SL"
+                                    value={it.quantity === 0 ? "" : it.quantity}
+                                    onChange={e => {
+                                      const updatedItems = [...draftEditForm.items];
+                                      updatedItems[idx] = { ...it, quantity: Number(e.target.value) || 0 };
+                                      setDraftEditForm(prev => ({ ...prev, items: updatedItems }));
+                                    }}
+                                    className="w-16 p-2 border border-primary-dark/35 bg-white rounded-lg text-xs font-bold text-primary-dark text-right"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Đơn vị"
+                                    value={it.unit}
+                                    onChange={e => {
+                                      const updatedItems = [...draftEditForm.items];
+                                      updatedItems[idx] = { ...it, unit: e.target.value };
+                                      setDraftEditForm(prev => ({ ...prev, items: updatedItems }));
+                                    }}
+                                    className="w-16 p-2 border border-primary-dark/35 bg-white rounded-lg text-xs font-bold text-primary-dark"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedItems = draftEditForm.items.filter((_, i) => i !== idx);
+                                      setDraftEditForm(prev => ({ ...prev, items: updatedItems }));
+                                    }}
+                                    className="px-2 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-600 rounded-lg font-bold text-xs cursor-pointer"
+                                  >
+                                    Xóa
+                                  </button>
+                                </div>
+                              ))}
+                              {draftEditForm.items.length === 0 && (
+                                <p className="text-[10px] italic text-slate-500 font-medium">Chưa có mặt hàng nào. Vui lòng thêm mặt hàng.</p>
+                              )}
+                            </div>
+                          </div>
+
                           <div className="flex flex-col space-y-1">
                             <label className="text-[10px] font-bold text-primary-dark uppercase">Nội dung ghi chú thêm</label>
                             <textarea 
@@ -2151,7 +2410,7 @@ export default function CaseDetailTimeline({
                                     Đã đồng ý đàm phán V{q.versionCount || 2}
                                   </span>
                                 )}
-                                {q.id === comparison.summary.lowestTotalQuoteId && (
+                                {q.id === comparison.summary.recommendedQuoteId && !quoteNeedsHumanReview(q) && (
                                   <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-bold uppercase tracking-wider shadow-sm">Tối ưu nhất</span>
                                 )}
                                 {quoteNeedsHumanReview(q) && (
@@ -2233,14 +2492,33 @@ export default function CaseDetailTimeline({
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20">
                               {caseObj.status !== "pending_approval" && caseObj.status !== "approved" && caseObj.status !== "closed" ? (
-                                <button
-                                  id="btn-request-approval"
-                                  onClick={() => handleRequestApproval(q.id)}
-                                  disabled={currentRole !== "procurement" || quoteNeedsHumanReview(q)}
-                                  className="w-full py-1.5 bg-primary-dark hover:bg-black text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
-                                >
-                                  {quoteNeedsHumanReview(q) ? "Cần kiểm tra" : "Trình duyệt PO"}
-                                </button>
+                                <div className="space-y-2">
+                                  {quoteNeedsHumanReview(q) && !reviewConfirmedQuoteIds.includes(q.id) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => confirmQuoteManualReview(q)}
+                                      disabled={currentRole !== "procurement"}
+                                      className="w-full py-1.5 bg-coral-light/10 hover:bg-coral-light/20 border border-coral/40 text-coral-dark font-bold text-[10px] rounded transition cursor-pointer text-center disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                    >
+                                      Tôi đã kiểm tra, cho phép trình duyệt
+                                    </button>
+                                  ) : (
+                                    <button
+                                      id="btn-request-approval"
+                                      onClick={() => handleRequestApproval(q.id)}
+                                      disabled={currentRole !== "procurement" || !quoteCanBeSubmitted(q)}
+                                      className="w-full py-1.5 bg-primary-dark hover:bg-black text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                    >
+                                      {quoteNeedsHumanReview(q) ? "Trình duyệt sau kiểm tra" : "Trình duyệt PO"}
+                                    </button>
+                                  )}
+                                  {quoteNeedsHumanReview(q) && reviewConfirmedQuoteIds.includes(q.id) && (
+                                    <p className="text-[9px] text-emerald-700 font-bold flex items-center gap-1">
+                                      <Check className="w-3 h-3" />
+                                      Đã xác nhận thủ công
+                                    </p>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-primary-dark/50 italic text-[9px] font-bold">Đã chọn duyệt</span>
                               )}
@@ -2377,9 +2655,11 @@ export default function CaseDetailTimeline({
                         <div className="text-right">
                           <p className="text-[9px] font-bold text-primary-dark/50 uppercase leading-none">Tổng giá trị PO thầu:</p>
                           <p className="text-base font-bold text-primary-dark font-mono mt-1.5">{formatVND(q.totalAmount)}</p>
-                          <span className="text-[9px] bg-primary-bg text-primary border border-primary font-mono font-bold px-2 py-0.5 rounded-md mt-1 block w-fit ml-auto shadow-sm">
-                            Đã đàm phán 10%
-                          </span>
+                          {getNegotiationBadgeText(q) && (
+                            <span className="text-[9px] bg-primary-bg text-primary border border-primary font-mono font-bold px-2 py-0.5 rounded-md mt-1 block w-fit ml-auto shadow-sm">
+                              {getNegotiationBadgeText(q)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}

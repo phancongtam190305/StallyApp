@@ -89,6 +89,7 @@ export interface Quote {
   originalFileUrl?: string;
   negotiationStatus?: "none" | "sent" | "supplier_responded";
   negotiationRound?: number;
+  negotiationGoal?: string;
   lastNegotiatedAt?: string;
   supplierReplyRaw?: string;
   versionCount?: number;

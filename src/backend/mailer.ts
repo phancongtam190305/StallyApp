@@ -322,7 +322,16 @@ export async function sendRealEmail(input: EmailInput): Promise<{ success: boole
   const { to, subject, html, text } = input;
   const traceId = createTraceId("smtp");
   const startedAt = Date.now();
-  const toList = emailRecipientOverride || to;
+  
+  const currentOverride = (process.env.EMAIL_RECIPIENT_OVERRIDE || "").trim();
+  let toList: string | string[] = to;
+  if (currentOverride) {
+    const overrideEmails = currentOverride.split(",").map(e => e.trim()).filter(Boolean);
+    if (overrideEmails.length > 0) {
+      toList = overrideEmails;
+    }
+  }
+
   logFlow("info", "email.send.start", {
     traceId,
     provider: emailProvider,

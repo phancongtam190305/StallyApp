@@ -26,6 +26,7 @@ import {
   InventoryItem, 
   StockMovement, 
   Supplier, 
+  PurchaseOrder,
   UserRole,
   PriorityLevel,
   PurchaseRequestItem,
@@ -63,6 +64,7 @@ export function AppContent() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   //Sourcing flow selection helpers
@@ -87,6 +89,7 @@ export function AppContent() {
       setQuotes(state.quotes);
       setInventory(state.inventory);
       setStockMovements(state.stockMovements);
+      setPurchaseOrders(state.purchaseOrders || []);
       setSuppliers(state.suppliers || []);
       
       setErrorText("");
@@ -337,10 +340,10 @@ export function AppContent() {
   };
 
   // Handler: Goods receipt in stock (EPIC I)
-  const handleReceiveGoods = async (itemId: string, qty: number, sourcePo: string) => {
+  const handleReceiveGoods = async (itemId: string, qty: number, sourcePo: string, itemNameOverride?: string) => {
     try {
       // Find the inventory item name
-      const itemName = inventory.find(i => i.id === itemId)?.name || "";
+      const itemName = itemNameOverride || inventory.find(i => i.id === itemId)?.name || "";
 
       const res = await fetch(apiUrl(`/api/v1/purchase-orders/${sourcePo}/receive`), {
         method: "POST",
@@ -505,6 +508,7 @@ export function AppContent() {
               ) : currentRole === "warehouse" ? (
                 <WarehouseDashboard
                   inventory={inventory}
+                  purchaseOrders={purchaseOrders}
                   stockMovements={stockMovements}
                   currentRole={currentRole}
                   onReceiveGoods={handleReceiveGoods}

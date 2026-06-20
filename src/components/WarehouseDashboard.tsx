@@ -16,14 +16,15 @@ import {
   Sparkles,
   ShieldCheck
 } from "lucide-react";
-import { InventoryItem, StockMovement, UserRole } from "../types";
+import { InventoryItem, PurchaseOrder, PurchaseOrderItem, StockMovement, UserRole } from "../types";
 import ItemIcon from "./ItemIcon";
 
 interface WarehouseDashboardProps {
   inventory: InventoryItem[];
+  purchaseOrders: PurchaseOrder[];
   stockMovements: StockMovement[];
   currentRole: UserRole;
-  onReceiveGoods: (itemId: string, qty: number, sourcePo: string) => Promise<void> | void;
+  onReceiveGoods: (itemId: string, qty: number, sourcePo: string, itemName?: string) => Promise<void> | void;
   onAdjustStock: (itemId: string, qty: number, movementType: "in" | "out" | "adjustment", notes: string) => Promise<void> | void;
   onCreatePrFromStock?: (item: InventoryItem) => void;
   setActiveTab?: (tab: string) => void;
@@ -32,6 +33,7 @@ interface WarehouseDashboardProps {
 interface IncomingShipment {
   id: string;
   item: InventoryItem;
+  poItem: PurchaseOrderItem;
   expectedQty: number;
   poCode: string;
   expectedDate: string;
@@ -40,6 +42,7 @@ interface IncomingShipment {
 
 export default function WarehouseDashboard({
   inventory,
+  purchaseOrders,
   stockMovements,
   currentRole,
   onReceiveGoods,
@@ -59,10 +62,74 @@ export default function WarehouseDashboard({
   const [successAnimation, setSuccessAnimation] = useState<boolean>(false);
   const [modalMode, setModalMode] = useState<"standard" | "discrepancy">("standard");
 
-  // Derive incoming deliveries from inventory items having quantityOnOrder > 0
-  const incomingItems = inventory.filter(item => item.quantityOnOrder > 0);
-  
-  const shipments: IncomingShipment[] = incomingItems.map((item, idx) => {
+  const normalizeInventoryName = (name: string) =>
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/[^a-zA-Z0-9\s]+/g, " ")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+
+  const getInventoryNameTokens = (name: string) => {
+    const stopWords = new Set(["cao", "cap", "loai", "hang", "premium", "organic", "tuoi", "moi", "nhap", "khau"]);
+    return normalizeInventoryName(name)
+      .split(" ")
+      .map(token => token.trim())
+      .filter(token => token.length >= 2 && !stopWords.has(token));
+  };
+
+  const scoreInventoryMatch = (item: InventoryItem, poItem: PurchaseOrderItem) => {
+    const itemName = normalizeInventoryName(item.name);
+    const poName = normalizeInventoryName(poItem.name);
+    if (!itemName || !poName) return 0;
+
+    let score = 0;
+    if (itemName === poName) score += 100;
+    if (itemName.includes(poName) || poName.includes(itemName)) score += 70;
+
+    const itemTokens = new Set(getInventoryNameTokens(item.name));
+    const poTokens = getInventoryNameTokens(poItem.name);
+    if (poTokens.length > 0) {
+      const matchedTokens = poTokens.filter(token => itemTokens.has(token));
+      score += (matchedTokens.length / poTokens.length) * 60;
+    }
+
+    if (item.unit.trim().toLowerCase() === poItem.unit.trim().toLowerCase()) {
+      score += 15;
+    }
+    return score;
+  };
+
+  const findInventoryItemForPoItem = (poItem: PurchaseOrderItem) =>
+    inventory
+      .map(item => ({ item, score: scoreInventoryMatch(item, poItem) }))
+      .filter(match => match.score >= 75)
+      .sort((a, b) => b.score - a.score)[0]?.item;
+
+  // Derive incoming deliveries from real confirmed/shipping POs.
+  const incomingPoItems = purchaseOrders
+    .filter(po => ["confirmed", "shipping"].includes(po.status))
+    .flatMap(po => po.items.map((poItem, index) => ({ po, poItem, index })))
+    .filter(({ poItem }) => poItem.quantity > 0);
+
+  const shipments: IncomingShipment[] = incomingPoItems.map(({ po, poItem, index }, idx) => {
+    const matchedItem = findInventoryItemForPoItem(poItem);
+    const item: InventoryItem = matchedItem || {
+      id: `po-line-${po.id}-${index}`,
+      organizationId: po.organizationId,
+      sku: `PO-${po.id.toUpperCase()}`,
+      name: poItem.name,
+      category: "PO Received",
+      unit: poItem.unit,
+      minStockLevel: 0,
+      quantityAvailable: 0,
+      quantityOnOrder: poItem.quantity,
+      lastPurchasePrice: poItem.unitPrice,
+      updatedAt: po.createdAt
+    };
+
     let status: "delayed" | "today" | "future" = "today";
     let dateStr = "";
     
@@ -78,10 +145,11 @@ export default function WarehouseDashboard({
     }
 
     return {
-      id: `shipment-${item.id}`,
+      id: `shipment-${po.id}-${index}`,
       item,
-      expectedQty: item.quantityOnOrder,
-      poCode: `PO-2026-${1000 + idx}`,
+      poItem,
+      expectedQty: poItem.quantity,
+      poCode: po.id,
       expectedDate: dateStr,
       status
     };
@@ -105,7 +173,7 @@ export default function WarehouseDashboard({
   const handleQuickReceiveAll = async (shipment: IncomingShipment) => {
     try {
       setSuccessAnimation(true);
-      await onReceiveGoods(shipment.item.id, shipment.expectedQty, shipment.poCode);
+      await onReceiveGoods(shipment.item.id, shipment.expectedQty, shipment.poCode, shipment.poItem.name);
       
       setTimeout(() => {
         setSuccessAnimation(false);
@@ -128,7 +196,7 @@ export default function WarehouseDashboard({
       const notes = clerkNotes || (isMismatch ? "Sai lệch số lượng thực tế" : "") + (isDamaged ? " - Phát hiện hàng hỏng" : "");
       
       if (isMismatch || isDamaged) {
-        await onReceiveGoods(selectedShipment.item.id, receivedQty, selectedShipment.poCode);
+        await onReceiveGoods(selectedShipment.item.id, receivedQty, selectedShipment.poCode, selectedShipment.poItem.name);
         
         if (isDamaged || receivedQty < selectedShipment.expectedQty) {
           const shortage = selectedShipment.expectedQty - receivedQty;
@@ -140,7 +208,7 @@ export default function WarehouseDashboard({
           );
         }
       } else {
-        await onReceiveGoods(selectedShipment.item.id, selectedShipment.expectedQty, selectedShipment.poCode);
+        await onReceiveGoods(selectedShipment.item.id, selectedShipment.expectedQty, selectedShipment.poCode, selectedShipment.poItem.name);
       }
       
       setTimeout(() => {

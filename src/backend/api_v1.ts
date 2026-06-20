@@ -2,7 +2,7 @@ import express, { Router, Request, Response, NextFunction } from "express";
 import crypto from "node:crypto";
 import { GoogleGenAI, Type } from "@google/genai";
 import { dbState, ai } from "../../server.js";
-import { persistDbState, persistUser } from "./db.js";
+import { persistDbState, persistUser, persistRecord, deleteRecord, persistRecords, db } from "./db.js";
 import { sendRealEmail } from "./mailer.js";
 import { createTraceId, logFlow, maskEmail, maskEmails, safeError, subjectSummary, textSummary } from "./logger.js";
 import { buildSupplierFromCandidate, discoverSuppliers } from "./supplier_discovery.js";
@@ -292,8 +292,11 @@ export function transitionCaseStatus(input: TransitionInput): ProcurementCase {
   // Broadcast Realtime SSE Event
   broadcastRealtimeEvent("case.updated", caseId, { fromStatus, toStatus, actorId, reason });
   
-  // Persist State to SQLite
-  persistDbState(dbState).catch((err) => {
+  // Persist State incrementally to Database
+  Promise.all([
+    persistRecord("procurement_cases", caseObj),
+    persistRecord("case_transitions", transitionLog)
+  ]).catch((err) => {
     logFlow("error", "case.transition.persist_failed", {
       traceId,
       transitionId: transitionLog.id,
@@ -302,7 +305,7 @@ export function transitionCaseStatus(input: TransitionInput): ProcurementCase {
       toStatus,
       err: safeError(err),
     });
-    console.error("Failed to persist database state in transitionCaseStatus:", err);
+    console.error("Failed to incrementally persist transition:", err);
   });
   
   return caseObj;
@@ -1013,7 +1016,7 @@ apiV1Router.post("/cases/:caseId/suppliers/select", (req: Request, res: Response
   } else {
     // Just update timestamp if already in rfq_draft
     caseObj.updatedAt = new Date().toISOString();
-    persistDbState(dbState).catch(() => {});
+    persistRecord("procurement_cases", caseObj).catch(() => {});
   }
   
   res.json({ message: "Đã chọn nhà cung cấp gửi báo giá thầu", data: caseObj });
@@ -1110,7 +1113,22 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
         dbState.supplier_discovery_candidates = (dbState.supplier_discovery_candidates || [])
           .filter((candidate: SupplierDiscoveryCandidate) => !(candidate.caseId === caseId && candidate.query === query && candidate.status === "review"));
         dbState.supplier_discovery_candidates.push(...storedCandidates);
-        await persistDbState(dbState);
+        
+        // Incremental save cache hit
+        const client = await db.connect();
+        try {
+          await client.query("BEGIN");
+          await client.query(`DELETE FROM "supplier_discovery_candidates" WHERE "caseId" = $1 AND "query" = $2 AND "status" = $3`, [caseId, query, "review"]);
+          for (const candidate of storedCandidates) {
+            await persistRecord("supplier_discovery_candidates", candidate, client);
+          }
+          await client.query("COMMIT");
+        } catch (txErr) {
+          await client.query("ROLLBACK");
+          throw txErr;
+        } finally {
+          client.release();
+        }
       }
 
       return res.json({
@@ -1131,7 +1149,7 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
 
   // Cache Miss or Expired: Set scanning flag and Return processing status immediately to client
   caseObj.isScanning = true;
-  persistDbState(dbState).catch((err) => {
+  persistRecord("procurement_cases", caseObj).catch((err) => {
     logFlow("error", "supplier.discovery.scan_flag_persist_failed", {
       traceId,
       caseId,
@@ -1224,8 +1242,27 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
       // Reset scanning flag
       caseObj.isScanning = false;
 
-      // Persist state to Supabase
-      await persistDbState(dbState);
+      // Incremental transactional save discovery results
+      const client = await db.connect();
+      try {
+        await client.query("BEGIN");
+        await persistRecord("procurement_cases", caseObj, client);
+        if (newCacheRecord) {
+          await persistRecord("discovery_caches", newCacheRecord, client);
+        }
+        if (!dryRun) {
+          await client.query(`DELETE FROM "supplier_discovery_candidates" WHERE "caseId" = $1 AND "query" = $2 AND "status" = $3`, [caseId, query, "review"]);
+          for (const candidate of storedCandidates) {
+            await persistRecord("supplier_discovery_candidates", candidate, client);
+          }
+        }
+        await client.query("COMMIT");
+      } catch (txErr) {
+        await client.query("ROLLBACK");
+        throw txErr;
+      } finally {
+        client.release();
+      }
 
       // Broadcast completed event via SSE
       broadcastRealtimeEvent("supplier.discovery_completed", caseId, {
@@ -1255,7 +1292,7 @@ apiV1Router.post("/cases/:caseId/suppliers/discover", async (req: Request, res: 
       console.error(`Background AI supplier discovery failed for case=${caseId}: `, bgErr);
       // Reset scanning flag on error
       caseObj.isScanning = false;
-      await persistDbState(dbState).catch(() => {});
+      await persistRecord("procurement_cases", caseObj).catch(() => {});
     }
   })();
 });
@@ -1328,6 +1365,10 @@ apiV1Router.patch("/cases/:caseId/rfq-drafts/:draftId", (req: Request, res: Resp
     dueDate: draft.dueDate,
   });
 
+  persistRecord("rfq_email_drafts", draft).catch((err) => {
+    console.error("Failed to incrementally persist draft edit:", err);
+  });
+  
   res.json({ data: draft });
 });
 
@@ -1529,6 +1570,18 @@ apiV1Router.post("/cases/:caseId/rfq-draft", async (req: Request, res: Response)
     dbState.rfq_email_drafts.push(draft);
     drafts.push(draft);
   }
+
+  try {
+    await persistRecords("rfq_email_drafts", drafts);
+  } catch (err) {
+    logFlow("error", "rfq.draft.persist_failed", {
+      traceId,
+      caseId,
+      orgId,
+      draftCount: drafts.length,
+      err: safeError(err),
+    });
+  }
   
   logFlow("info", "rfq.draft.created", {
     traceId,
@@ -1538,6 +1591,157 @@ apiV1Router.post("/cases/:caseId/rfq-draft", async (req: Request, res: Response)
     draftIds: drafts.map(d => d.id),
   });
   res.json({ data: drafts });
+});
+
+apiV1Router.post("/cases/:caseId/rfq-drafts/create", async (req: Request, res: Response) => {
+  const traceId = req.traceId || createTraceId("rfq-drafts-create");
+  const orgId = req.organizationId;
+  const { caseId } = req.params;
+  const { supplierIds, dueDate } = req.body || {};
+
+  if (!supplierIds || !Array.isArray(supplierIds) || supplierIds.length === 0) {
+    return res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Vui lòng chọn ít nhất 1 nhà cung cấp." } });
+  }
+
+  const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
+  if (!caseObj) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy case" } });
+  }
+
+  const selectedSuppliers = dbState.suppliers.filter(s => supplierIds.includes(s.id));
+  if (selectedSuppliers.length === 0) {
+    return res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Không tìm thấy các nhà cung cấp được chọn." } });
+  }
+
+  // 1. Transition case to rfq_draft phase if not already there
+  let transitionLog = null;
+  if (caseObj.status !== "rfq_draft") {
+    const fromStatus = caseObj.status;
+    caseObj.status = "rfq_draft";
+    caseObj.updatedAt = new Date().toISOString();
+
+    transitionLog = {
+      id: `trans-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      caseId,
+      fromStatus,
+      toStatus: "rfq_draft" as const,
+      actorId: "u-1",
+      actorRole: "procurement",
+      reason: `Đã chọn các NCC gửi thư thầu: ${supplierIds.join(", ")}`,
+      createdAt: new Date().toISOString()
+    };
+    dbState.case_transitions.push(transitionLog);
+    broadcastRealtimeEvent("case.updated", caseId, { fromStatus, toStatus: "rfq_draft", actorId: "u-1", reason: transitionLog.reason });
+  } else {
+    caseObj.updatedAt = new Date().toISOString();
+  }
+
+  // 2. Generate RFQ drafts
+  const escapeHtml = (value: string) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  const formatRfqDueDate = (value?: string) => {
+    const fallback = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const normalized = value || fallback;
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? normalized : parsed.toLocaleDateString("vi-VN");
+  };
+
+  const normalizedDueDate = dueDate || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const prItemsHtml = caseObj.items.map((it, index) => `
+    <tr>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;">${index + 1}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;"><strong>${escapeHtml(it.name)}</strong>${it.notes ? `<br><span style="color:#64748b;">${escapeHtml(it.notes)}</span>` : ""}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;text-align:right;">${Number(it.quantity).toLocaleString("vi-VN")}</td>
+      <td style="padding:8px 10px;border:1px solid #e5e7eb;">${escapeHtml(it.unit)}</td>
+    </tr>
+  `).join("");
+
+  const newDrafts = [];
+  for (const supplier of selectedSuppliers) {
+    const draftId = `rfq-draft-${Date.now()}-${supplier.id}`;
+    const emailSubject = `[STALLY RFQ-${caseId.toUpperCase()}] Yêu cầu báo giá - ${escapeHtml(caseObj.title || "Hồ sơ mua hàng")}`;
+    const emailBody = `
+<p>Kính gửi <strong>${escapeHtml(supplier.name)}</strong>,</p>
+<p>Phòng mua hàng gửi quý đối tác yêu cầu báo giá cho hồ sơ <strong>${escapeHtml(caseObj.title || caseId)}</strong>.</p>
+<p>Vui lòng phản hồi trực tiếp email này và đính kèm báo giá PDF/Excel nếu có. Khi phản hồi, vui lòng ghi rõ đơn giá, tổng tiền, thời gian giao hàng, điều khoản thanh toán và hiệu lực báo giá.</p>
+<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;">
+  <thead>
+    <tr style="background:#f7f5f0;">
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">#</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Mặt hàng</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:right;">Số lượng</th>
+      <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;">Đơn vị</th>
+    </tr>
+  </thead>
+  <tbody>${prItemsHtml}</tbody>
+</table>
+<p>Hạn tiếp nhận báo giá: <strong>${formatRfqDueDate(normalizedDueDate)}</strong>.</p>
+<p>Trân trọng,<br><strong>Phòng mua hàng</strong></p>`;
+
+    const draft = {
+      id: draftId,
+      caseId,
+      supplierId: supplier.id,
+      supplierName: supplier.name,
+      supplierEmail: supplier.email,
+      subject: emailSubject,
+      bodyHtml: emailBody,
+      dueDate: normalizedDueDate,
+      status: "draft" as const
+    };
+
+    dbState.rfq_email_drafts.push(draft);
+    newDrafts.push(draft);
+  }
+
+  // 3. Persist incrementally in transaction
+  try {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("procurement_cases", caseObj, client);
+      if (transitionLog) {
+        await persistRecord("case_transitions", transitionLog, client);
+      }
+      for (const draft of newDrafts) {
+        await persistRecord("rfq_email_drafts", draft, client);
+      }
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+
+    logFlow("info", "rfq.drafts.create.incremental.success", {
+      traceId,
+      caseId,
+      orgId,
+      draftCount: newDrafts.length,
+    });
+  } catch (err) {
+    logFlow("error", "rfq.drafts.create.incremental.failed", {
+      traceId,
+      caseId,
+      orgId,
+      err: safeError(err),
+    });
+    console.error("Incremental drafts creation failed:", err);
+  }
+
+  res.json({
+    data: {
+      case: caseObj,
+      drafts: newDrafts
+    }
+  });
 });
 
 apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) => {
@@ -1696,6 +1900,31 @@ apiV1Router.post("/cases/:caseId/rfq/send", async (req: Request, res: Response) 
   dbState.rfq_cases.push(rfqCase);
   dbState.email_messages.push(...pendingEmailLogs);
   caseObj.currentRfqId = rfqId;
+
+  // Incremental transaction save for sending RFQ
+  try {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("rfq_cases", rfqCase, client);
+      await persistRecord("procurement_cases", caseObj, client);
+      for (const emailMsg of pendingEmailLogs) {
+        await persistRecord("email_messages", emailMsg, client);
+      }
+      for (const d of matchedDrafts) {
+        await persistRecord("rfq_email_drafts", d, client);
+      }
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error("Failed to incrementally persist sent RFQs:", err);
+  }
+
   logFlow("info", "rfq.send.persisted", {
     traceId,
     caseId,
@@ -2547,8 +2776,35 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     durationMs: Date.now() - startedAt,
   });
   
-  // Persist State to SQLite
-  persistDbState(dbState).catch((err) => {
+  // Persist State incrementally to Database
+  (async () => {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("email_messages", email, client);
+      await persistRecord("quotes", finalQuote, client);
+      if (typeof quoteVer !== "undefined" && quoteVer) {
+        await persistRecord("quote_versions", quoteVer, client);
+      }
+      const rfqCase = dbState.rfq_cases.find((r: any) => r.id === caseObj.currentRfqId);
+      if (rfqCase) {
+        await persistRecord("rfq_cases", rfqCase, client);
+      }
+      await persistRecord("procurement_cases", caseObj, client);
+      const activeLogs = dbState.ai_negotiation_logs.filter(
+        l => l.caseId === caseId && l.supplierId === supplierId
+      );
+      for (const log of activeLogs) {
+        await persistRecord("ai_negotiation_logs", log, client);
+      }
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  })().catch((err) => {
     logFlow("error", "quote.extraction.persist_failed", {
       traceId,
       caseId,
@@ -2558,7 +2814,7 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
       quoteId,
       err: safeError(err),
     });
-    console.error("Failed to persist database state in triggerQuoteExtractionPipeline:", err);
+    console.error("Failed to incrementally persist extracted quote:", err);
   });
 }
 
@@ -2615,10 +2871,37 @@ function enrichQuoteForComparison(quote: Quote, caseId: string) {
     ...quote,
     negotiationStatus: latestNegotiation?.status || "none",
     negotiationRound: latestNegotiation?.round,
+    negotiationGoal: latestNegotiation?.promptGoal,
     lastNegotiatedAt: latestNegotiation?.createdAt,
     supplierReplyRaw: latestNegotiation?.supplierReplyRaw,
     versionCount: versions.length,
   };
+}
+
+function getQuoteReviewFlagsForComparison(quote: Quote): string[] {
+  const flags: string[] = [];
+  const paymentTerms = quote.paymentTerms?.trim().toLowerCase() || "";
+
+  if (quote.aiConfidenceScore < 65) {
+    flags.push("confidence_below_threshold");
+  }
+  if (!Number.isFinite(quote.totalAmount) || quote.totalAmount <= 0) {
+    flags.push("invalid_total_amount");
+  } else if (quote.totalAmount < 1000) {
+    flags.push("suspiciously_small_total_amount");
+  }
+  if (paymentTerms === "" || paymentTerms.includes("không đề cập")) {
+    flags.push("missing_payment_terms");
+  }
+  if (quote.items.some(item => item.unitPrice <= 0 || item.totalPrice <= 0)) {
+    flags.push("missing_item_price");
+  }
+
+  return flags;
+}
+
+function quoteNeedsReviewForComparison(quote: Quote): boolean {
+  return getQuoteReviewFlagsForComparison(quote).length > 0;
 }
 
 // ----------------------------------------------------
@@ -2681,12 +2964,18 @@ apiV1Router.get("/cases/:caseId/comparison", (req: Request, res: Response) => {
   if (decoratedQuotesList.length > 0) {
     const sortedByPrice = [...decoratedQuotesList].sort((a, b) => a.totalAmount - b.totalAmount);
     const sortedByDelivery = [...decoratedQuotesList].sort((a, b) => a.deliveryDays - b.deliveryDays);
+    const reviewableQuotes = decoratedQuotesList.filter(quote => !quoteNeedsReviewForComparison(quote));
+    const sortedReviewableByPrice = [...reviewableQuotes].sort((a, b) => a.totalAmount - b.totalAmount);
     
     lowestTotalQuoteId = sortedByPrice[0].id;
     fastestDeliveryQuoteId = sortedByDelivery[0].id;
-    recommendedQuoteId = sortedByPrice[0].id; // Defaults to cheapest
-    
-    recommendationReason = `Hệ thống khuyên phê duyệt đơn hàng của **${sortedByPrice[0].supplierName}** vì mức chào thầu rẻ nhất (${sortedByPrice[0].totalAmount.toLocaleString()}đ, bao gồm VAT) giúp tối ưu hóa 10-15% chi phí của tổ chức.`;
+    recommendedQuoteId = sortedReviewableByPrice[0]?.id || "";
+
+    if (sortedReviewableByPrice.length > 0) {
+      recommendationReason = `Hệ thống chỉ xét các báo giá không có red-flag. Phương án đang phù hợp nhất là **${sortedReviewableByPrice[0].supplierName}** với tổng giá trị ${sortedReviewableByPrice[0].totalAmount.toLocaleString()}đ. Các báo giá bị cảnh báo cần người mua xác nhận thủ công trước khi trình duyệt.`;
+    } else {
+      recommendationReason = "Tất cả báo giá hiện có đều đang có red-flag. Hệ thống chưa đưa vào đề xuất tối ưu tự động; người mua cần đối chiếu file/email gốc và bấm xác nhận thủ công nếu muốn trình duyệt một NCC.";
+    }
   }
   
   res.json({
@@ -2774,6 +3063,20 @@ QUAN TRỌNG: Chỉ trả về duy nhất nội dung email thô (bắt đầu t�
   };
   
   dbState.ai_negotiation_logs.push(newLog);
+
+  try {
+    await persistRecord("ai_negotiation_logs", newLog);
+  } catch (err) {
+    logFlow("error", "negotiation.draft.persist_failed", {
+      traceId: req.traceId || createTraceId("neg-draft"),
+      caseId,
+      supplierId,
+      orgId,
+      negotiationLogId: newLog.id,
+      err: safeError(err),
+    });
+  }
+
   res.json({ data: newLog });
 });
 
@@ -2798,11 +3101,67 @@ apiV1Router.post("/negotiation-drafts/:draftId/send", async (req: Request, res: 
   }
 
   try {
-    await sendRealEmail({
+    const sendResult = await sendRealEmail({
       to: supplierEmail,
       subject: `[STALLY NEGOTIATION-${log.caseId.toUpperCase()}] Thương lượng báo giá Case thầu`,
       html: editedBody || log.draftEmail
     });
+    if (!sendResult.success) {
+      throw new Error(sendResult.error || "NEGOTIATION_EMAIL_SEND_FAILED");
+    }
+    const outboundEmail: EmailMessage = {
+      id: `email-out-neg-${Date.now()}-${log.supplierId}`,
+      organizationId: orgId,
+      gmailAccountId: "gmail-api-1",
+      gmailMessageId: sendResult.messageId || `gmail-api-neg-${Date.now()}-${log.supplierId}`,
+      gmailThreadId: `thread-neg-${Date.now()}`,
+      internetMessageId: `<neg-${Date.now()}@stally.com>`,
+      direction: "outbound",
+      from: process.env.GMAIL_API_SENDER_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || "procurement@stally.com",
+      to: [supplierEmail],
+      subject: `[STALLY NEGOTIATION-${log.caseId.toUpperCase()}] Thương lượng báo giá Case thầu`,
+      bodyHtml: editedBody || log.draftEmail,
+      linkedCaseId: log.caseId,
+      linkedSupplierId: log.supplierId,
+      classification: "negotiation",
+      attachments: [],
+      createdAt: new Date().toISOString()
+    };
+
+    dbState.email_messages.push(outboundEmail);
+    log.status = "sent";
+    if (editedBody) log.userEditedEmail = editedBody;
+
+    try {
+      const client = await db.connect();
+      try {
+        await client.query("BEGIN");
+        await persistRecord("ai_negotiation_logs", log, client);
+        await persistRecord("email_messages", outboundEmail, client);
+        await client.query("COMMIT");
+      } catch (txErr) {
+        await client.query("ROLLBACK");
+        throw txErr;
+      } finally {
+        client.release();
+      }
+    } catch (persistErr) {
+      logFlow("error", "negotiation.send.persist_failed", {
+        traceId: req.traceId || createTraceId("neg-send"),
+        caseId: log.caseId,
+        supplierId: log.supplierId,
+        orgId,
+        negotiationLogId: log.id,
+        emailMessageId: outboundEmail.id,
+        err: safeError(persistErr),
+      });
+      return res.status(500).json({
+        error: {
+          code: "NEGOTIATION_PERSIST_FAILED",
+          message: "Email đàm phán đã gửi nhưng hệ thống chưa lưu được log. Vui lòng kiểm tra database trước khi thao tác tiếp.",
+        }
+      });
+    }
   } catch (err) {
     console.error("Sending real negotiation email failed:", err);
     return res.status(502).json({
@@ -2812,9 +3171,6 @@ apiV1Router.post("/negotiation-drafts/:draftId/send", async (req: Request, res: 
       }
     });
   }
-
-  log.status = "sent";
-  if (editedBody) log.userEditedEmail = editedBody;
   
   // Transition Case status
   transitionCaseStatus({
@@ -2936,12 +3292,28 @@ async function simulateSupplierNegotiationReply(caseId: string, supplierId: stri
   
   broadcastRealtimeEvent("quote.confirmed", caseId, quote);
   
-  // Persist State to SQLite
-  try {
-    persistDbState(dbState);
-  } catch (err) {
-    console.error("Failed to persist database state in simulateSupplierNegotiationReply:", err);
-  }
+  // Persist State incrementally to Database
+  (async () => {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("quotes", quote, client);
+      await persistRecord("quote_versions", quoteVer, client);
+      const activeLogs = dbState.ai_negotiation_logs.filter(l => l.caseId === caseId && l.supplierId === supplierId);
+      if (activeLogs.length > 0) {
+        await persistRecord("ai_negotiation_logs", activeLogs[activeLogs.length - 1], client);
+      }
+      await persistRecord("email_messages", emailMsg, client);
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  })().catch((err) => {
+    console.error("Failed to incrementally persist negotiation reply:", err);
+  });
 }
 
 // ----------------------------------------------------
@@ -2950,10 +3322,23 @@ async function simulateSupplierNegotiationReply(caseId: string, supplierId: stri
 apiV1Router.post("/cases/:caseId/approval/request", (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;
-  const { selectedQuoteId, comment } = req.body;
+  const { selectedQuoteId, comment, manualRiskAccepted } = req.body;
   
   const caseObj = dbState.procurement_cases.find(c => c.id === caseId && c.organizationId === orgId);
   if (!caseObj) return res.status(404).json({ error: "Không tìm thấy case" });
+
+  const quote = dbState.quotes.find(q => q.id === selectedQuoteId && q.organizationId === orgId);
+  if (!quote) {
+    return res.status(400).json({ error: "Không tìm thấy báo giá trình duyệt" });
+  }
+  if (quoteNeedsReviewForComparison(quote) && manualRiskAccepted !== true) {
+    return res.status(400).json({
+      error: {
+        code: "QUOTE_REQUIRES_MANUAL_REVIEW",
+        message: "Báo giá này đang có red-flag. Người mua cần xác nhận đã kiểm tra file/email gốc trước khi trình duyệt.",
+      }
+    });
+  }
   
   caseObj.selectedQuoteId = selectedQuoteId;
   
@@ -2975,7 +3360,7 @@ apiV1Router.get("/approval-requests", (req: Request, res: Response) => {
   res.json({ data: pendingCases });
 });
 
-apiV1Router.post("/approval-requests/:caseId/approve", (req: Request, res: Response) => {
+apiV1Router.post("/approval-requests/:caseId/approve", async (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;
   const { comment, selectedQuoteId } = req.body;
@@ -2997,6 +3382,7 @@ apiV1Router.post("/approval-requests/:caseId/approve", (req: Request, res: Respo
       q.status = "rejected";
     }
   });
+  const touchedQuotes = dbState.quotes.filter(q => q.rfqCaseId === quote.rfqCaseId);
   
   transitionCaseStatus({
     caseId,
@@ -3018,6 +3404,24 @@ apiV1Router.post("/approval-requests/:caseId/approve", (req: Request, res: Respo
       orgId
     });
   }, 300);
+
+  try {
+    await persistRecords("quotes", touchedQuotes);
+  } catch (err) {
+    logFlow("error", "approval.approve.quotes_persist_failed", {
+      traceId: req.traceId || createTraceId("approval-approve"),
+      caseId,
+      orgId,
+      quoteIds: touchedQuotes.map(q => q.id),
+      err: safeError(err),
+    });
+    return res.status(500).json({
+      error: {
+        code: "APPROVAL_PERSIST_FAILED",
+        message: "Đã cập nhật phê duyệt trong bộ nhớ nhưng chưa lưu được trạng thái báo giá xuống database.",
+      }
+    });
+  }
   
   res.json({ message: "Phê duyệt thầu thành công!", data: caseObj });
 });
@@ -3045,7 +3449,7 @@ apiV1Router.post("/approval-requests/:caseId/reject", (req: Request, res: Respon
 // ----------------------------------------------------
 // PURCHASE ORDER & LOGISTICS INTEGRATION APIs
 // ----------------------------------------------------
-apiV1Router.post("/cases/:caseId/po-draft", (req: Request, res: Response) => {
+apiV1Router.post("/cases/:caseId/po-draft", async (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;
   
@@ -3084,11 +3488,40 @@ apiV1Router.post("/cases/:caseId/po-draft", (req: Request, res: Response) => {
   
   dbState.purchase_orders.push(po);
   caseObj.purchaseOrderId = poId;
+
+  try {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("purchase_orders", po, client);
+      await persistRecord("procurement_cases", caseObj, client);
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logFlow("error", "po.draft.persist_failed", {
+      traceId: req.traceId || createTraceId("po-draft"),
+      caseId,
+      poId,
+      orgId,
+      err: safeError(err),
+    });
+    return res.status(500).json({
+      error: {
+        code: "PO_DRAFT_PERSIST_FAILED",
+        message: "Không lưu được bản thảo PO xuống database.",
+      }
+    });
+  }
   
   res.json({ data: po });
 });
 
-apiV1Router.post("/purchase-orders/:poId/send", (req: Request, res: Response) => {
+apiV1Router.post("/purchase-orders/:poId/send", async (req: Request, res: Response) => {
   const orgId = req.organizationId || "org-1";
   const { poId } = req.params;
   
@@ -3101,12 +3534,46 @@ apiV1Router.post("/purchase-orders/:poId/send", (req: Request, res: Response) =>
   po.status = "confirmed";
   
   // INVENTORY quantityOnOrder IMPACT
+  const touchedInventoryItems: InventoryItem[] = [];
   po.items.forEach(poItem => {
     const invItem = getOrCreateInventoryItemForPoItem(orgId, poItem);
     invItem.quantityOnOrder += poItem.quantity;
     invItem.lastPurchasePrice = poItem.unitPrice;
     invItem.updatedAt = new Date().toISOString();
+    touchedInventoryItems.push(invItem);
   });
+
+  try {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("purchase_orders", po, client);
+      for (const item of touchedInventoryItems) {
+        await persistRecord("inventory_items", item, client);
+      }
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logFlow("error", "po.send.persist_failed", {
+      traceId: req.traceId || createTraceId("po-send"),
+      poId,
+      caseId: po.caseId,
+      orgId,
+      inventoryItemIds: touchedInventoryItems.map(item => item.id),
+      err: safeError(err),
+    });
+    return res.status(500).json({
+      error: {
+        code: "PO_SEND_PERSIST_FAILED",
+        message: "Không lưu được trạng thái gửi PO hoặc tồn kho đang về.",
+      }
+    });
+  }
   
   // Transition Case Status to po_sent
   transitionCaseStatus({
@@ -3149,7 +3616,57 @@ apiV1Router.get("/purchase-orders/:poId", (req: Request, res: Response) => {
 // INVENTORY & WAREHOUSE LOGISTICS APIs
 // ----------------------------------------------------
 function normalizeInventoryName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-zA-Z0-9\s]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function getInventoryNameTokens(name: string) {
+  const stopWords = new Set([
+    "cao",
+    "cap",
+    "loai",
+    "hang",
+    "premium",
+    "organic",
+    "tuoi",
+    "moi",
+    "nhap",
+    "khau"
+  ]);
+  return normalizeInventoryName(name)
+    .split(" ")
+    .map(token => token.trim())
+    .filter(token => token.length >= 2 && !stopWords.has(token));
+}
+
+function scoreInventoryPoItemMatch(item: InventoryItem, poItem: PurchaseOrderItem) {
+  const itemName = normalizeInventoryName(item.name);
+  const poName = normalizeInventoryName(poItem.name);
+  if (!itemName || !poName) return 0;
+
+  let score = 0;
+  if (itemName === poName) score += 100;
+  if (itemName.includes(poName) || poName.includes(itemName)) score += 70;
+
+  const itemTokens = new Set(getInventoryNameTokens(item.name));
+  const poTokens = getInventoryNameTokens(poItem.name);
+  if (poTokens.length === 0) return score;
+
+  const matchedTokens = poTokens.filter(token => itemTokens.has(token));
+  const coverage = matchedTokens.length / poTokens.length;
+  score += coverage * 60;
+
+  if (item.unit.trim().toLowerCase() === poItem.unit.trim().toLowerCase()) {
+    score += 15;
+  }
+
+  return score;
 }
 
 function buildInventorySku(orgId: string, name: string) {
@@ -3164,9 +3681,13 @@ function buildInventorySku(orgId: string, name: string) {
 }
 
 function findInventoryItemByPoItem(orgId: string, poItem: PurchaseOrderItem) {
-  return dbState.inventory_items.find(
-    it => normalizeInventoryName(it.name) === normalizeInventoryName(poItem.name) && it.organizationId === orgId
-  );
+  const candidates = dbState.inventory_items
+    .filter(it => it.organizationId === orgId)
+    .map(item => ({ item, score: scoreInventoryPoItemMatch(item, poItem) }))
+    .filter(result => result.score >= 75)
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0]?.item;
 }
 
 function getOrCreateInventoryItemForPoItem(orgId: string, poItem: PurchaseOrderItem) {
@@ -3210,7 +3731,7 @@ apiV1Router.get("/inventory/movements", (req: Request, res: Response) => {
 });
 
 // WAREHOUSE GOODS RECEIVING LOG (Support partial receipts)
-apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response) => {
+apiV1Router.post("/purchase-orders/:poId/receive", async (req: Request, res: Response) => {
   const orgId = req.organizationId || "org-1";
   const { poId } = req.params;
   const { items, receivedAt } = req.body;
@@ -3237,9 +3758,30 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
     quantityOnOrderBefore: number;
     quantityOnOrderAfter: number;
   }> = [];
+  const touchedInventoryItems: InventoryItem[] = [];
+  const createdMovements: StockMovement[] = [];
   
   items.forEach((recItem: any) => {
-    const poItem = po.items.find(pi => normalizeInventoryName(pi.name) === normalizeInventoryName(recItem.name || ""));
+    const receivedName = String(recItem.name || "");
+    const poItem = po.items
+      .map(pi => ({
+        item: pi,
+        score: scoreInventoryPoItemMatch({
+          id: "received-item",
+          organizationId: orgId,
+          sku: "",
+          name: receivedName,
+          category: "",
+          unit: pi.unit,
+          minStockLevel: 0,
+          quantityAvailable: 0,
+          quantityOnOrder: 0,
+          lastPurchasePrice: 0,
+          updatedAt: ""
+        }, pi)
+      }))
+      .filter(match => match.score >= 75)
+      .sort((a, b) => b.score - a.score)[0]?.item;
     if (!poItem) return;
     
     const qtyRec = Number(recItem.quantityReceived);
@@ -3258,6 +3800,7 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
     invItem.quantityAvailable += qtyRec;
     invItem.lastPurchasePrice = poItem.unitPrice;
     invItem.updatedAt = receivedAt || new Date().toISOString();
+    touchedInventoryItems.push(invItem);
 
     inventoryUpdates.push({
       itemId: invItem.id,
@@ -3283,6 +3826,7 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
         createdAt: receivedAt || new Date().toISOString()
       };
       dbState.stock_movements.push(mov);
+      createdMovements.push(mov);
     }
     
     if (qtyRec < poItem.quantity) {
@@ -3314,6 +3858,43 @@ apiV1Router.post("/purchase-orders/:poId/receive", (req: Request, res: Response)
       actorRole: "warehouse",
       reason: "Thiếu thâm hụt nguyên liệu so với PO chào bán ban đầu. Đưa vào diện ngoại lệ.",
       orgId
+    });
+  }
+
+  try {
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await persistRecord("purchase_orders", po, client);
+      await persistRecord("procurement_cases", caseObj, client);
+      for (const item of touchedInventoryItems) {
+        await persistRecord("inventory_items", item, client);
+      }
+      for (const movement of createdMovements) {
+        await persistRecord("stock_movements", movement, client);
+      }
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK");
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logFlow("error", "inventory.receive.persist_failed", {
+      traceId: req.traceId || createTraceId("inventory-receive"),
+      poId,
+      caseId: po.caseId,
+      orgId,
+      inventoryItemIds: touchedInventoryItems.map(item => item.id),
+      movementIds: createdMovements.map(movement => movement.id),
+      err: safeError(err),
+    });
+    return res.status(500).json({
+      error: {
+        code: "INVENTORY_RECEIVE_PERSIST_FAILED",
+        message: "Không lưu được dữ liệu nhập kho xuống database.",
+      }
     });
   }
   

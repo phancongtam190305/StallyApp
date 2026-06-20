@@ -10,7 +10,11 @@ import {
   Star,
   RefreshCw,
   Sparkles,
-  UserCheck
+  UserCheck,
+  SlidersHorizontal,
+  Clock,
+  ShieldAlert,
+  Coins
 } from "lucide-react";
 import { PurchaseRequest, RfqCase, Quote, Supplier, UserRole } from "../types";
 import { getQuoteRiskFlags, quoteNeedsHumanReview } from "../quoteRisk";
@@ -56,6 +60,21 @@ export default function RfqComparison({
   const [generatingAdvice, setGeneratingAdvice] = useState(false);
   const [aiAdvice, setAiAdvice] = useState("");
 
+  // Ranking & filtering states
+  type RankingMode = "best_value" | "cheapest" | "fastest" | "reliable" | "least_risk" | "custom";
+  const [rankingMode, setRankingMode] = useState<RankingMode>("best_value");
+  const [customWeights, setCustomWeights] = useState({
+    price: 0.40,
+    delivery: 0.25,
+    reliability: 0.20,
+    payment: 0.10,
+    risk: 0.30
+  });
+
+  // Modal confirm states
+  const [showApprovalConfirmModal, setShowApprovalConfirmModal] = useState(false);
+  const [pendingApprovalQuote, setPendingApprovalQuote] = useState<Quote | null>(null);
+
   // Auto load matched suppliers when selectedPr shifts
   useEffect(() => {
     if (selectedPr) {
@@ -85,24 +104,170 @@ export default function RfqComparison({
     .map(q => `${q.id}:${q.totalAmount}:${q.deliveryDays}:${q.paymentTerms}:${q.negotiationStatus || "none"}:${q.versionCount || 0}`)
     .join("|");
 
+  // Helper to compute payment terms score (deferred/net terms are better than prepaid/COD)
+  const getPaymentTermScore = (terms: string): number => {
+    const t = terms?.toLowerCase() || "";
+    if (t.includes("90") || t.includes("90 ngày")) return 1.0;
+    if (t.includes("60") || t.includes("60 ngày")) return 0.9;
+    if (t.includes("45") || t.includes("45 ngày")) return 0.8;
+    if (t.includes("30") || t.includes("30 ngày")) return 0.7;
+    if (t.includes("15") || t.includes("15 ngày")) return 0.5;
+    if (t.includes("trả chậm") || t.includes("công nợ")) return 0.6;
+    if (t.includes("cod") || t.includes("giao hàng trả ngay") || t.includes("nhận hàng thanh toán")) return 0.3;
+    if (t.includes("trả trước") || t.includes("thanh toán trước") || t.includes("100% trước")) return 0.1;
+    return 0.4; // default baseline score
+  };
+
+  // Pre-calculate min/max bounds for scaling active quotes
+  const validQuotes = currentQuotes.filter(q => q.totalAmount !== null && q.totalAmount !== undefined && q.totalAmount > 0);
+  const minPrice = validQuotes.length > 0 ? Math.min(...validQuotes.map(q => q.totalAmount)) : 0;
+  const maxPrice = validQuotes.length > 0 ? Math.max(...validQuotes.map(q => q.totalAmount)) : 0;
+  
+  const minDelivery = validQuotes.length > 0 ? Math.min(...validQuotes.map(q => q.deliveryDays || 0)) : 0;
+  const maxDelivery = validQuotes.length > 0 ? Math.max(...validQuotes.map(q => q.deliveryDays || 0)) : 0;
+
+  // Multi-attribute utility score for ranking
+  const calculateFinalScore = (q: Quote, weights: typeof customWeights) => {
+    if (q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0) return -999;
+    
+    const pScore = maxPrice === minPrice ? 1.0 : (maxPrice - q.totalAmount) / (maxPrice - minPrice);
+    const dScore = maxDelivery === minDelivery ? 1.0 : (maxDelivery - q.deliveryDays) / (maxDelivery - minDelivery);
+    const sup = suppliers.find(s => s.id === q.supplierId);
+    const rating = sup ? sup.rating : 3;
+    const rScore = ((q.aiConfidenceScore / 100) + (rating / 5)) / 2;
+    const payScore = getPaymentTermScore(q.paymentTerms);
+    const flags = getQuoteRiskFlags(q);
+    const rPenalty = flags.length;
+    
+    let score = (pScore * weights.price) + 
+                (dScore * weights.delivery) + 
+                (rScore * weights.reliability) + 
+                (payScore * weights.payment) - 
+                (rPenalty * weights.risk);
+
+    // Apply severe penalty if serious risk exists to keep it from being "best recommendation"
+    const hasSeriousRisk = q.aiConfidenceScore < 50 || q.totalAmount <= 0 || flags.some(f => f.includes("không hợp lệ") || f.includes("bằng 0") || f.includes("thiếu đơn giá"));
+    if (hasSeriousRisk) {
+      score -= 5.0;
+    }
+
+    return score;
+  };
+
+  // Find best recommended quote (highest best_value score, filtering out serious risks)
+  const defaultWeights = { price: 0.40, delivery: 0.25, reliability: 0.20, payment: 0.10, risk: 0.30 };
+  const bestValueQuote = validQuotes.length > 0 
+    ? [...validQuotes]
+        .map(q => ({ q, score: calculateFinalScore(q, defaultWeights) }))
+        .filter((item) => {
+          const flags = getQuoteRiskFlags(item.q);
+          const hasSeriousRisk = item.q.aiConfidenceScore < 50 || item.q.totalAmount <= 0 || flags.some(f => f.includes("không hợp lệ") || f.includes("bằng 0") || f.includes("thiếu đơn giá"));
+          return !hasSeriousRisk;
+        })
+        .sort((a, b) => b.score - a.score)[0]?.q
+    : null;
+
+  const cheapestQuote = validQuotes.length > 0 ? [...validQuotes].sort((a, b) => a.totalAmount - b.totalAmount)[0] : null;
+  const fastestQuote = validQuotes.length > 0 ? [...validQuotes].sort((a, b) => a.deliveryDays - b.deliveryDays)[0] : null;
+
+  // Retrieve badges based on quote metrics
+  const getQuoteBadges = (q: Quote) => {
+    const badges: { text: string; colorClass: string }[] = [];
+    const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0 || q.items.length === 0;
+    
+    if (isMissing) {
+      badges.push({ text: "Thiếu dữ liệu", colorClass: "bg-rose-50 text-rose-750 border-rose-200" });
+      return badges;
+    }
+
+    const flags = getQuoteRiskFlags(q);
+
+    if (bestValueQuote && q.id === bestValueQuote.id) {
+      badges.push({ text: "Tối ưu nhất", colorClass: "bg-amber-50 text-amber-800 border-amber-300 font-extrabold shadow-xs" });
+    }
+    if (cheapestQuote && q.id === cheapestQuote.id) {
+      badges.push({ text: "Rẻ nhất", colorClass: "bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold" });
+    }
+    if (fastestQuote && q.id === fastestQuote.id) {
+      badges.push({ text: "Giao nhanh nhất", colorClass: "bg-sky-50 text-sky-850 border-sky-300 font-semibold" });
+    }
+    if (q.aiConfidenceScore < 65) {
+      badges.push({ text: "Độ tin cậy thấp", colorClass: "bg-orange-50 text-orange-700 border-orange-200" });
+    }
+    if (flags.some(f => f.includes("Tổng tiền") || f.includes("thiếu đơn giá") || f.includes("Tổng tiền không hợp lệ"))) {
+      badges.push({ text: "Cần kiểm tra giá", colorClass: "bg-red-50 text-red-750 border-red-200 animate-pulse" });
+    }
+    if (flags.length === 0) {
+      badges.push({ text: "Ít rủi ro", colorClass: "bg-teal-50 text-teal-700 border-teal-200" });
+    }
+    return badges;
+  };
+
+  // Perform sorting based on active mode
+  const sortedQuotes = [...currentQuotes].sort((a, b) => {
+    const aMissing = a.totalAmount === null || a.totalAmount === undefined || a.totalAmount <= 0 || a.items.length === 0;
+    const bMissing = b.totalAmount === null || b.totalAmount === undefined || b.totalAmount <= 0 || b.items.length === 0;
+    if (aMissing && !bMissing) return 1;
+    if (!aMissing && bMissing) return -1;
+    if (aMissing && bMissing) return 0;
+
+    switch (rankingMode) {
+      case "cheapest":
+        return a.totalAmount - b.totalAmount;
+      case "fastest":
+        return a.deliveryDays - b.deliveryDays;
+      case "reliable": {
+        const aSup = suppliers.find(s => s.id === a.supplierId);
+        const bSup = suppliers.find(s => s.id === b.supplierId);
+        const aRel = ((a.aiConfidenceScore / 100) + ((aSup ? aSup.rating : 3) / 5)) / 2;
+        const bRel = ((b.aiConfidenceScore / 100) + ((bSup ? bSup.rating : 3) / 5)) / 2;
+        return bRel - aRel;
+      }
+      case "least_risk": {
+        const aFlags = getQuoteRiskFlags(a).length;
+        const bFlags = getQuoteRiskFlags(b).length;
+        if (aFlags !== bFlags) {
+          return aFlags - bFlags;
+        }
+        return a.totalAmount - b.totalAmount;
+      }
+      case "best_value": {
+        const defaultWeights = { price: 0.40, delivery: 0.25, reliability: 0.20, payment: 0.10, risk: 0.30 };
+        return calculateFinalScore(b, defaultWeights) - calculateFinalScore(a, defaultWeights);
+      }
+      case "custom": {
+        return calculateFinalScore(b, customWeights) - calculateFinalScore(a, customWeights);
+      }
+      default:
+        return 0;
+    }
+  });
+
   // Auto trigger AI recommendation when quotes list details shift
   useEffect(() => {
     if (currentQuotes.length > 0) {
       setGeneratingAdvice(true);
-      
-      const pricingDetailsStr = currentQuotes.map((q) => 
-        `- NCC: ${q.supplierName}, Tổng tiền: ${q.totalAmount.toLocaleString()}đ, Giao hàng: ${q.deliveryDays} ngày, Điều khoản: ${q.paymentTerms}`
-      ).join("\n");
 
       // Simulating a perfect AI recommendation block directly
       setTimeout(() => {
         let adviceHtml = "";
-        const lowPriceQuote = [...currentQuotes].sort((a,b) => a.totalAmount - b.totalAmount)[0];
-        const fastDeliveryQuote = [...currentQuotes].sort((a,b) => a.deliveryDays - b.deliveryDays)[0];
+        const reviewableQuotes = currentQuotes.filter(q => !quoteNeedsHumanReview(q));
+        const lowPriceQuote = [...reviewableQuotes].sort((a,b) => a.totalAmount - b.totalAmount)[0];
+        const fastDeliveryQuote = [...reviewableQuotes].sort((a,b) => a.deliveryDays - b.deliveryDays)[0];
+
+        if (!lowPriceQuote || !fastDeliveryQuote) {
+          setAiAdvice(`### CHƯA CÓ ĐỀ XUẤT TỐI ƯU TỰ ĐỘNG
+
+Tất cả báo giá hiện có đang có red-flag hoặc thiếu dữ liệu quan trọng. Hệ thống không đưa các báo giá này vào phân tích tối ưu tự động.
+
+**Hành động cần làm:** Người mua cần đối chiếu email/file gốc, xác nhận thủ công nếu báo giá hợp lệ, rồi mới trình duyệt PO.`);
+          setGeneratingAdvice(false);
+          return;
+        }
 
         adviceHtml = `### KIỂM SOÁT BÁO GIÁ & ĐỀ XUẤT CHỌN NHÀ CUNG CẤP
 
-Dựa trên dữ liệu báo giá đã bóc tách, hệ thống đề xuất phương án để phòng mua hàng kiểm tra và lưu audit trail:
+Dựa trên các báo giá không có red-flag, hệ thống đề xuất phương án để phòng mua hàng kiểm tra và lưu audit trail:
 
 1. **Đề xuất tối ưu nhất: ${lowPriceQuote.supplierName}**
    - **Ưu điểm:** Giá trị đơn đặt hàng thấp nhất (${lowPriceQuote.totalAmount.toLocaleString()}đ, bao gồm VAT). Tiết kiệm chi phí kho tối ưu.
@@ -339,31 +504,128 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-fade-slide-up">
+                  {/* Segmented Control Filters */}
+                  <div className="bg-[#F7F5F0] p-1.5 rounded-2xl border border-slate-205">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-1">
+                      {[
+                        { id: "best_value", label: "Đề xuất tốt nhất", icon: Sparkles },
+                        { id: "cheapest", label: "Giá rẻ nhất", icon: Coins },
+                        { id: "fastest", label: "Giao nhanh nhất", icon: Clock },
+                        { id: "reliable", label: "Tin cậy nhất", icon: Star },
+                        { id: "least_risk", label: "Ít rủi ro nhất", icon: ShieldAlert },
+                        { id: "custom", label: "Tùy chỉnh", icon: SlidersHorizontal }
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        const isSelected = rankingMode === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setRankingMode(item.id as RankingMode)}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-[#1A1A1A] text-white shadow-sm"
+                                : "text-slate-650 hover:bg-slate-200/50 hover:text-slate-900"
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dynamic weights slider panel for custom mode */}
+                  {rankingMode === "custom" && (
+                    <div className="p-5 rounded-2xl bg-[#F7F5F0]/25 border border-slate-200 shadow-sm space-y-4 animate-fade-slide-up">
+                      <div className="flex justify-between items-center border-b border-slate-150 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-4 h-4 text-accent-dark" />
+                          <h4 className="text-xs font-bold text-slate-700">Trọng số xếp hạng tùy chọn</h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCustomWeights({
+                            price: 0.40,
+                            delivery: 0.25,
+                            reliability: 0.20,
+                            payment: 0.10,
+                            risk: 0.30
+                          })}
+                          className="text-[10px] text-slate-500 hover:text-[#1A1A1A] transition-all font-mono font-bold uppercase tracking-wider"
+                        >
+                          Đặt lại mặc định
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                        {[
+                          { id: "price", label: "Giá rẻ", value: customWeights.price, min: 0, max: 1, step: 0.05, color: "accent-emerald-600" },
+                          { id: "delivery", label: "Giao nhanh", value: customWeights.delivery, min: 0, max: 1, step: 0.05, color: "accent-sky-600" },
+                          { id: "reliability", label: "Độ tin cậy", value: customWeights.reliability, min: 0, max: 1, step: 0.05, color: "accent-amber-600" },
+                          { id: "payment", label: "Hạn nợ", value: customWeights.payment, min: 0, max: 1, step: 0.05, color: "accent-indigo-600" },
+                          { id: "risk", label: "Trừ điểm rủi ro", value: customWeights.risk, min: 0, max: 1, step: 0.05, color: "accent-rose-600" }
+                        ].map((slider) => (
+                          <div key={slider.id} className="space-y-1.5">
+                            <div className="flex justify-between text-[11px] font-bold text-slate-500">
+                              <span>{slider.label}</span>
+                              <span className="font-mono text-primary-dark">{Math.round(slider.value * 100)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={slider.min}
+                              max={slider.max}
+                              step={slider.step}
+                              value={slider.value}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                setCustomWeights(prev => ({
+                                  ...prev,
+                                  [slider.id]: val
+                                }));
+                              }}
+                              className={`w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer ${slider.color}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Real Comparison Table Grid */}
                   <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider bg-[#F7F5F0]">
                           <th className="p-4 font-bold text-slate-600">Tiêu chí bóc tách</th>
-                          {currentQuotes.map((q) => (
-                            <th key={q.id} className="p-4 font-bold text-primary-dark min-w-44 border-l border-slate-200">
-                              <div className="space-y-0.5">
-                                <p className="font-extrabold text-slate-700">{q.supplierName}</p>
-                                <p className="text-[9.5px] text-slate-400 font-mono font-medium">{q.originalFileUrl}</p>
-                                {quoteNeedsHumanReview(q) && (
-                                  <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-coral-light/10 border border-coral/40 text-[9px] text-coral-dark font-bold uppercase tracking-wider">
-                                    Cần review
-                                  </span>
-                                )}
-                                {q.negotiationStatus === "supplier_responded" && (
-                                  <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
-                                    Đã đồng ý đàm phán V{q.versionCount || 2}
-                                  </span>
-                                )}
-                              </div>
-                            </th>
-                          ))}
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0 || q.items.length === 0;
+                            return (
+                              <th key={q.id} className={`p-4 font-bold text-primary-dark min-w-44 border-l border-slate-200 ${isMissing ? "bg-rose-50/10" : ""}`}>
+                                <div className="space-y-0.5">
+                                  <p className="font-extrabold text-slate-700">{q.supplierName}</p>
+                                  <p className="text-[9.5px] text-slate-400 font-mono font-medium">{q.originalFileUrl}</p>
+                                  
+                                  {/* Badges for Ranking Explanations */}
+                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {getQuoteBadges(q).map((badge, bIdx) => (
+                                      <span key={bIdx} className={`px-2 py-0.5 rounded border text-[9px] uppercase tracking-wider ${badge.colorClass}`}>
+                                        {badge.text}
+                                      </span>
+                                    ))}
+                                  </div>
+
+                                  {q.negotiationStatus === "supplier_responded" && (
+                                    <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
+                                      Đã đồng ý đàm phán V{q.versionCount || 2}
+                                    </span>
+                                  )}
+                                </div>
+                              </th>
+                            );
+                          })}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs">
@@ -380,7 +642,15 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                   </div>
                                 </div>
                               </td>
-                              {currentQuotes.map((q) => {
+                              {sortedQuotes.map((q) => {
+                                const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0 || q.items.length === 0;
+                                if (isMissing) {
+                                  return (
+                                    <td key={q.id} className="p-4 border-l border-slate-200 text-slate-400 font-sans italic bg-rose-50/5">
+                                      Thiếu thông tin hàng
+                                    </td>
+                                  );
+                                }
                                 // Find matched quote item prices
                                 const qItem = q.items.find(qi => qi.name.trim().toLowerCase() === prItem.name.trim().toLowerCase());
                                 return (
@@ -403,97 +673,140 @@ Vận chuyển 80k. Giao hàng trong ngày.
                         {/* Compare delivery days */}
                         <tr className="bg-slate-50/50">
                           <td className="p-4 font-extrabold text-slate-600">Giao hàng dự kiến</td>
-                          {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-slate-700 font-bold">
-                              {q.deliveryDays} ngày
-                            </td>
-                          ))}
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                            return (
+                              <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-slate-700 font-bold ${isMissing ? "bg-rose-50/5 text-slate-400 font-normal italic" : ""}`}>
+                                {isMissing ? "Chưa có" : `${q.deliveryDays} ngày`}
+                              </td>
+                            );
+                          })}
                         </tr>
 
                         {/* Payment terms */}
                         <tr>
                           <td className="p-4 font-extrabold text-slate-600">Điều khoản công nợ</td>
-                          {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 text-slate-600">
-                              {q.paymentTerms}
-                            </td>
-                          ))}
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                            return (
+                              <td key={q.id} className={`p-4 border-l border-slate-200 text-slate-600 ${isMissing ? "bg-rose-50/5 text-slate-400 italic" : ""}`}>
+                                {isMissing ? "Chưa có" : q.paymentTerms}
+                              </td>
+                            );
+                          })}
                         </tr>
 
                         {/* Tax amount */}
                         <tr>
                           <td className="p-4 font-extrabold text-slate-600">Thuế GTGT (VAT)</td>
-                          {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-slate-500 font-medium">
-                              {q.taxAmount.toLocaleString()} đ
-                            </td>
-                          ))}
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                            return (
+                              <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-slate-500 font-medium ${isMissing ? "bg-rose-50/5 text-slate-450 italic" : ""}`}>
+                                {isMissing ? "Chưa có" : `${q.taxAmount.toLocaleString()} đ`}
+                              </td>
+                            );
+                          })}
                         </tr>
 
                         {/* Shipping */}
                         <tr>
                           <td className="p-4 font-extrabold text-slate-600">Phí vận đơn</td>
-                          {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-slate-500 font-medium">
-                              {q.shippingFee.toLocaleString()} đ
-                            </td>
-                          ))}
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                            return (
+                              <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-slate-500 font-medium ${isMissing ? "bg-rose-50/5 text-slate-450 italic" : ""}`}>
+                                {isMissing ? "Chưa có" : `${q.shippingFee.toLocaleString()} đ`}
+                              </td>
+                            );
+                          })}
                         </tr>
 
                         {/* Total pricing SUMMARY */}
                         <tr className="bg-amber-50/40 font-bold border-t border-slate-200">
                           <td className="p-4 text-primary-dark text-xs uppercase tracking-wider font-extrabold">TỔNG GHI TRÊN HÓA ĐƠN</td>
-                          {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 font-mono text-primary-dark text-sm font-bold">
-                              {q.totalAmount.toLocaleString()} đ
-                            </td>
-                          ))}
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                            return (
+                              <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-primary-dark text-sm font-bold ${isMissing ? "bg-rose-50/5 text-rose-650 italic font-normal" : ""}`}>
+                                {isMissing ? "Lỗi trích xuất" : `${q.totalAmount.toLocaleString()} đ`}
+                              </td>
+                            );
+                          })}
                         </tr>
 
                         {/* AI Confidence Score */}
                         <tr className="text-[10px] text-slate-400">
-                          <td className="p-4 font-medium uppercase tracking-wider font-mono">Độ tin cậy & red-flag</td>
-                          {currentQuotes.map((q) => (
-                            <td key={q.id} className="p-4 border-l border-slate-200 text-[10px] font-bold">
-                              <div className="font-mono text-primary-dark">{q.aiConfidenceScore}% Confidence</div>
-                              {getQuoteRiskFlags(q).length > 0 ? (
-                                <ul className="mt-2 space-y-1 text-coral-dark font-sans">
-                                  {getQuoteRiskFlags(q).map(flag => (
-                                    <li key={flag} className="flex items-start gap-1">
-                                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                                      <span>{flag}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <span className="mt-1 inline-flex text-emerald-700 font-sans">Đạt ngưỡng kiểm tra</span>
-                              )}
-                            </td>
-                          ))}
+                          <td className="p-4 font-medium uppercase tracking-wider font-mono">Độ tin cậy &amp; red-flag</td>
+                          {sortedQuotes.map((q) => {
+                            const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                            if (isMissing) {
+                              return (
+                                <td key={q.id} className="p-4 border-l border-slate-200 text-[10px] font-bold bg-rose-50/5">
+                                  <div className="text-rose-650 flex items-center gap-1">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    <span>Thất bại trích xuất / Thiếu dữ liệu</span>
+                                  </div>
+                                  <p className="mt-1 text-[9px] text-slate-455 font-sans font-normal leading-normal">
+                                    Báo giá đính kèm bị lỗi định dạng hoặc thiếu các thông tin cốt lõi (sản phẩm, giá tiền). Vui lòng tải file gốc về kiểm tra.
+                                  </p>
+                                </td>
+                              );
+                            }
+                            const flags = getQuoteRiskFlags(q);
+                            return (
+                              <td key={q.id} className="p-4 border-l border-slate-200 text-[10px] font-bold">
+                                <div className="font-mono text-primary-dark">{q.aiConfidenceScore}% Confidence</div>
+                                {flags.length > 0 ? (
+                                  <ul className="mt-2 space-y-1 text-coral-dark font-sans">
+                                    {flags.map(flag => (
+                                      <li key={flag} className="flex items-start gap-1">
+                                        <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                        <span>{flag}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <span className="mt-1 inline-flex text-emerald-700 font-sans">Đạt ngưỡng kiểm tra</span>
+                                )}
+                              </td>
+                            );
+                          })}
                         </tr>
 
                         {/* Approvals actions */}
                         {currentRfq.status !== "approved" && (
                           <tr className="bg-slate-50/20">
                             <td className="p-4"></td>
-                            {currentQuotes.map((q) => (
-                              <td key={q.id} className="p-4 border-l border-slate-200">
-                                {currentRole === "manager" ? (
-                                  <button
-                                    id="btn-approve-po"
-                                    onClick={() => onApproveQuote(currentRfq.id, q.id)}
-                                    disabled={quoteNeedsHumanReview(q)}
-                                    className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
-                                  >
-                                    <UserCheck className="w-4 h-4" /> {quoteNeedsHumanReview(q) ? "Cần kiểm tra lại" : "Duyệt & Ký PO"}
-                                  </button>
-                                ) : (
-                                  <div className="text-slate-400 text-[10px] italic text-center p-2.5 bg-slate-50 rounded-xl border border-slate-200 font-bold">
-                                    Cần vai trò [Giám đốc] đề duyệt
-                                  </div>
-                                )}
-                              </td>
-                            ))}
+                            {sortedQuotes.map((q) => {
+                              const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
+                              return (
+                                <td key={q.id} className="p-4 border-l border-slate-200">
+                                  {currentRole === "manager" ? (
+                                    <button
+                                      id="btn-approve-po"
+                                      onClick={() => {
+                                        const flags = getQuoteRiskFlags(q);
+                                        if (flags.length > 0) {
+                                          setPendingApprovalQuote(q);
+                                          setShowApprovalConfirmModal(true);
+                                        } else {
+                                          onApproveQuote(currentRfq.id, q.id);
+                                        }
+                                      }}
+                                      disabled={isMissing}
+                                      className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm disabled:bg-slate-250 disabled:text-slate-450 disabled:cursor-not-allowed"
+                                    >
+                                      <UserCheck className="w-4 h-4" /> Duyệt &amp; Ký PO
+                                    </button>
+                                  ) : (
+                                    <div className="text-slate-400 text-[10px] italic text-center p-2.5 bg-slate-50 rounded-xl border border-slate-200 font-bold">
+                                      Cần vai trò [Giám đốc] đề duyệt
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            })}
                           </tr>
                         )}
                       </tbody>
@@ -535,6 +848,70 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Approving Risky Quotes */}
+      {showApprovalConfirmModal && pendingApprovalQuote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-zoom-in">
+            <div className="bg-coral-light/10 border-b border-coral/20 p-5 flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-650 shadow-xs">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">Cảnh báo rủi ro báo giá</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Báo giá của {pendingApprovalQuote.supplierName} có một số điểm cần lưu ý.</p>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4 text-xs">
+              <p className="text-slate-650 leading-relaxed font-medium">
+                Hệ thống phát hiện các cảnh báo rủi ro sau đây trên báo giá này. Bạn có chắc chắn vẫn muốn tiếp tục phê duyệt và ký PO không?
+              </p>
+
+              <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-4">
+                <ul className="space-y-2">
+                  {getQuoteRiskFlags(pendingApprovalQuote).map((flag, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-rose-800 font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                      <span>{flag}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="text-[10.5px] text-slate-400 italic">
+                * Việc phê duyệt sẽ lập tức khởi tạo Đơn Đặt Hàng (PO) gửi trực tiếp tới nhà cung cấp. Hành động này sẽ được ghi nhận vào nhật ký kiểm toán (Audit Trail) của hệ thống.
+              </p>
+            </div>
+
+            <div className="bg-[#F7F5F0] px-6 py-4 flex gap-3 justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowApprovalConfirmModal(false);
+                  setPendingApprovalQuote(null);
+                }}
+                className="px-4 py-2.5 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-650 rounded-xl transition-all cursor-pointer"
+              >
+                Hủy yêu cầu
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentRfq && pendingApprovalQuote) {
+                    onApproveQuote(currentRfq.id, pendingApprovalQuote.id);
+                  }
+                  setShowApprovalConfirmModal(false);
+                  setPendingApprovalQuote(null);
+                }}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Xác nhận phê duyệt
+              </button>
             </div>
           </div>
         </div>
