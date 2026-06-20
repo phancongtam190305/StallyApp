@@ -55,14 +55,23 @@ export default function StatsDashboard({
   return (
     <div className="space-y-6 animate-fade-slide-up">
       {/* Upper header summary with luxury feel */}
-      <div className="bg-white border border-slate-200 p-6 rounded-2xl executive-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="enterprise-section p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent-dark font-extrabold">Phòng Kiểm soát Mua sắm & Cung ứng</p>
+          <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight flex items-center gap-2">
+            CFO/COO kiểm soát chi tiêu, rủi ro và truy vết lịch sử trong 30 giây <Sparkles className="w-4 h-4 text-accent-dark" />
+          </h2>
+          <p className="text-slate-500 text-xs mt-1 max-w-3xl">
+            Theo dõi PR, RFQ, báo giá, PO và tồn kho trong một mặt phẳng kiểm soát chuẩn hóa cho Horeca.
+          </p>
+          <div className="sr-only">
           <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight flex items-center gap-2">
             Tổng quan kiểm soát mua hàng <Sparkles className="w-4 h-4 text-accent-dark" />
           </h2>
           <p className="text-slate-500 text-xs mt-1">
-            Theo dõi PR, RFQ, báo giá, PO và tồn kho theo một audit trail chuẩn hóa cho doanh nghiệp nhiều phòng ban.
+            Theo dõi PR, RFQ, báo giá, PO và tồn kho theo một truy vết lịch sử chuẩn hóa cho doanh nghiệp nhiều phòng ban.
           </p>
+        </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 font-mono">
           <Clock className="w-3.5 h-3.5 text-accent-dark" />
@@ -71,9 +80,9 @@ export default function StatsDashboard({
       </div>
 
       {/* Grid count cards - Sleek Ocean Grey & Ocean Teal theme */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Active PRs Card */}
-        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl executive-shadow executive-shadow-hover select-none">
+        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl executive-shadow executive-shadow-hover select-none">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">Yêu cầu mua (PR)</p>
@@ -90,7 +99,7 @@ export default function StatsDashboard({
         </div>
 
         {/* Active RFQs Card */}
-        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl executive-shadow executive-shadow-hover select-none">
+        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl executive-shadow executive-shadow-hover select-none">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">Phiên thầu RFQ</p>
@@ -107,7 +116,7 @@ export default function StatsDashboard({
         </div>
 
         {/* Low Stock Alerts Card */}
-        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl executive-shadow executive-shadow-hover select-none">
+        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl executive-shadow executive-shadow-hover select-none">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">Cảnh báo thiếu kho</p>
@@ -126,7 +135,7 @@ export default function StatsDashboard({
         </div>
 
         {/* Total approved PO spent */}
-        <div className="bg-white border border-slate-200/80 p-5 rounded-2xl executive-shadow executive-shadow-hover select-none">
+        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl executive-shadow executive-shadow-hover select-none">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-display">Chi tiêu Đã duyệt</p>

@@ -26,13 +26,17 @@ interface SupplierManagementProps {
   orgId: string;
   onSuppliersChanged?: () => void;
   isActive?: boolean;
+  t: (key: any) => string;
+  locale: "vi" | "en";
 }
 
 export default function SupplierManagement({ 
   currentRole, 
   orgId, 
   onSuppliersChanged,
-  isActive = true
+  isActive = true,
+  t,
+  locale
 }: SupplierManagementProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
@@ -67,7 +71,7 @@ export default function SupplierManagement({
       const res = await fetch(apiUrl("/api/suppliers"), {
         headers: { "X-Organization-Id": orgId }
       });
-      if (!res.ok) throw new Error("Không thể tải danh sách nhà cung ứng.");
+      if (!res.ok) throw new Error(t("errFetchSuppliers"));
       const data = await res.json();
       setSuppliers(data);
       if (data.length > 0 && !selectedSupplierId) {
@@ -76,7 +80,7 @@ export default function SupplierManagement({
       setLoading(false);
     } catch (err: any) {
       console.error(err);
-      setErrorText("Lỗi máy chủ khi tải nhà cung cấp.");
+      setErrorText(t("errServerFetchSuppliers"));
       setLoading(false);
     }
   };
@@ -141,7 +145,7 @@ export default function SupplierManagement({
     setSuccessText("");
 
     if (!name.trim() || !email.trim() || !phone.trim()) {
-      setErrorText("Vui lòng điền đầy đủ các trường bắt buộc (Tên, Email, SĐT).");
+      setErrorText(t("errRequiredFields"));
       return;
     }
 
@@ -171,11 +175,11 @@ export default function SupplierManagement({
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Giao dịch gặp sự cố.");
+        throw new Error(errorData.error || t("errSaveTransaction"));
       }
 
       const savedSupplier = await res.json();
-      setSuccessText(isEditing ? "Đã cập nhật nhà cung ứng thành công!" : "Đã thêm nhà cung ứng thành công!");
+      setSuccessText(isEditing ? t("successUpdateSupplier") : t("successAddSupplier"));
       setIsEditing(false);
       setIsAdding(false);
       
@@ -186,7 +190,7 @@ export default function SupplierManagement({
       
       setTimeout(() => setSuccessText(""), 3500);
     } catch (err: any) {
-      setErrorText(err.message || "Không thể đồng bộ thao tác lưu.");
+      setErrorText(err.message || t("errSaveFailed"));
     }
   };
 
@@ -202,16 +206,16 @@ export default function SupplierManagement({
       });
 
       if (!res.ok) {
-        throw new Error("Không thể thực hiện xóa.");
+        throw new Error(t("errDeleteFailed"));
       }
 
-      setSuccessText("Đã gỡ bỏ nhà cung ứng ra khỏi CRM.");
+      setSuccessText(t("successDeleteSupplier"));
       setSelectedSupplierId(null);
       await fetchSuppliers();
       if (onSuppliersChanged) onSuppliersChanged();
       setTimeout(() => setSuccessText(""), 3500);
     } catch (err: any) {
-      setErrorText(err.message || "Xóa thất bại.");
+      setErrorText(err.message || t("errDeleteOperationFailed"));
     }
   };
 
@@ -224,13 +228,20 @@ export default function SupplierManagement({
   return (
     <div className="space-y-6 animate-fade-slide-up">
       {/* Title */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white border border-slate-200 p-5 rounded-2xl executive-shadow gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center enterprise-section p-5 gap-4">
         <div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent-dark font-extrabold">{t("supplierMoat")}</p>
           <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight flex items-center gap-2">
-            Danh bạ Đối tác &amp; Nhà cung cấp
+            {t("catalogTitle")}
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Quản lý thông tin liên kết, xếp hạng nhà thầu, lịch sử biểu giá thầu sỉ của doanh nghiệp.
+          <p className="text-xs text-slate-500 mt-1 max-w-3xl">
+            {t("catalogDesc")}
+          </p>
+          <h2 className="sr-only">
+            {t("pageTitleSuppliers")}
+          </h2>
+          <p className="sr-only">
+            {t("catalogDesc")}
           </p>
         </div>
         {hasAccessToModify && (
@@ -238,7 +249,7 @@ export default function SupplierManagement({
             onClick={openAddForm}
             className="bg-primary-dark hover:bg-[#1A1A1A] text-white text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Thêm Đối tác NCC
+            <Plus className="w-4 h-4" /> {t("addSupplierBtn")}
           </button>
         )}
       </div>
@@ -255,8 +266,8 @@ export default function SupplierManagement({
         <div className="bg-[#fcf8e3] border border-amber-200/80 p-4 rounded-2xl flex items-start gap-2.5 text-xs text-[#8a6d3b]">
           <ShieldAlert className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="leading-relaxed">
-            <span className="font-extrabold">Chế độ Chỉ xem (Read-Only Mode):</span> Quyền truy cập hiện hành của bạn là <strong>{currentRole === "requester" ? "Bếp Trưởng" : "Thủ Kho"}</strong>. Chỉ ban Procurement hoặc Quản trị viên mới được phép quản trị hồ sơ thầu.
-            <p className="text-[10px] text-slate-400 mt-1">Mẹo: Điều chỉnh vai trò ở Menu bên để kích hoạt tính năng thêm/chỉnh sửa.</p>
+            <span className="font-extrabold">{t("readOnlyWarningTitle")}</span> {t("readOnlyWarningDesc").replace("{role}", currentRole === "requester" ? t("roleRequester") : t("roleWarehouse"))}
+            <p className="text-[10px] text-slate-400 mt-1">{t("readOnlyWarningTip")}</p>
           </div>
         </div>
       )}
@@ -270,7 +281,7 @@ export default function SupplierManagement({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm theo tên NCC, tag, email..."
+              placeholder={t("searchSupplierPlaceholder")}
               className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 pl-8 text-xs text-slate-800 placeholder-slate-400"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3.5" />
@@ -280,12 +291,12 @@ export default function SupplierManagement({
             {loading ? (
               <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
                 <RefreshCw className="w-4 h-4 animate-spin text-accent-dark" />
-                <span className="font-medium">Đang tải hồ sơ nhà thầu...</span>
+                <span className="font-medium">{t("loadingSuppliers")}</span>
               </div>
             ) : filteredSuppliers.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs border border-dashed border-slate-200 rounded-2xl">
                 <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                Không tìm thấy nhà cung ứng nào.
+                {t("noSuppliersFound")}
               </div>
             ) : (
               filteredSuppliers.map((sup) => {
@@ -313,7 +324,7 @@ export default function SupplierManagement({
                         <span className="font-bold">{sup.rating}</span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 truncate mt-1 font-medium">Người liên hệ: {sup.contactPerson || "N/A"}</p>
+                    <p className="text-[10px] text-slate-400 truncate mt-1 font-medium">{t("contactPersonLabel").replace("{name}", sup.contactPerson || "N/A")}</p>
                     
                     <div className="flex flex-wrap gap-1 mt-2.5 select-none">
                       {sup.tags && sup.tags.map((tag, i) => (
@@ -345,7 +356,7 @@ export default function SupplierManagement({
               <div className="border-b border-slate-150 pb-3 flex justify-between items-center">
                 <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-accent-dark" /> 
-                  {isAdding ? "Khởi tạo Hồ sơ Đối tác mới" : `Cập nhật: ${name}`}
+                  {isAdding ? t("createSupplierTitle") : t("updateSupplierTitle").replace("{name}", name)}
                 </h3>
                 <button
                   type="button"
@@ -355,30 +366,30 @@ export default function SupplierManagement({
                   }}
                   className="text-xs text-slate-500 hover:text-slate-800 font-bold cursor-pointer"
                 >
-                  Hủy bỏ
+                  {t("cancelBtnShort")}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Tên nhà cung cấp <span className="text-rose-500">*</span></label>
+                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldSupplierName")} <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Công ty TNHH Thực phẩm..."
+                    placeholder={t("placeholderSupplierName")}
                     className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Đại diện liên hệ</label>
+                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldContactPerson")}</label>
                   <input
                     type="text"
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
-                    placeholder="Ông Nguyễn Văn A"
+                    placeholder={t("placeholderContactPerson")}
                     className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
@@ -386,31 +397,31 @@ export default function SupplierManagement({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Email chính thức <span className="text-rose-500">*</span></label>
+                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldOfficialEmail")} <span className="text-rose-500">*</span></label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="info@supplier.com"
+                    placeholder={t("placeholderOfficialEmail")}
                     className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Số điện thoại <span className="text-rose-500">*</span></label>
+                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldPhoneNumber")} <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="0912..."
+                    placeholder={t("placeholderPhoneNumber")}
                     className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Xếp hạng uy tín</label>
+                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldReputationRating")}</label>
                   <select
                     value={rating}
                     onChange={(e) => setRating(Number(e.target.value))}
@@ -426,19 +437,19 @@ export default function SupplierManagement({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Địa chỉ trụ sở</label>
+                <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldHqAddress")}</label>
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Số 102 Đường Láng, Hà Nội..."
+                  placeholder={t("placeholderHqAddress")}
                   className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                 />
               </div>
 
               {/* Tags block */}
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">Sản phẩm cung cấp (Nhấn Enter để thêm)</label>
+                <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldSuppliedProducts")}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -450,7 +461,7 @@ export default function SupplierManagement({
                         handleAddTag();
                       }
                     }}
-                    placeholder="Rau củ, Gạo ST25, Thiết bị..."
+                    placeholder={t("placeholderSuppliedProducts")}
                     className="flex-1 bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                   <button
@@ -458,7 +469,7 @@ export default function SupplierManagement({
                     onClick={handleAddTag}
                     className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold p-2 text-xs rounded-xl px-4 cursor-pointer"
                   >
-                    Thêm tag
+                    {locale === "en" ? "Add tag" : "Thêm tag"}
                   </button>
                 </div>
 
@@ -478,17 +489,17 @@ export default function SupplierManagement({
                       </button>
                     </span>
                   ))}
-                  {tags.length === 0 && <span className="text-[10px] text-slate-400 italic">Chưa liên kết ngành hàng.</span>}
+                  {tags.length === 0 && <span className="text-[10px] text-slate-400 italic">{t("noTagsLinked")}</span>}
                 </div>
               </div>
 
               {/* Historical Pricing */}
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide font-sans">Biểu giá lịch sử (AI Matching reference)</label>
+                <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide font-sans">{t("fieldHistoricalPricing")}</label>
                 <textarea
                   value={historicalPricing}
                   onChange={(e) => setHistoricalPricing(e.target.value)}
-                  placeholder="Ghi nhận luồng giá để AI khớp thầu. Ví dụ: Đơn thịt rọi sỉ 95k/kg sấy lạnh giảm 2%. Cố định biên độ thầu 6 tháng."
+                  placeholder={t("placeholderHistoricalPricing")}
                   rows={3}
                   className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800 leading-relaxed placeholder-slate-400 font-mono"
                 />
@@ -503,13 +514,13 @@ export default function SupplierManagement({
                   }}
                   className="bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 rounded-xl p-2 px-4 text-xs font-bold cursor-pointer transition-all"
                 >
-                  Đóng
+                  {t("closeBtn")}
                 </button>
                 <button
                   type="submit"
                   className="bg-[#1A1A1A] hover:bg-[#000000] text-white rounded-xl p-2 px-5 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-md shadow-accent-glow"
                 >
-                  <Check className="w-4 h-4" /> Lưu thông tin
+                  <Check className="w-4 h-4" /> {t("saveInfoBtn")}
                 </button>
               </div>
             </form>
@@ -525,19 +536,19 @@ export default function SupplierManagement({
                         ID: {selectedSupplier.id.substring(0, 8).toUpperCase()}
                       </span>
                       <span className="text-[10px] bg-amber-50 text-accent-dark px-2 py-0.5 rounded border border-amber-200 font-mono font-bold">
-                        Đang hoạt động (Isolated Tenant)
+                        {t("statusActiveTenant")}
                       </span>
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 capitalize leading-tight">{selectedSupplier.name}</h3>
                     <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                       <User className="w-3.5 h-3.5 text-slate-400" />
-                      Đại diện giao dịch: <span className="text-slate-700 font-bold">{selectedSupplier.contactPerson || "N/A"}</span>
+                      {t("contactRepresentative").replace("{name}", selectedSupplier.contactPerson || "N/A")}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 shrink-0 text-slate-700 text-xs">
-                      <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wide">Đối tác tín nhiệm:</span>
+                      <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wide">{t("trustedPartner")}</span>
                       <div className="flex items-center gap-0.5 font-mono font-extrabold text-amber-500">
                         <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                         <span>{selectedSupplier.rating}</span> / 5.0
@@ -550,7 +561,7 @@ export default function SupplierManagement({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Contact cards */}
                   <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 space-y-3">
-                    <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Thông tin bàn thầu</h4>
+                    <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">{t("sourcingInfoTitle")}</h4>
                     <div className="space-y-2.5 text-xs text-slate-600">
                       <p className="flex items-center gap-2.5 font-medium">
                         <Mail className="w-4 h-4 text-slate-400 shrink-0" />
@@ -562,7 +573,7 @@ export default function SupplierManagement({
                       </p>
                       <p className="flex items-start gap-2.5 font-medium">
                         <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="leading-relaxed text-slate-500">{selectedSupplier.address || "Chưa thiết lập địa chỉ văn phòng"}</span>
+                        <span className="leading-relaxed text-slate-500">{selectedSupplier.address || t("noOfficeAddressSet")}</span>
                       </p>
                     </div>
                   </div>
@@ -570,7 +581,7 @@ export default function SupplierManagement({
                   {/* Tags cards */}
                   <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 space-y-3 flex flex-col justify-between">
                     <div>
-                      <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Sản phẩm đấu thầu chủ lực</h4>
+                      <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">{t("coreSourcingProducts")}</h4>
                       <div className="flex flex-wrap gap-1.5 mt-2.5 select-none">
                         {selectedSupplier.tags && selectedSupplier.tags.map((tag, i) => (
                           <span key={i} className="text-[10px] bg-amber-50 border border-amber-200 text-accent-dark font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
@@ -578,7 +589,7 @@ export default function SupplierManagement({
                           </span>
                         ))}
                         {(!selectedSupplier.tags || selectedSupplier.tags.length === 0) && (
-                          <span className="text-slate-400 text-[10px] italic">Chưa gắn thẻ danh mục.</span>
+                          <span className="text-slate-400 text-[10px] italic">{t("noCategoryTags")}</span>
                         )}
                       </div>
                     </div>
@@ -588,7 +599,7 @@ export default function SupplierManagement({
                 {/* Historical Pricing details */}
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
                   <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-extrabold flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-accent-dark" /> Biểu phí sỉ lịch sử trong thầu
+                    <DollarSign className="w-4 h-4 text-accent-dark" /> {t("historicalPricingSectionTitle")}
                   </h4>
                   {selectedSupplier.historicalPricing ? (
                     <p className="text-xs text-slate-700 whitespace-pre-line leading-relaxed italic bg-white border border-slate-150 p-3.5 rounded-xl font-mono">
@@ -596,8 +607,8 @@ export default function SupplierManagement({
                     </p>
                   ) : (
                     <div className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-slate-150 text-center leading-normal font-medium">
-                      Chưa ghi nhận định mẫu giá sỉ lịch sử từ nhà thầu này.
-                      <p className="text-[9.5px] text-slate-405 mt-1">Dữ liệu thầu lịch sử hỗ trợ AI gợi ý thầu giá cạnh tranh nhất.</p>
+                      {t("noHistoricalPricingRecorded")}
+                      <p className="text-[9.5px] text-slate-405 mt-1">{t("historicalPricingTip")}</p>
                     </div>
                   )}
                 </div>
@@ -608,18 +619,18 @@ export default function SupplierManagement({
                 <div className="pt-5 border-t border-slate-150 flex justify-end gap-3 items-center">
                   {deleteConfId === selectedSupplier.id ? (
                     <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 p-2 px-3 rounded-xl">
-                      <span className="text-[11px] text-rose-700 font-bold">Xác nhận xóa đối tác?</span>
+                      <span className="text-[11px] text-rose-700 font-bold">{t("confirmDeletePartner")}</span>
                       <button 
                         onClick={() => handleDeleteConfirmed(selectedSupplier.id)}
                         className="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg cursor-pointer transition-all"
                       >
-                        Đồng ý
+                        {t("agreeBtn")}
                       </button>
                       <button 
                         onClick={() => setDeleteConfId(null)}
                         className="bg-white hover:bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-bold py-1 px-2.5 rounded-lg cursor-pointer transition-all"
                       >
-                        Hủy
+                        {t("cancelBtnShort")}
                       </button>
                     </div>
                   ) : (
@@ -628,13 +639,13 @@ export default function SupplierManagement({
                         onClick={() => setDeleteConfId(selectedSupplier.id)}
                         className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1 cursor-pointer transition-all"
                       >
-                        <Trash2 className="w-3.5 h-3.5" /> Gỡ bỏ đối tác
+                        <Trash2 className="w-3.5 h-3.5" /> {t("removePartnerBtn")}
                       </button>
                       <button
                         onClick={() => openEditForm(selectedSupplier)}
                         className="bg-[#1A1A1A] hover:bg-[#000000] text-white text-xs font-bold p-2.5 px-4 rounded-xl flex items-center gap-1 cursor-pointer transition-all"
                       >
-                        <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa hồ sơ
+                        <Edit3 className="w-3.5 h-3.5" /> {t("editProfileBtn")}
                       </button>
                     </>
                   )}
@@ -645,8 +656,8 @@ export default function SupplierManagement({
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-sans space-y-3 text-center">
               <Building2 className="w-12 h-12 text-slate-300 animate-pulse" />
               <div>
-                <p className="text-slate-600 text-sm font-extrabold">Chi tiết hồ sơ đối tác</p>
-                <p className="text-[11px] text-slate-400 max-w-sm mt-0.5">Vui lòng nhấp chọn một Nhà cung cấp bên bảng danh sách để tra cứu thông tin giao dịch.</p>
+                <p className="text-slate-600 text-sm font-extrabold">{t("partnerProfileDetail")}</p>
+                <p className="text-[11px] text-slate-400 max-w-sm mt-0.5">{t("selectPartnerToView")}</p>
               </div>
             </div>
           )}

@@ -20,6 +20,7 @@ interface PurchaseRequestsListProps {
   onCreatePr: (prData: { title: string; priority: PriorityLevel; requiredDate: string; items: PurchaseRequestItem[] }) => void;
   onSelectPrForSourcing: (pr: PurchaseRequest) => void;
   setActiveTab: (tab: string) => void;
+  t: (key: any) => string;
 }
 
 export default function PurchaseRequestsList({ 
@@ -27,7 +28,8 @@ export default function PurchaseRequestsList({
   currentRole, 
   onCreatePr, 
   onSelectPrForSourcing,
-  setActiveTab
+  setActiveTab,
+  t
 }: PurchaseRequestsListProps) {
   
   const [title, setTitle] = useState("");
@@ -62,13 +64,13 @@ export default function PurchaseRequestsList({
     setErrorText("");
 
     if (!title.trim()) {
-      setErrorText("Tiêu đề yêu cầu mua hàng không được bỏ trống.");
+      setErrorText(t("prErrTitleEmpty"));
       return;
     }
 
     const invalidItem = items.some(it => !it.name.trim() || it.quantity <= 0);
     if (invalidItem) {
-      setErrorText("Mặt hàng phải có tên và số lượng hợp lệ.");
+      setErrorText(t("prErrItemsInvalid"));
       return;
     }
 
@@ -89,9 +91,12 @@ export default function PurchaseRequestsList({
   return (
     <div className="space-y-6 animate-fade-slide-up">
       {/* Title & Stats */}
-      <div>
-        <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight">Yêu cầu Mua sắm (PR)</h2>
-        <p className="text-xs text-slate-500 mt-1">Quản lý và chuyển tiếp yêu cầu vật tư, thực phẩm dự trữ từ nhà bếp.</p>
+      <div className="enterprise-section p-5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-accent-dark font-extrabold">{t("prIntakeControl")}</p>
+        <h2 className="text-xl font-extrabold font-display text-[#1A1A1A] tracking-tight">{t("prStandardizePr")}</h2>
+        <p className="text-xs text-slate-500 mt-1 max-w-3xl">
+          {t("prIntakeDesc")}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -99,9 +104,9 @@ export default function PurchaseRequestsList({
         <div className="lg:col-span-5 bg-white border border-slate-200 p-6 rounded-2xl executive-shadow h-fit">
           <div className="mb-4">
             <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-              <FileEdit className="w-4 h-4 text-accent-dark" /> Bản ghi yêu cầu mới
+              <FileEdit className="w-4 h-4 text-accent-dark" /> {t("prNewRecord")}
             </h3>
-            <p className="text-[11px] text-slate-500">Khởi tạo phiếu vật tư gửi sơ tuyển nhà cung cấp.</p>
+            <p className="text-[11px] text-slate-500">{t("prNewRecordDesc")}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,12 +119,12 @@ export default function PurchaseRequestsList({
 
             {/* Title / Description */}
             <div className="space-y-1">
-              <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">Tiêu đề yêu cầu mua</label>
+              <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">{t("prTitleLabel")}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ví dụ: Nguyên liệu nhà bếp cuối tuần"
+                placeholder={t("prTitlePlaceholder")}
                 className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400"
               />
             </div>
@@ -127,20 +132,20 @@ export default function PurchaseRequestsList({
             {/* Row priority & date */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">Độ ưu tiên</label>
+                <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">{t("prPriorityLabel")}</label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as PriorityLevel)}
                   className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                 >
-                  <option value="low">Thường (Low)</option>
-                  <option value="medium">Trung bình (Medium)</option>
-                  <option value="high">Khẩn cấp (High)</option>
+                  <option value="low">{t("prPriorityLow")}</option>
+                  <option value="medium">{t("prPriorityMedium")}</option>
+                  <option value="high">{t("prPriorityHigh")}</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">Ngày hạn nhận</label>
+                <label className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">{t("prRequiredDateLabel")}</label>
                 <input
                   type="date"
                   value={requiredDate}
@@ -153,13 +158,13 @@ export default function PurchaseRequestsList({
             {/* Items table */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">Danh mục cần mua</span>
+                <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">{t("prCategoryLabel")}</span>
                 <button
                   type="button"
                   onClick={handleAddItem}
                   className="text-[10px] text-accent-dark hover:text-primary-dark font-extrabold flex items-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Thêm dòng
+                  <Plus className="w-3.5 h-3.5" /> {t("prAddLine")}
                 </button>
               </div>
 
@@ -183,7 +188,7 @@ export default function PurchaseRequestsList({
                           type="text"
                           value={it.name}
                           onChange={(e) => handleItemChange(index, "name", e.target.value)}
-                          placeholder="Tên nguyên liệu..."
+                          placeholder={t("prItemNamePlaceholder")}
                           className="w-full bg-white border border-slate-200 focus:outline-none rounded-lg p-1.5 text-xs text-slate-800"
                         />
                       </div>
@@ -193,7 +198,7 @@ export default function PurchaseRequestsList({
                           value={it.quantity}
                           onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
                           min="1"
-                          placeholder="SL"
+                          placeholder={t("prQtyPlaceholder")}
                           className="w-full bg-white border border-slate-200 focus:outline-none rounded-lg p-1.5 text-xs text-slate-800"
                         />
                       </div>
@@ -202,7 +207,7 @@ export default function PurchaseRequestsList({
                           type="text"
                           value={it.unit}
                           onChange={(e) => handleItemChange(index, "unit", e.target.value)}
-                          placeholder="Đơn vị"
+                          placeholder={t("prUnitPlaceholder")}
                           className="w-full bg-white border border-slate-200 focus:outline-none rounded-lg p-1.5 text-xs text-slate-800"
                         />
                       </div>
@@ -211,7 +216,7 @@ export default function PurchaseRequestsList({
                       type="text"
                       value={it.notes}
                       onChange={(e) => handleItemChange(index, "notes", e.target.value)}
-                      placeholder="Ghi chú thêm (không bắt buộc)..."
+                      placeholder={t("prNotesPlaceholder")}
                       className="w-full bg-white border border-slate-200 focus:outline-none rounded-lg p-1.5 text-[11px] text-slate-500"
                     />
                   </div>
@@ -224,7 +229,7 @@ export default function PurchaseRequestsList({
               id="btn-create-pr"
               className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
-              <Send className="w-3.5 h-3.5" /> Gửi Lên Ban Mua Sắm (PR)
+              <Send className="w-3.5 h-3.5" /> {t("prSendButton")}
             </button>
           </form>
         </div>
@@ -233,7 +238,7 @@ export default function PurchaseRequestsList({
         <div className="lg:col-span-7 space-y-4">
           <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between shadow-sm">
             <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-              <History className="w-4 h-4 text-accent-dark" /> Danh sách yêu cầu mua sắm ({purchaseRequests.length})
+              <History className="w-4 h-4 text-accent-dark" /> {t("prListTitle")} ({purchaseRequests.length})
             </span>
           </div>
 
@@ -241,8 +246,8 @@ export default function PurchaseRequestsList({
             {purchaseRequests.length === 0 ? (
               <div className="text-center py-16 p-6 bg-white border border-slate-200 rounded-2xl executive-shadow">
                 <Clock className="w-10 h-10 text-slate-300 mx-auto animate-pulse" />
-                <p className="text-slate-500 text-xs mt-3 font-semibold">Chưa phát sinh yêu cầu mua sắm nào.</p>
-                <p className="text-[11px] text-slate-400 mt-1">Sử dụng bảng bên trái để khởi tạo nhanh.</p>
+                <p className="text-slate-500 text-xs mt-3 font-semibold">{t("prEmptyStateTitle")}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{t("prEmptyStateDesc")}</p>
               </div>
             ) : (
               purchaseRequests.map((pr) => {
@@ -256,7 +261,7 @@ export default function PurchaseRequestsList({
                     {/* Source label */}
                     <div className="absolute top-0 right-0">
                       <span className="text-[9px] bg-slate-50 text-slate-500 border-l border-b border-slate-200/80 px-2.5 py-1 font-mono font-bold rounded-bl">
-                        Nguồn: {pr.source === "email" ? "📬 Email Auto" : "💻 Web Portal"}
+                        {t("prSourceLabel")}: {pr.source === "email" ? t("prSourceEmail") : t("prSourceWeb")}
                       </span>
                     </div>
 
@@ -270,17 +275,17 @@ export default function PurchaseRequestsList({
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
                             isHigh ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-slate-50 border border-slate-200 text-slate-600"
                           }`}>
-                            {pr.priority}
+                            {pr.priority === "high" ? t("prPriorityHigh") : pr.priority === "medium" ? t("prPriorityMedium") : t("prPriorityLow")}
                           </span>
                           {isDraft && (
                             <span className="text-[9px] bg-amber-50 border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase font-mono">
-                              Nháp
+                              {t("prStatusDraft")}
                             </span>
                           )}
                         </div>
                         <h4 className="text-xs font-bold text-slate-800 mt-2">{pr.title}</h4>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Nhân viên đề xuất: <span className="text-slate-600 font-bold">{pr.requesterName}</span> ({pr.departmentName})
+                          {t("prRequesterNameLabel")}: <span className="text-slate-600 font-bold">{pr.requesterName}</span> ({pr.departmentName})
                         </p>
                       </div>
 
@@ -289,15 +294,15 @@ export default function PurchaseRequestsList({
                         <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
                           isApproved ? "bg-amber-50 border border-amber-200 text-accent-dark font-bold" : "bg-amber-50 border border-amber-200 text-amber-700 font-bold"
                         }`}>
-                          {pr.status === "submitted" ? "Đang chào giá" : pr.status || "Chờ gửi"}
+                          {pr.status === "submitted" ? t("prStatusSubmitted") : pr.status === "draft" ? t("prStatusDraft") : pr.status === "cancelled" ? t("prStatusRejected") : pr.status === "approved" ? t("prStatusApproved") : pr.status}
                         </span>
-                        <p className="text-[10px] text-slate-400 font-mono mt-1.5">Hạn: {pr.requiredDate}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-1.5">{t("deadlineCol")}: {pr.requiredDate}</p>
                       </div>
                     </div>
 
                     {/* Items list */}
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60 space-y-1.5">
-                      <p className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-bold">Danh sách mặt hàng ({pr.items.length})</p>
+                      <p className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-bold">{t("prItemsCount")} ({pr.items.length})</p>
                       <div className="divide-y divide-slate-200/60 max-h-32 overflow-y-auto">
                         {pr.items.map((it, idx) => (
                           <div key={idx} className="py-1.5 text-xs flex justify-between items-center">
@@ -316,7 +321,7 @@ export default function PurchaseRequestsList({
                     {/* Flow controllers (Procurement role) */}
                     <div className="flex justify-between items-center pt-3 border-t border-slate-100">
                       <div className="text-[10px] text-slate-400 font-medium">
-                        Khởi tạo ngày: {new Date(pr.createdAt).toLocaleDateString("vi-VN")}
+                        {t("prCreatedAt")}: {new Date(pr.createdAt).toLocaleDateString("vi-VN")}
                       </div>
 
                       <div className="flex gap-2">
@@ -328,7 +333,7 @@ export default function PurchaseRequestsList({
                             }}
                             className="bg-amber-50 hover:bg-amber-50 text-accent-dark border border-amber-200 text-[10px] p-2 px-3 rounded-lg font-bold cursor-pointer"
                           >
-                            Xác thực nháp &amp; Gửi
+                            {t("prActionDraftVerify")}
                           </button>
                         )}
                         
@@ -342,7 +347,7 @@ export default function PurchaseRequestsList({
                             }}
                             className="bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-[10px] p-2 px-3 rounded-lg flex items-center gap-1 cursor-pointer"
                           >
-                            <span>Tiếp quản &amp; Khảo giá NCC (RFQ)</span>
+                            <span>{t("prActionSourcing")}</span>
                             <ArrowRight className="w-3 h-3" />
                           </button>
                         )}
@@ -358,4 +363,3 @@ export default function PurchaseRequestsList({
     </div>
   );
 }
-

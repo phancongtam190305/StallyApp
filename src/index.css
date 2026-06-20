@@ -1,37 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:wght@400&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@450;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@450;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
-  --font-display: "DM Serif Display", Georgia, serif;
+  --font-sans: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Colors */
   --color-primary: #9A6A2F;
   --color-primary-light: #E6A756;
   --color-primary-dark: #1A1A1A;
-  --color-primary-bg: #F2F0EA;
+  --color-primary-bg: #F3F5F7;
   --color-accent-gold: #E6A756;
   --color-accent-light: #F3D7A6;
   --color-accent-dark: #9A6A2F;
   --color-coral: #B85B3F;
   --color-coral-light: #D98263;
   --color-coral-dark: #8A3E2D;
-  --color-cream: #F7F5F0;
+  --color-cream: #F8FAFC;
   --color-sky-blue: #6E7F80;
-  --color-surface-base: #F7F5F0;
+  --color-surface-base: #F8FAFC;
   --color-surface-card: #FFFFFF;
   --color-success: #4F7942;
   --color-error: #B85B3F;
   
   /* Border Radii */
   --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   
   /* Elevation - Colored Glows */
-  --shadow-card: 0 18px 55px rgba(26, 26, 26, 0.08);
+  --shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
   --shadow-coral-glow: 0 18px 45px rgba(184, 91, 63, 0.18);
   --shadow-accent-soft: 0 18px 45px rgba(154, 106, 47, 0.18);
   --shadow-accent-glow: 0 18px 45px rgba(230, 167, 86, 0.22);
@@ -66,7 +66,7 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #F7F5F0;
+  background-color: #F8FAFC;
   color: #1A1A1A;
   margin: 0;
   padding: 0;
@@ -82,8 +82,8 @@ body {
 .stally-lux-shell {
   position: relative;
   background:
-    radial-gradient(circle at 12% 8%, rgba(230, 167, 86, 0.12), transparent 28%),
-    linear-gradient(135deg, #f7f5f0 0%, #f2f0ea 100%);
+    radial-gradient(circle at 10% 4%, rgba(230, 167, 86, 0.08), transparent 22%),
+    linear-gradient(135deg, #f8fafc 0%, #f3f5f7 100%);
 }
 
 .stally-flow-lines {
@@ -102,7 +102,7 @@ body {
   height: 150vh;
   left: -25vw;
   top: -18vh;
-  opacity: 0.3;
+  opacity: 0.08;
   background-repeat: no-repeat;
   background-size: 100% 100%;
 }
@@ -114,27 +114,27 @@ body {
 .stally-flow-lines::after {
   top: auto;
   bottom: -45vh;
-  opacity: 0.18;
+  opacity: 0.08;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1000 420' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 360Q500-120 1000 360' stroke='%23E6A756' stroke-width='2'/%3E%3C/svg%3E");
 }
 
 .lux-card {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(26, 26, 26, 0.10);
-  border-radius: 2rem;
-  box-shadow: 0 18px 55px rgba(26, 26, 26, 0.08);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
 }
 
 .lux-panel {
-  background: rgba(242, 240, 234, 0.82);
-  border: 1px solid rgba(26, 26, 26, 0.08);
-  border-radius: 1.5rem;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
 }
 
 .lux-button {
-  border-radius: 999px;
-  border: 1px solid rgba(26, 26, 26, 0.16);
+  border-radius: 0.875rem;
+  border: 1px solid rgba(15, 23, 42, 0.16);
   background: #E6A756;
   color: #1A1A1A;
   font-weight: 700;
@@ -142,9 +142,48 @@ body {
 }
 
 .lux-button:hover {
-  background: #1A1A1A;
+  background: #111827;
   color: #fff;
   transform: translateY(-1px);
+}
+
+.executive-shadow {
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.executive-shadow-hover {
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.executive-shadow-hover:hover {
+  border-color: rgba(154, 106, 47, 0.28);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.10);
+  transform: translateY(-1px);
+}
+
+.enterprise-section {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 1rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.animate-fade-slide-up {
+  animation: fade-slide-up 220ms ease-out both;
+}
+
+@keyframes fade-slide-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #E6A756;
+  outline-offset: 2px;
 }
 
 /* Elegant Retro 3D Ribbon Banner Component */

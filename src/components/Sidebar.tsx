@@ -6,10 +6,8 @@ import {
   FileSpreadsheet, 
   SendToBack, 
   Building2, 
-  Boxes,
   LogOut,
-  ChevronRight,
-  FolderKey
+  ChevronRight
 } from "lucide-react";
 
 interface SidebarProps {
@@ -17,64 +15,33 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   currentRole: UserRole;
   onLogout: () => void;
+  t: (key: any) => string;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout }: SidebarProps) {
-  const allMenuItems = [
-    { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
-    { id: "cases", label: "Quy trình (Cases)", icon: GitMerge },
-    { id: "pr", label: "Yêu cầu (PR)", icon: FileSpreadsheet },
-    { id: "rfq", label: "Thầu & Giá (RFQ)", icon: SendToBack },
-    { id: "suppliers", label: "Nhà cung cấp", icon: Building2 },
-    { id: "inventory", label: "Tồn kho", icon: Boxes },
+export default function Sidebar({ activeTab, setActiveTab, onLogout, t }: SidebarProps) {
+  const menuItems = [
+    { id: "overview", label: t("dashboard"), icon: LayoutDashboard },
+    { id: "cases", label: t("cases"), icon: GitMerge },
+    { id: "pr", label: t("purchaseRequests"), icon: FileSpreadsheet },
+    { id: "rfq", label: t("rfq"), icon: SendToBack },
+    { id: "suppliers", label: t("suppliers"), icon: Building2 },
   ];
 
-  // Role dynamic tabs definition
-  const roleAllowedTabs: Record<UserRole, string[]> = {
-    requester: ["overview", "cases", "pr", "inventory"],
-    procurement: ["overview", "cases", "pr", "rfq", "suppliers"],
-    manager: ["overview", "cases", "rfq", "suppliers", "inventory"],
-    warehouse: ["overview", "inventory", "cases", "rfq"],
-    admin: ["overview", "cases", "pr", "rfq", "suppliers", "inventory"]
-  };
-
-  const allowedTabIds = roleAllowedTabs[currentRole] || ["overview"];
-  const menuItems = allMenuItems.filter(item => allowedTabIds.includes(item.id));
-
-  const roleLabels: Record<UserRole, string> = {
-    requester: "Bếp Trưởng",
-    procurement: "Ban Mua Sắm",
-    manager: "Giám Đốc (CEO)",
-    warehouse: "Thủ Kho Trưởng",
-    admin: "Quản Trị Viên"
-  };
-
   return (
-    <aside className="w-72 bg-[#1A1A1A] flex flex-col justify-between h-screen fixed top-0 left-0 text-white/75 z-20 shadow-2xl">
+    <>
+    <aside className="hidden lg:flex w-64 bg-[#111827] flex-col justify-between h-screen fixed top-0 left-0 text-white/75 z-20 shadow-2xl">
       {/* Brand Section */}
       <div>
-        <div className="p-6 border-b border-white/10 flex flex-col items-center">
+        <div className="p-5 border-b border-white/10 flex flex-col items-center">
           <div className="w-full flex items-center justify-center gap-2">
             <span className="w-8 h-8 rounded-full bg-accent-gold text-primary-dark flex items-center justify-center font-display text-lg border border-white/10">S</span>
             <span className="font-display text-2xl tracking-tight text-white">Stally</span>
           </div>
-          <p className="text-[9px] text-white/40 font-sans tracking-[0.28em] font-bold mt-2.5 uppercase">Procurement Audit OS</p>
-        </div>
-
-        {/* Locked Profile Badge */}
-        <div className="p-4 mx-4 mt-4 bg-white/8 border border-white/10 rounded-3xl flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-full bg-accent-gold text-primary-dark flex items-center justify-center font-bold text-xs shrink-0">
-            {roleLabels[currentRole]?.substring(0, 2)}
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-[9px] text-white/45 font-bold leading-none uppercase tracking-[0.22em]">Vận hành</p>
-            <p className="text-sm text-white font-medium mt-1.5 truncate">{roleLabels[currentRole]}</p>
-          </div>
+          <p className="text-[9px] text-white/40 font-sans tracking-[0.24em] font-bold mt-2 uppercase">Procurement Audit OS</p>
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-4 space-y-2 mt-4">
-          <div className="px-3 mb-2 text-[9px] font-bold text-white/35 uppercase tracking-[0.25em] font-sans">Chức năng cấp phép</div>
+        <nav className="p-3 space-y-1.5 mt-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -83,7 +50,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
                 key={item.id}
                 id={`btn-tab-${item.id}`}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border ${
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border ${
                   isActive
                     ? "bg-accent-gold text-primary-dark border-accent-gold shadow-accent-glow"
                     : "text-white/75 border-transparent hover:bg-white/10 hover:text-white"
@@ -98,27 +65,46 @@ export default function Sidebar({ activeTab, setActiveTab, currentRole, onLogout
         </nav>
       </div>
 
-      {/* Logout & Tenant Context */}
+      {/* Logout */}
       <div className="p-4 border-t border-white/10 bg-black/20">
-        {/* Simple Tenant Info */}
-        <div className="mb-3 bg-white/8 p-3 rounded-2xl border border-white/10 flex items-center space-x-2.5">
-          <FolderKey className="w-4 h-4 text-accent-gold shrink-0" />
-          <div className="overflow-hidden">
-            <p className="text-[9px] text-white/45 font-bold uppercase tracking-[0.22em] font-sans">Cách ly dữ liệu</p>
-            <p className="text-xs text-white font-medium truncate">Multi-branch Procurement</p>
-          </div>
-        </div>
-
-        {/* Logout Trigger button */}
         <button
           onClick={onLogout}
           id="btn-logout"
-          className="w-full flex items-center justify-center space-x-2 p-2.5 bg-transparent hover:bg-white hover:text-primary-dark border border-white/20 text-white text-xs font-bold uppercase rounded-full tracking-wider transition-all duration-150 cursor-pointer"
+          className="w-full flex items-center justify-center space-x-2 p-2.5 bg-transparent hover:bg-white hover:text-primary-dark border border-white/20 text-white text-xs font-bold uppercase rounded-xl tracking-wider transition-all duration-150 cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
-          <span>Đăng xuất hệ thống</span>
+          <span>{t("logout")}</span>
         </button>
       </div>
     </aside>
+
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#111827]/95 backdrop-blur border-t border-white/10 px-2 py-2 flex items-center justify-between gap-1 text-white shadow-2xl">
+      {menuItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = activeTab === item.id;
+        return (
+          <button
+            key={item.id}
+            id={`btn-mobile-tab-${item.id}`}
+            onClick={() => setActiveTab(item.id)}
+            className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[9px] font-bold transition ${
+              isActive ? "bg-accent-gold text-primary-dark" : "text-white/65 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Icon className="w-4 h-4 shrink-0" />
+            <span className="truncate max-w-full">{item.label}</span>
+          </button>
+        );
+      })}
+      <button
+        onClick={onLogout}
+        id="btn-mobile-logout"
+        className="w-10 shrink-0 flex items-center justify-center rounded-xl py-2 text-white/65 hover:bg-white/10 hover:text-white"
+        title={t("logoutMobileTitle")}
+      >
+        <LogOut className="w-4 h-4" />
+      </button>
+    </nav>
+    </>
   );
 }

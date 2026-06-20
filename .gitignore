@@ -12,6 +12,7 @@ coverage/
 *.db-wal
 *.md
 !DEPLOY_FULL_RUNBOOK.md
+!docs/superpowers/**/*.md
 chrome-profile/
 chrome_log.txt
 chrome_error.log

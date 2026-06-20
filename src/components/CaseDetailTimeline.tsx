@@ -32,6 +32,7 @@ import { UserRole, ProcurementCase, PurchaseRequestItem, Supplier, Quote, CaseTr
 import { getQuoteRiskFlags, quoteNeedsHumanReview } from "../quoteRisk";
 import ItemIcon from "./ItemIcon";
 import { useToast } from "../context/ToastContext";
+import { LabelKey, Locale } from "../i18n";
 
 interface CaseDetailTimelineProps {
   caseId: string;
@@ -40,6 +41,8 @@ interface CaseDetailTimelineProps {
   orgId: string;
   onStateChanged?: () => void;
   refreshTrigger?: number;
+  locale: Locale;
+  t: (key: LabelKey) => string;
 }
 
 interface SupplierMatch {
@@ -423,7 +426,9 @@ export default function CaseDetailTimeline({
   currentRole, 
   orgId, 
   onStateChanged,
-  refreshTrigger
+  refreshTrigger,
+  locale,
+  t
 }: CaseDetailTimelineProps) {
   const showDevTools = import.meta.env.VITE_ENABLE_DEV_TOOLS === "true";
   
@@ -745,7 +750,7 @@ export default function CaseDetailTimeline({
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-4">
         <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-        <span className="text-xs text-primary-dark font-bold">Đang tải hồ sơ thầu...</span>
+        <span className="text-xs text-primary-dark font-bold">{t("loadingCaseDetail")}</span>
       </div>
     );
   }
@@ -753,11 +758,11 @@ export default function CaseDetailTimeline({
   const negotiationSupplierOptions = getNegotiationSupplierOptions(comparison);
 
   const milestones = [
-    { num: 1, label: "Đón nhận", desc: "Chuẩn hóa" },
-    { num: 2, label: "Mời thầu", desc: "Phát RFQ" },
-    { num: 3, label: "Thương thảo", desc: "So sánh thầu" },
-    { num: 4, label: "CEO Duyệt", desc: "Ký duyệt PO" },
-    { num: 5, label: "Nhập kho", desc: "Đối soát thực" }
+    { num: 1, label: t("milestoneIntakeLabel"), desc: t("milestoneIntakeDesc") },
+    { num: 2, label: t("milestoneRfqLabel"), desc: t("milestoneRfqDesc") },
+    { num: 3, label: t("milestoneNegotiationLabel"), desc: t("milestoneNegotiationDesc") },
+    { num: 4, label: t("milestoneApprovalLabel"), desc: t("milestoneApprovalDesc") },
+    { num: 5, label: t("milestoneReceivingLabel"), desc: t("milestoneReceivingDesc") }
   ];
 
   const getPriorityBadgeColor = (p: string) => {
@@ -771,10 +776,10 @@ export default function CaseDetailTimeline({
 
   const getPriorityLabel = (p: string) => {
     switch (p) {
-      case "urgent": return "🚨 Khẩn cấp";
-      case "high": return "⚠️ Cao";
-      case "medium": return "Vừa";
-      default: return "Thấp";
+      case "urgent": return t("casePriorityUrgent");
+      case "high": return t("casePriorityHigh");
+      case "medium": return t("casePriorityMedium");
+      default: return t("casePriorityLow");
     }
   };
 
@@ -788,27 +793,8 @@ export default function CaseDetailTimeline({
   };
 
   const getStatusLabel = (s: string) => {
-    const map: Record<string, string> = {
-      draft_request: "PR Nháp",
-      request_submitted: "Đã nộp PR",
-      request_validating: "Đang xác minh",
-      supplier_matching: "Khớp đối tác",
-      rfq_draft: "Soạn RFQ nháp",
-      rfq_sent: "Đã gửi RFQ",
-      collecting_quotes: "Chờ báo giá",
-      quote_review: "Duyệt báo giá",
-      comparison_ready: "Sẵn sàng duyệt",
-      negotiating: "Đàm phán AI",
-      pending_approval: "Đợi CEO duyệt",
-      approved: "Đã duyệt PO",
-      po_draft: "Đang lập PO",
-      po_sent: "Đã gửi PO",
-      receiving: "Đang nhận hàng",
-      closed: "Đã đóng",
-      cancelled: "Đã hủy",
-      exception: "Thất thoát kho"
-    };
-    return map[s] || s;
+    const key = `status_${s}` as any;
+    return t(key) || s;
   };
 
   const handleIntakeSubmit = async () => {
@@ -1292,7 +1278,7 @@ export default function CaseDetailTimeline({
       });
       const data = await res.json();
       if (!res.ok || data.error) {
-        throw new Error(data.error?.message || data.error || "Nhập kho thất bại.");
+        throw new Error(data.error?.message || data.error || t("errReceiveFailed"));
       }
 
       const updatedCount = data.inventoryUpdates?.length || itemsPayload.length;
@@ -1314,11 +1300,11 @@ export default function CaseDetailTimeline({
   const renderPermissionLock = (allowedRoles: UserRole[], actionName: string) => {
     if (!allowedRoles.includes(currentRole)) {
       const roleLabels: Record<UserRole, string> = {
-        requester: "Bếp Trưởng (Requester)",
-        procurement: "Nhân viên Thu Mua (Procurement)",
-        manager: "Giám Đốc (Manager)",
-        warehouse: "Thủ Kho (Warehouse)",
-        admin: "Quản trị viên (Admin)"
+        requester: `${t("roleRequester")} (Requester)`,
+        procurement: `${t("roleProcurement")} (Procurement)`,
+        manager: `${t("roleManager")} (Manager)`,
+        warehouse: `${t("roleWarehouse")} (Warehouse)`,
+        admin: locale === "en" ? "Administrator (Admin)" : "Quản trị viên (Admin)"
       };
       const allowedLabels = allowedRoles.map(r => roleLabels[r]).join(" hoặc ");
       return (
@@ -1372,7 +1358,7 @@ export default function CaseDetailTimeline({
             onClick={fetchData}
             className="px-4 py-2.5 bg-white hover:bg-cream border border-primary-dark text-primary-dark font-bold text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-sm"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Làm mới
+            <RefreshCw className="w-3.5 h-3.5" /> {t("refreshBtn")}
           </button>
           
           {caseObj.status !== "closed" && caseObj.status !== "cancelled" && (currentRole === "procurement" || currentRole === "manager") && (
@@ -1380,7 +1366,7 @@ export default function CaseDetailTimeline({
               onClick={handleCancelCase}
               className="px-4 py-2.5 bg-coral hover:bg-coral-dark border border-primary-dark text-white font-bold text-xs rounded-full flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-coral-glow"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Hủy thầu
+              <Trash2 className="w-3.5 h-3.5" /> {t("cancelBid")}
             </button>
           )}
         </div>
@@ -1428,11 +1414,11 @@ export default function CaseDetailTimeline({
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border transition-all ${
-                    isCompleted ? "bg-amber-50 border-amber-200 text-white" :
+                    isCompleted ? "bg-amber-50 border-amber-200 text-amber-700" :
                     step.num === maxMilestone ? "bg-[#1A1A1A] border-[#1A1A1A] text-white animate-pulse" :
                     "bg-white border-slate-200 text-slate-400"
                   }`}>
-                    {isCompleted ? <Check className="w-5 h-5 stroke-[3]" /> : step.num}
+                    {step.num}
                   </div>
                   <div>
                     <p className={`text-xs font-bold leading-none ${isActive ? "text-[#1A1A1A]" : !isLocked ? "text-slate-700" : "text-slate-400"}`}>
@@ -1458,10 +1444,10 @@ export default function CaseDetailTimeline({
           {/* Milestone 1 View: Request Intake & Standardization */}
           {activeMilestone === 1 && (
             <div className="space-y-6">
-              {renderPermissionLock(["procurement", "requester"], "Chuẩn hóa & Tiếp nhận Yêu cầu")}
+              {renderPermissionLock(["procurement", "requester"], t("intakePermissionTitle"))}
               <div>
                 <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
-                  <FileText className="w-5 h-5 text-accent-dark" /> Bước 1: Tiếp nhận &amp; Chuẩn hóa Yêu cầu
+                  <FileText className="w-5 h-5 text-accent-dark" /> {t("step1Title")}
                 </h3>
               </div>
 
@@ -1469,9 +1455,9 @@ export default function CaseDetailTimeline({
               <div className="bg-primary-bg/25 border border-primary rounded-2xl p-4 flex items-start gap-3 shadow-inner">
                 <Sparkles className="w-4.5 h-4.5 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-primary-dark">Vai trò: Ban Mua Sắm (Sourcing Staff)</p>
+                  <p className="text-xs font-bold text-primary-dark">{t("intakeRoleTitle")}</p>
                   <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
-                    Bạn cần rà soát lại các dòng sản phẩm thầu bếp trưởng yêu cầu. Thêm ghi chú hoặc loại bỏ các mục lỗi/trùng lặp trước khi phát thầu RFQ chính thức.
+                    {t("intakeRoleDesc")}
                   </p>
                 </div>
               </div>
@@ -1482,11 +1468,11 @@ export default function CaseDetailTimeline({
                   <thead>
                     <tr className="bg-primary-bg text-primary-dark font-bold border-b border-primary-dark uppercase tracking-wider text-[9px]">
                       <th className="p-3.5">#</th>
-                      <th className="p-3.5">Tên sản phẩm</th>
-                      <th className="p-3.5 text-center">Số lượng</th>
-                      <th className="p-3.5">Đơn vị</th>
-                      <th className="p-3.5">Ghi chú bếp trưởng</th>
-                      <th className="p-3.5 text-center">Thao tác</th>
+                      <th className="p-3.5">{t("itemNameCol")}</th>
+                      <th className="p-3.5 text-center">{t("quantityCol")}</th>
+                      <th className="p-3.5">{t("unitCol")}</th>
+                      <th className="p-3.5">{t("requesterNoteCol")}</th>
+                      <th className="p-3.5 text-center">{t("actions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary-dark/10 text-primary-dark font-bold">
@@ -1515,7 +1501,7 @@ export default function CaseDetailTimeline({
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-primary-dark/60 font-bold italic">Chưa có sản phẩm nào được thiết lập thầu.</td>
+                        <td colSpan={6} className="p-8 text-center text-primary-dark/60 font-bold italic">{t("noItemsConfigured")}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1525,18 +1511,18 @@ export default function CaseDetailTimeline({
               {/* Add New Item Panel */}
               {["procurement", "requester"].includes(currentRole) && ["draft_request", "request_submitted", "request_validating"].includes(caseObj.status) && (
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
-                  <h4 className="text-xs font-bold text-slate-700">Thêm sản phẩm mới chuẩn hóa:</h4>
+                  <h4 className="text-xs font-bold text-slate-700">{t("addStandardizedItemTitle")}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <input 
                       type="text" 
-                      placeholder="Tên nguyên liệu... (Ví dụ: Gạo thơm sỉ)"
+                      placeholder={t("ingredientNamePlaceholder")}
                       value={newItemName}
                       onChange={e => setNewItemName(e.target.value)}
                       className="p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                     />
                     <input 
                       type="number" 
-                      placeholder="Số lượng"
+                      placeholder={t("quantityOrdered")}
                       value={newItemQty}
                       onChange={e => setNewItemQty(Number(e.target.value))}
                       className="p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-mono font-bold text-center focus:outline-none"
@@ -1546,22 +1532,22 @@ export default function CaseDetailTimeline({
                       onChange={e => setNewItemUnit(e.target.value)}
                       className="p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                     >
-                      <option value="kg">kg</option>
-                      <option value="chai">chai (5L)</option>
-                      <option value="bao">bao</option>
-                      <option value="hộp">hộp</option>
-                      <option value="đv">đơn vị</option>
+                      <option value="kg">{t("optionUnitKg")}</option>
+                      <option value="chai">{t("optionUnitBottle")}</option>
+                      <option value="bao">{t("optionUnitBag")}</option>
+                      <option value="hộp">{t("optionUnitBox")}</option>
+                      <option value="đv">{t("optionUnitUnit")}</option>
                     </select>
                     <button
                       onClick={handleAddItem}
                       className="p-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-primary-dark transition cursor-pointer transform active:scale-95 shadow-sm uppercase tracking-wider"
                     >
-                      <Plus className="w-4 h-4" /> Thêm thầu
+                      <Plus className="w-4 h-4" /> {t("addBidItem")}
                     </button>
                   </div>
                   <input 
                     type="text" 
-                    placeholder="Ghi chú nghiệp vụ..."
+                    placeholder={t("businessNotePlaceholder")}
                     value={newItemNotes}
                     onChange={e => setNewItemNotes(e.target.value)}
                     className="w-full p-2 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
@@ -1578,11 +1564,11 @@ export default function CaseDetailTimeline({
                     className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                   >
                     {loadingAction === "submit_intake" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
-                    Xác nhận chuẩn hóa &amp; Soạn thầu
+                    {t("confirmStandardizeAndDraft")}
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 text-primary-dark/60 text-xs font-bold bg-primary-bg px-4 py-2.5 rounded-full border border-primary shadow-sm uppercase tracking-wider">
-                    <Check className="w-4 h-4 text-success stroke-[3]" /> Hoàn tất đón nhận hồ sơ
+                    <Check className="w-4 h-4 text-success stroke-[3]" /> {t("intakeCompleted")}
                   </div>
                 )}
               </div>
@@ -1592,10 +1578,10 @@ export default function CaseDetailTimeline({
           {/* Milestone 2 View: Supplier Matching & RFQ Compose */}
           {activeMilestone === 2 && (
             <div className="space-y-6">
-              {renderPermissionLock(["procurement"], "Khớp Nhà Cung Cấp & Phát RFQ")}
+              {renderPermissionLock(["procurement"], locale === "en" ? "Match Suppliers & Issue RFQ" : "Khớp Nhà Cung Cấp & Phát RFQ")}
               <div>
                 <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
-                  <Building2 className="w-5 h-5 text-accent-dark" /> Bước 2: Khớp Nhà Cung Cấp &amp; Phát RFQ
+                  <Building2 className="w-5 h-5 text-accent-dark" /> {locale === "en" ? "Step 2: Match Suppliers & Issue RFQ" : "Bước 2: Khớp Nhà Cung Cấp & Phát RFQ"}
                 </h3>
               </div>
 
@@ -1605,10 +1591,10 @@ export default function CaseDetailTimeline({
                   <div className="absolute -top-10 -right-10 w-24 h-24 bg-accent-gold/10 rounded-full blur-xl pointer-events-none" />
                   <div className="flex items-center gap-1.5 text-xs font-bold text-primary-dark uppercase tracking-wider">
                     <Sparkles className="w-4 h-4 text-accent-gold animate-pulse" />
-                    <span>Tìm NCC theo mặt hàng trong case: {procurementScopeLabel}</span>
+                    <span>{locale === "en" ? `Search suppliers by item: ${procurementScopeLabel}` : `Tìm NCC theo mặt hàng trong case: ${procurementScopeLabel}`}</span>
                   </div>
                   <p className="text-[11px] text-slate-600 leading-normal">
-                    Từ khóa này dùng để tìm nguồn cung cho case hiện tại, không đổi mặt hàng yêu cầu.
+                    {locale === "en" ? "This keyword is used to source suppliers for the current case. It does not modify requested items." : "Từ khóa này dùng để tìm nguồn cung cho case hiện tại, không đổi mặt hàng yêu cầu."}
                   </p>
                   {canEditSourcing ? (
                   <div className="flex gap-2.5">
@@ -1625,7 +1611,7 @@ export default function CaseDetailTimeline({
                       className="px-5 py-2 bg-primary hover:bg-primary-dark text-white border border-primary-dark font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-accent-glow transition transform active:scale-95 cursor-pointer uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isCurrentlyScanning ? <RefreshCw className="w-4.5 h-4.5 animate-spin" /> : <Search className="w-4 h-4" />}
-                      AI quét thầu
+                      {locale === "en" ? "AI Scan" : "AI quét thầu"}
                     </button>
                   </div>
                   ) : (
@@ -1634,9 +1620,9 @@ export default function CaseDetailTimeline({
                         <Lock className="w-4 h-4 text-primary-dark" />
                       </div>
                       <div className="space-y-1 min-w-0">
-                        <p className="text-xs font-bold text-primary-dark uppercase tracking-wider">Nguồn thầu đã khóa</p>
+                        <p className="text-xs font-bold text-primary-dark uppercase tracking-wider">{locale === "en" ? "Sourcing Locked" : "Nguồn thầu đã khóa"}</p>
                         <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
-                          Case này đã chuyển sang soạn/gửi RFQ. Muốn mời thầu mặt hàng khác, hãy tạo case mới.
+                          {locale === "en" ? "This case has moved to RFQ drafting/sending. To invite bids for other items, create a new case." : "Case này đã chuyển sang soạn/gửi RFQ. Muốn mời thầu mặt hàng khác, hãy tạo case mới."}
                         </p>
                       </div>
                     </div>
@@ -1649,14 +1635,14 @@ export default function CaseDetailTimeline({
                           <RefreshCw className="w-5 h-5 animate-spin" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">Đang tạo bản nháp RFQ từ template</p>
+                          <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">{locale === "en" ? "Drafting RFQ from template..." : "Đang tạo bản nháp RFQ từ template"}</p>
                           <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
-                            Hệ thống điền sẵn tên NCC, danh sách hàng và hạn báo giá. Bạn vẫn có thể biên tập trước khi gửi.
+                            {locale === "en" ? "The system pre-fills the supplier name, item list, and quote deadline. You can still edit it before sending." : "Hệ thống điền sẵn tên NCC, danh sách hàng và hạn báo giá. Bạn vẫn có thể biên tập trước khi gửi."}
                           </p>
                         </div>
                       </div>
                       <p className="text-[10px] text-slate-500 font-bold">
-                        Bản nháp sẽ xuất hiện gần như ngay lập tức, không cần chờ LLM viết lại từng email.
+                        {locale === "en" ? "Drafts will appear almost instantly without waiting for LLM to write each email." : "Bản nháp sẽ xuất hiện gần như ngay lập tức, không cần chờ LLM viết lại từng email."}
                       </p>
                     </div>
                   )}
@@ -1670,7 +1656,7 @@ export default function CaseDetailTimeline({
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-primary-dark uppercase tracking-wider">
-                              Đang crawl nhà cung cấp
+                              {locale === "en" ? "Crawling suppliers..." : "Đang crawl nhà cung cấp"}
                             </p>
                             <p className="text-[10px] text-slate-500 font-bold truncate">
                               {discoverySteps[discoveryStepIndex]}
@@ -1679,7 +1665,7 @@ export default function CaseDetailTimeline({
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs font-bold text-primary-dark">{discoveryElapsedSec}s</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase">Thời gian chạy</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">{locale === "en" ? "Elapsed Time" : "Thời gian chạy"}</p>
                         </div>
                       </div>
 
@@ -1719,7 +1705,7 @@ export default function CaseDetailTimeline({
                       </div>
 
                       <p className="text-[10px] text-slate-500 font-bold leading-snug">
-                        Bước này có thể mất 20-60 giây. Sau khi crawl xong, bạn sẽ chọn NCC nào được đưa vào danh sách chính.
+                        {locale === "en" ? "This step may take 20-60 seconds. Once crawled, select which suppliers to add to the main list." : "Bước này có thể mất 20-60 giây. Sau khi crawl xong, bạn sẽ chọn NCC nào được đưa vào danh sách chính."}
                       </p>
                     </div>
                   )}
@@ -1727,8 +1713,8 @@ export default function CaseDetailTimeline({
                     <div className="space-y-3 pt-2">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
-                          <p className="text-[10px] font-bold uppercase text-slate-500">Kết quả crawl chờ duyệt ({discoveryCandidates.length})</p>
-                          <p className="text-[10px] text-slate-500 font-bold">Tick chọn NCC bạn muốn đưa vào danh sách chính trước khi gửi RFQ.</p>
+                          <p className="text-[10px] font-bold uppercase text-slate-500">{locale === "en" ? `Crawl results awaiting review (${discoveryCandidates.length})` : `Kết quả crawl chờ duyệt (${discoveryCandidates.length})`}</p>
+                          <p className="text-[10px] text-slate-500 font-bold">{locale === "en" ? "Check the suppliers you want to add to the main list before sending RFQ." : "Tick chọn NCC bạn muốn đưa vào danh sách chính trước khi gửi RFQ."}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -1779,18 +1765,18 @@ export default function CaseDetailTimeline({
                                 />
                                 <div className="min-w-0">
                                 <p className="text-xs font-bold text-slate-800 leading-snug">{candidate.name}</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{candidate.address || "Chưa có địa chỉ"}</p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">{candidate.address || (locale === "en" ? "No address" : "Chưa có địa chỉ")}</p>
                                 </div>
                               </label>
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
                                 candidate.autoAddEligible ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}>
-                                {candidate.autoAddEligible ? "Có thể thêm" : "Cần kiểm tra"} · {candidate.confidence}%
+                                {candidate.autoAddEligible ? (locale === "en" ? "Eligible" : "Có thể thêm") : (locale === "en" ? "Need check" : "Cần kiểm tra")} · {candidate.confidence}%
                               </span>
                             </div>
                             <div className="text-[10px] text-slate-600 space-y-0.5">
-                              <p>Email: <span className="font-bold">{candidate.email || "chưa xác minh"}</span></p>
-                              <p>SĐT: <span className="font-bold">{candidate.phone || "chưa xác minh"}</span></p>
+                              <p>Email: <span className="font-bold">{candidate.email || (locale === "en" ? "unverified" : "chưa xác minh")}</span></p>
+                              <p>SĐT: <span className="font-bold">{candidate.phone || (locale === "en" ? "unverified" : "chưa xác minh")}</span></p>
                               {candidate.website && (
                                 <p className="truncate">Web: <span className="font-bold">{candidate.website}</span></p>
                               )}
@@ -1810,7 +1796,7 @@ export default function CaseDetailTimeline({
                       </div>
                       <div className="flex items-center justify-between gap-3 bg-white border border-primary-dark/20 rounded-2xl p-3">
                         <p className="text-[10px] text-slate-600 font-bold">
-                          Đã chọn <span className="font-bold text-primary-dark">{selectedDiscoveryCandidateIds.length}</span> NCC để đưa vào danh sách chính.
+                          {locale === "en" ? `Selected ${selectedDiscoveryCandidateIds.length} suppliers to add to the main list.` : `Đã chọn ${selectedDiscoveryCandidateIds.length} NCC để đưa vào danh sách chính.`}
                         </p>
                         <button
                           onClick={handlePromoteDiscoveryCandidates}
@@ -1818,7 +1804,7 @@ export default function CaseDetailTimeline({
                           className="px-4 py-2 bg-primary hover:bg-primary-dark text-white border border-primary-dark rounded-xl text-[10px] font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
                           {loadingAction === "promote_discovery_candidates" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                          Thêm vào danh sách chính
+                          {locale === "en" ? "Add to Main List" : "Thêm vào danh sách chính"}
                         </button>
                       </div>
                     </div>
@@ -1832,18 +1818,18 @@ export default function CaseDetailTimeline({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="space-y-1">
                       <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">
-                        Đề xuất nhà thầu phù hợp nhất ({filteredMatchedSuppliers.length}/{matchedSuppliers.length}):
+                        {locale === "en" ? `Recommended suppliers (${filteredMatchedSuppliers.length}/${matchedSuppliers.length}):` : `Đề xuất nhà thầu phù hợp nhất (${filteredMatchedSuppliers.length}/${matchedSuppliers.length}):`}
                       </h4>
                       <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold">
                         {isSupplierReranking ? (
                           <span className="inline-flex items-center gap-1.5 bg-amber-50 text-accent-dark border border-amber-200 px-2.5 py-1 rounded-full">
                             <RefreshCw className="w-3 h-3 animate-spin" />
-                            AI đang rerank top NCC...
+                            {locale === "en" ? "AI is reranking top suppliers..." : "AI đang rerank top NCC..."}
                           </span>
                         ) : llmRerankedCount > 0 ? (
                           <span className="inline-flex items-center gap-1.5 bg-primary-dark text-white border border-primary-dark px-2.5 py-1 rounded-full">
                             <Sparkles className="w-3 h-3" />
-                            AI đã rerank {llmRerankedCount} NCC{lastSupplierRerankedAt ? ` lúc ${lastSupplierRerankedAt}` : ""}
+                            {locale === "en" ? `AI reranked ${llmRerankedCount} suppliers${lastSupplierRerankedAt ? ` at ${lastSupplierRerankedAt}` : ""}` : `AI đã rerank ${llmRerankedCount} NCC${lastSupplierRerankedAt ? ` lúc ${lastSupplierRerankedAt}` : ""}`}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full">
@@ -1903,7 +1889,7 @@ export default function CaseDetailTimeline({
                       type="text"
                       value={supplierFilterKeyword}
                       onChange={(event) => setSupplierFilterKeyword(event.target.value)}
-                      placeholder="Lọc tên, email, tag..."
+                      placeholder={t("filterNameEmailTag")}
                       className="md:col-span-2 p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
                     />
                     <select
@@ -1911,31 +1897,31 @@ export default function CaseDetailTimeline({
                       onChange={(event) => setSupplierMinScore(Number(event.target.value))}
                       className="p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
                     >
-                      <option value={0}>Mọi điểm khớp</option>
-                      <option value={50}>Khớp từ 50%</option>
-                      <option value={70}>Khớp từ 70%</option>
-                      <option value={85}>Khớp từ 85%</option>
+                      <option value={0}>{t("allMatches")}</option>
+                      <option value={50}>{t("matchFrom50")}</option>
+                      <option value={70}>{t("matchFrom70")}</option>
+                      <option value={85}>{t("matchFrom85")}</option>
                     </select>
                     <select
                       value={supplierMinRating}
                       onChange={(event) => setSupplierMinRating(Number(event.target.value))}
                       className="p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
                     >
-                      <option value={0}>Mọi rating</option>
-                      <option value={3.5}>Rating từ 3.5</option>
-                      <option value={4}>Rating từ 4.0</option>
-                      <option value={4.5}>Rating từ 4.5</option>
+                      <option value={0}>{t("allRatings")}</option>
+                      <option value={3.5}>{t("ratingFrom3_5")}</option>
+                      <option value={4}>{t("ratingFrom4_0")}</option>
+                      <option value={4.5}>{t("ratingFrom4_5")}</option>
                     </select>
                     <select
                       value={supplierSourceFilter}
                       onChange={(event) => setSupplierSourceFilter(event.target.value)}
                       className="p-2 border border-slate-200 rounded-xl text-[11px] font-bold text-primary-dark focus:outline-none focus:border-accent-gold"
                     >
-                      <option value="all">Mọi nguồn</option>
-                      <option value="crm">CRM</option>
-                      <option value="manual">Thủ công</option>
-                      <option value="discovered">Discovered</option>
-                      <option value="crawled">Crawled</option>
+                      <option value="all">{t("allSources")}</option>
+                      <option value="crm">{t("crmSource")}</option>
+                      <option value="manual">{t("manualSource")}</option>
+                      <option value="discovered">{t("discoveredSource")}</option>
+                      <option value="crawled">{t("crawledSource")}</option>
                     </select>
                     <label className="md:col-span-5 flex items-center gap-2 text-[11px] font-bold text-slate-600">
                       <input
@@ -1944,7 +1930,7 @@ export default function CaseDetailTimeline({
                         onChange={(event) => setHideRiskySuppliers(event.target.checked)}
                         className="accent-accent-gold"
                       />
-                      Ẩn NCC có cảnh báo rủi ro
+                      {t("hideRiskySuppliers")}
                     </label>
                   </div>
                 </div>
@@ -1971,7 +1957,7 @@ export default function CaseDetailTimeline({
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs text-primary-dark truncate max-w-[150px]">{item.name}</span>
                           <span className="text-[9px] bg-primary-bg text-primary-dark px-1.5 py-0.5 rounded border border-primary font-mono font-bold">
-                            Khớp {item.score}%
+                            {t("matchPercent").replace("{score}", String(item.score))}
                           </span>
                         </div>
                         <p className="text-[10px] text-primary-dark/50 font-bold font-mono">{item.email}</p>
@@ -2018,7 +2004,7 @@ export default function CaseDetailTimeline({
                   ))}
                   {filteredMatchedSuppliers.length === 0 && (
                     <div className="md:col-span-2 bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center text-xs text-slate-500 font-bold">
-                      Không có NCC nào khớp bộ lọc hiện tại.
+                      {t("noSuppliersMatchFilter")}
                     </div>
                   )}
                 </div>
@@ -2030,9 +2016,9 @@ export default function CaseDetailTimeline({
                     <RefreshCw className="w-5 h-5 animate-spin" />
                   </div>
                   <div className="space-y-1 min-w-0">
-                    <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">Đang đồng bộ bản nháp RFQ...</p>
+                    <p className="text-sm font-bold text-primary-dark uppercase tracking-wider">{t("syncingRfqDrafts")}</p>
                     <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
-                      Hệ thống đang đồng bộ bản nháp RFQ theo template cho các NCC đã chọn.
+                      {t("syncingRfqDraftsDesc")}
                     </p>
                   </div>
                 </div>
@@ -2042,21 +2028,21 @@ export default function CaseDetailTimeline({
               {rfqDrafts.length > 0 && (
                 <div className="space-y-4 pt-4 border-t border-dashed border-primary/20">
                   <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-accent-gold" /> Dự thảo RFQ có kiểm duyệt:
+                    <Sparkles className="w-4 h-4 text-accent-gold" /> {t("moderatedRfqDraft")}
                   </h4>
                   <p className="text-[11px] text-slate-600 font-bold">
-                    Review nội dung, người nhận và điều kiện báo giá trước khi gửi. AI chỉ hỗ trợ soạn thảo, người mua là người chịu trách nhiệm phát hành.
+                    {t("rfqDraftReviewDesc")}
                   </p>
                   <div className="bg-coral-light/10 border border-coral/30 rounded-xl p-3 flex items-start gap-2 text-[11px] text-coral-dark font-bold leading-relaxed">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
-                      Kiểm tra mô tả sản phẩm/attachment lạ để tránh prompt injection. Với nhà cung cấp thật, ưu tiên email công ty đã cấu hình SPF/DKIM hoặc CC người phụ trách để giảm rủi ro vào spam.
+                      {t("rfqDraftRiskWarning")}
                     </span>
                   </div>
                   <div className="bg-amber-50 border border-accent-gold rounded-xl p-3 flex items-start gap-2 text-[11px] text-primary-dark font-bold leading-relaxed">
                     <Info className="w-4 h-4 text-accent-gold shrink-0 mt-0.5" />
                     <span>
-                      Chế độ test: email gửi thật sẽ được chuyển tới <strong>{RFQ_TEST_RECIPIENT}</strong>. Email NCC trong card là người nhận nghiệp vụ để theo dõi flow.
+                      {t("rfqDraftTestMode").replace("{recipient}", RFQ_TEST_RECIPIENT)}
                     </span>
                   </div>
                   
@@ -2068,14 +2054,14 @@ export default function CaseDetailTimeline({
                           onClick={() => beginEditDraft(d)}
                           className="px-3 py-1 bg-white hover:bg-primary-bg border border-primary-dark text-primary-dark rounded-full font-bold text-[10px] uppercase transition cursor-pointer"
                         >
-                          <Edit className="w-3.5 h-3.5" /> Biên tập thư
+                          <Edit className="w-3.5 h-3.5" /> {t("editMailBtn")}
                         </button>
                       </div>
 
                       {editingDraftId === d.id ? (
                         <div className="p-4 space-y-3 bg-white">
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-bold text-primary-dark uppercase">Tiêu đề email</label>
+                            <label className="text-[10px] font-bold text-primary-dark uppercase">{t("emailSubject")}</label>
                             <input 
                               type="text"
                               value={draftEditForm.subject}
@@ -2085,7 +2071,7 @@ export default function CaseDetailTimeline({
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="flex flex-col space-y-1">
-                              <label className="text-[10px] font-bold text-primary-dark uppercase">Lời chào</label>
+                              <label className="text-[10px] font-bold text-primary-dark uppercase">{t("emailGreeting")}</label>
                               <input
                                 type="text"
                                 value={draftEditForm.greeting}
@@ -2094,7 +2080,7 @@ export default function CaseDetailTimeline({
                               />
                             </div>
                             <div className="flex flex-col space-y-1">
-                              <label className="text-[10px] font-bold text-primary-dark uppercase">Hạn báo giá</label>
+                              <label className="text-[10px] font-bold text-primary-dark uppercase">{t("emailDueDate")}</label>
                               <input
                                 type="date"
                                 value={draftEditForm.dueDate}
@@ -2174,7 +2160,7 @@ export default function CaseDetailTimeline({
                           </div>
 
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-bold text-primary-dark uppercase">Nội dung ghi chú thêm</label>
+                            <label className="text-[10px] font-bold text-primary-dark uppercase">{t("emailNotes")}</label>
                             <textarea 
                               rows={8}
                               value={draftEditForm.notes}
@@ -2183,7 +2169,7 @@ export default function CaseDetailTimeline({
                             />
                           </div>
                           <div className="flex flex-col space-y-1">
-                            <label className="text-[10px] font-bold text-primary-dark uppercase">Chữ ký</label>
+                            <label className="text-[10px] font-bold text-primary-dark uppercase">{t("emailSignature")}</label>
                             <textarea
                               rows={4}
                               value={draftEditForm.signature}
@@ -2194,7 +2180,7 @@ export default function CaseDetailTimeline({
                           <div className="rounded-xl border border-primary-dark/20 overflow-hidden bg-cream">
                             <div className="px-3 py-2 border-b border-primary-dark/20 bg-white flex items-center gap-2">
                               <Mail className="w-4 h-4 text-primary" />
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-primary-dark">Preview người nhận</p>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-primary-dark">{t("recipientPreview")}</p>
                             </div>
                             <div className="p-3 space-y-2">
                               <p className="text-xs font-bold text-primary-dark break-words">{draftEditForm.subject}</p>
@@ -2224,14 +2210,14 @@ export default function CaseDetailTimeline({
                               disabled={savingDraftId === d.id}
                               className="px-4 py-1.5 bg-white hover:bg-slate-50 border border-primary-dark text-primary-dark rounded-full font-bold cursor-pointer uppercase disabled:opacity-50"
                             >
-                              Hủy
+                              {t("cancel")}
                             </button>
                             <button
                               onClick={() => handleSaveDraft(d.id)}
                               disabled={savingDraftId === d.id}
                               className="px-4 py-1.5 bg-primary text-white border border-primary-dark rounded-full font-bold cursor-pointer uppercase disabled:opacity-50"
                             >
-                              {savingDraftId === d.id ? "Đang lưu..." : "Lưu thầu"}
+                              {savingDraftId === d.id ? t("saving") : t("saveDraft")}
                             </button>
                           </div>
                         </div>
@@ -2240,7 +2226,7 @@ export default function CaseDetailTimeline({
                           <div className="flex items-start gap-2">
                             <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                             <div className="min-w-0">
-                              <p className="text-[10px] font-bold text-primary-dark/60 uppercase tracking-wider">Tiêu đề email</p>
+                              <p className="text-[10px] font-bold text-primary-dark/60 uppercase tracking-wider">{t("emailSubject")}</p>
                               <p className="text-xs font-bold text-primary-dark break-words">{d.subject}</p>
                             </div>
                           </div>
@@ -2260,9 +2246,9 @@ export default function CaseDetailTimeline({
                 <div className="text-[10px] text-primary-dark/60 font-bold uppercase tracking-wider">
                   {caseObj.status === "collecting_quotes" || caseObj.status === "rfq_sent" ? (
                     <span className="flex items-center gap-1.5 text-[#4F7942] bg-emerald-50 border border-success px-3.5 py-2 rounded-full shadow-sm">
-                      <Clock className="w-4 h-4 animate-spin" /> Đang nghe hòm thư phản hồi báo giá tự động...
+                      <Clock className="w-4 h-4 animate-spin" /> {t("listeningForQuotes")}
                     </span>
-                  ) : hasRfqDrafts ? "Review thư mời thầu trước khi gửi." : isRfqDraftSyncing ? "Đang đồng bộ bản nháp RFQ..." : "Vui lòng chọn NCC và nhấn phát thầu."}
+                  ) : hasRfqDrafts ? t("reviewRfqBeforeSend") : isRfqDraftSyncing ? t("syncingRfqDraft") : t("pleaseSelectSupplier")}
                 </div>
 
                 <div className="flex gap-3 w-full sm:w-auto">
@@ -2276,7 +2262,7 @@ export default function CaseDetailTimeline({
                           className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {loadingAction === "draft_rfq" || isRfqDraftSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                          {isRfqDraftSyncing ? "Đang đồng bộ RFQ" : "Soạn RFQ nháp"}
+                          {isRfqDraftSyncing ? t("syncingRfq") : t("draftRfq")}
                         </button>
                       ) : (
                         <button
@@ -2286,7 +2272,7 @@ export default function CaseDetailTimeline({
                           className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-md cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "send_rfqs" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                          Gửi thầu Gmail chính thức
+                          {t("sendOfficialGmailRfq")}
                         </button>
                       )}
                     </>
@@ -2300,7 +2286,7 @@ export default function CaseDetailTimeline({
                       }}
                       className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-cream border border-primary-dark text-primary-dark font-bold text-xs rounded-full transition transform active:scale-95 cursor-pointer uppercase tracking-wider shadow-sm"
                     >
-                      Đồng bộ hòm thư thầu 📩
+                      {t("syncQuoteInboxBtn")}
                     </button>
                   )}
                 </div>
@@ -2311,21 +2297,21 @@ export default function CaseDetailTimeline({
                 <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4.5 h-4.5 text-accent-gold animate-spin-slow" />
-                    <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Giả lập nhà cung cấp phản hồi thầu</h4>
+                    <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">{t("simulateSupplierResponseTitle")}</h4>
                   </div>
                   <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
-                    Để chạy demo khép kín, bạn có thể chọn một NCC giả lập nộp file báo giá. Hệ thống sẽ bóc tách dữ liệu AI OCR lập tức và lập bảng so sánh thầu!
+                      {t("simulateSupplierResponseDesc")}
                   </p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">NCC phản hồi thầu:</label>
+                      <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">{t("supplierRespondingLabel")}</label>
                       <select 
                         value={simSupplierId}
                         onChange={e => setSimSupplierId(e.target.value)}
                         className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                       >
-                        <option value="">-- Chọn NCC nộp thầu --</option>
+                        <option value="">{t("selectSupplierPlaceholderOption")}</option>
                         {matchedSuppliers.map(s => (
                           <option key={s.supplierId} value={s.supplierId}>{s.name} ({s.email})</option>
                         ))}
@@ -2333,7 +2319,7 @@ export default function CaseDetailTimeline({
                     </div>
 
                     <div className="flex flex-col space-y-1.5">
-                      <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">Tên file đính kèm (Báo giá PDF/Excel):</label>
+                      <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">{t("attachmentFilenameLabel")}</label>
                       <input 
                         type="text" 
                         value={simFile}
@@ -2344,10 +2330,10 @@ export default function CaseDetailTimeline({
                   </div>
 
                   <div className="flex flex-col space-y-1.5">
-                    <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">Nội dung thư phản hồi:</label>
+                    <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">{t("responseEmailBodyLabel")}</label>
                     <textarea 
                       rows={3}
-                      placeholder="Chào Stally F&B, chúng tôi phản hồi báo giá thầu chi tiết kèm theo..."
+                      placeholder={t("responseEmailPlaceholder")}
                       value={simEmailBody}
                       onChange={e => setSimEmailBody(e.target.value)}
                       className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark"
@@ -2361,7 +2347,7 @@ export default function CaseDetailTimeline({
                       className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                     >
                       {loadingAction === "simulate_quote" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-                      Giả lập nộp thầu (Simulate Webhook)
+                      {t("simulateSubmitQuoteBtn")}
                     </button>
                   </div>
                 </div>
@@ -2372,10 +2358,10 @@ export default function CaseDetailTimeline({
           {/* Milestone 3 View: Side-by-side Matrix and AI Negotiation */}
           {activeMilestone === 3 && (
             <div className="space-y-6">
-              {renderPermissionLock(["procurement"], "Đối Chiếu Báo Giá & AI Negotiation")}
+              {renderPermissionLock(["procurement"], t("quoteComparisonPermissionTitle"))}
               <div>
                 <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
-                  <Scale className="w-5 h-5 text-accent-dark" /> Bước 3: So sánh &amp; Thương lượng giá (AI Negotiation)
+                  <Scale className="w-5 h-5 text-accent-dark" /> {t("step3Title")}
                 </h3>
               </div>
 
@@ -2384,13 +2370,13 @@ export default function CaseDetailTimeline({
                   {/* AI Sourcing recommendation card (Gold glow) */}
                   <div className="bg-cream border border-primary-dark p-5 rounded-3xl shadow-accent-glow">
                     <p className="text-[9px] font-bold text-primary-dark uppercase tracking-widest font-mono flex items-center gap-1.5">
-                      <Award className="w-4.5 h-4.5 text-accent-dark" /> Đề xuất lựa chọn có kiểm soát
+                      <Award className="w-4.5 h-4.5 text-accent-dark" /> {t("controlledRecommendationTitle")}
                     </p>
                     <p className="text-xs text-primary-dark font-bold mt-2.5 leading-relaxed" dangerouslySetInnerHTML={{ __html: comparison.summary.recommendationReason }} />
                     {comparison.matrix.some((q: Quote) => quoteNeedsHumanReview(q)) && (
                       <div className="mt-3 bg-coral-light/10 border border-coral/30 rounded-xl p-3 text-[11px] text-coral-dark font-bold flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                        <span>Có báo giá bị red-flag. Không nên trình duyệt PO cho tới khi người mua đối chiếu file gốc/email gốc.</span>
+                        <span>{t("redFlagQuotesAlert")}</span>
                       </div>
                     )}
                   </div>
@@ -2399,7 +2385,7 @@ export default function CaseDetailTimeline({
                     <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                       <thead>
                         <tr className="bg-primary-bg border-b border-primary-dark font-bold text-[9px] text-primary-dark uppercase tracking-wider">
-                          <th className="p-3.5">Hồ sơ thầu</th>
+                          <th className="p-3.5">{t("matrixSupplierProfile")}</th>
                           {comparison.matrix.map((q: Quote) => (
                             <th key={q.id} className="p-3.5 border-l border-primary-dark/20 relative min-w-[200px]">
                               <div className="space-y-1">
@@ -2407,15 +2393,15 @@ export default function CaseDetailTimeline({
                                 <p className="text-[9px] font-mono text-primary-dark/50">ID: {q.id}</p>
                                 {q.negotiationStatus === "supplier_responded" && (
                                   <span className="inline-flex w-fit px-2 py-0.5 rounded bg-emerald-50 border border-emerald-500 text-[8px] text-emerald-700 font-bold uppercase tracking-wider">
-                                    Đã đồng ý đàm phán V{q.versionCount || 2}
+                                    {t("negotiationAgreedVersion").replace("{version}", String(q.versionCount || 2))}
                                   </span>
                                 )}
                                 {q.id === comparison.summary.recommendedQuoteId && !quoteNeedsHumanReview(q) && (
-                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-bold uppercase tracking-wider shadow-sm">Tối ưu nhất</span>
+                                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-accent-gold border border-primary-dark text-[8px] text-primary-dark font-bold uppercase tracking-wider shadow-sm">{t("bestQuote")}</span>
                                 )}
                                 {quoteNeedsHumanReview(q) && (
                                   <span className="inline-flex w-fit px-2 py-0.5 rounded bg-coral-light/10 border border-coral/40 text-[8px] text-coral-dark font-bold uppercase tracking-wider">
-                                    Cần review
+                                    {t("needsReview")}
                                   </span>
                                 )}
                               </div>
@@ -2425,7 +2411,7 @@ export default function CaseDetailTimeline({
                       </thead>
                       <tbody className="divide-y divide-primary-dark/10 text-primary-dark font-bold">
                         <tr className="bg-cream/20">
-                          <td className="p-3.5 bg-primary-bg/10">Tổng thanh toán thầu</td>
+                          <td className="p-3.5 bg-primary-bg/10">{t("totalPaymentLabel")}</td>
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-bold text-xs text-primary-dark">
                               {formatVND(q.totalAmount)}
@@ -2433,15 +2419,15 @@ export default function CaseDetailTimeline({
                           ))}
                         </tr>
                         <tr>
-                          <td className="p-3.5 bg-primary-bg/10">Lịch giao hàng dự kiến</td>
+                          <td className="p-3.5 bg-primary-bg/10">{t("deliveryScheduleLabel")}</td>
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-bold text-primary font-mono">
-                              {q.deliveryDays} ngày
+                              {q.deliveryDays} {t("days")}
                             </td>
                           ))}
                         </tr>
                         <tr>
-                          <td className="p-3.5 bg-primary-bg/10">Điều khoản công nợ</td>
+                          <td className="p-3.5 bg-primary-bg/10">{t("paymentTermsLabel")}</td>
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20 text-primary-dark/75">
                               {q.paymentTerms}
@@ -2449,7 +2435,7 @@ export default function CaseDetailTimeline({
                           ))}
                         </tr>
                         <tr>
-                          <td className="p-3.5 bg-primary-bg/10">Độ tin cậy & red-flag</td>
+                          <td className="p-3.5 bg-primary-bg/10">{t("confidenceRedFlagLabel")}</td>
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20 font-bold text-primary-dark">
                               <div className="font-mono text-accent-dark">{q.aiConfidenceScore}/100</div>
@@ -2463,13 +2449,13 @@ export default function CaseDetailTimeline({
                                   ))}
                                 </ul>
                               ) : (
-                                <span className="text-[9px] text-emerald-700">Đạt ngưỡng kiểm tra</span>
+                                <span className="text-[9px] text-emerald-700">{t("passedReviewThreshold")}</span>
                               )}
                             </td>
                           ))}
                         </tr>
                         <tr>
-                          <td className="p-3.5 bg-primary-bg/10">Trạng thái</td>
+                          <td className="p-3.5 bg-primary-bg/10">{t("status")}</td>
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20">
                               <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase font-mono ${
@@ -2477,18 +2463,18 @@ export default function CaseDetailTimeline({
                                 q.status === "rejected" ? "bg-coral-light/10 border-coral text-coral-dark" :
                                 "bg-accent-light/10 border-accent-gold text-accent-dark"
                               }`}>
-                                {q.status === "extracted" ? "Mới nhận" : q.status === "selected" ? "Được chọn" : "Đã loại"}
+                                {q.status === "extracted" ? t("quoteNewlyReceived") : q.status === "selected" ? t("quoteSelected") : t("quoteRejected")}
                               </span>
                               {q.negotiationStatus === "supplier_responded" && (
                                 <p className="mt-1.5 text-[9px] font-bold text-emerald-700">
-                                  NCC đã phản hồi đồng ý thương lượng
+                                  {t("supplierAgreedNegotiation")}
                                 </p>
                               )}
                             </td>
                           ))}
                         </tr>
                         <tr className="bg-primary-bg/5">
-                          <td className="p-3.5 bg-primary-bg/10">Thao tác</td>
+                          <td className="p-3.5 bg-primary-bg/10">{t("actions")}</td>
                           {comparison.matrix.map((q: Quote) => (
                             <td key={q.id} className="p-3.5 border-l border-primary-dark/20">
                               {caseObj.status !== "pending_approval" && caseObj.status !== "approved" && caseObj.status !== "closed" ? (
@@ -2500,7 +2486,7 @@ export default function CaseDetailTimeline({
                                       disabled={currentRole !== "procurement"}
                                       className="w-full py-1.5 bg-coral-light/10 hover:bg-coral-light/20 border border-coral/40 text-coral-dark font-bold text-[10px] rounded transition cursor-pointer text-center disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
                                     >
-                                      Tôi đã kiểm tra, cho phép trình duyệt
+                                      {t("confirmManualReviewAllowSubmit")}
                                     </button>
                                   ) : (
                                     <button
@@ -2509,18 +2495,18 @@ export default function CaseDetailTimeline({
                                       disabled={currentRole !== "procurement" || !quoteCanBeSubmitted(q)}
                                       className="w-full py-1.5 bg-primary-dark hover:bg-black text-white font-bold text-[10px] rounded transition cursor-pointer text-center disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                                     >
-                                      {quoteNeedsHumanReview(q) ? "Trình duyệt sau kiểm tra" : "Trình duyệt PO"}
+                                      {quoteNeedsHumanReview(q) ? t("submitAfterReview") : t("submitForPO")}
                                     </button>
                                   )}
                                   {quoteNeedsHumanReview(q) && reviewConfirmedQuoteIds.includes(q.id) && (
                                     <p className="text-[9px] text-emerald-700 font-bold flex items-center gap-1">
                                       <Check className="w-3 h-3" />
-                                      Đã xác nhận thủ công
+                                      {t("manualReviewConfirmed")}
                                     </p>
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-primary-dark/50 italic text-[9px] font-bold">Đã chọn duyệt</span>
+                                <span className="text-primary-dark/50 italic text-[9px] font-bold">{t("selected")}</span>
                               )}
                             </td>
                           ))}
@@ -2534,44 +2520,44 @@ export default function CaseDetailTimeline({
                     <div className="bg-cream border border-primary-dark p-5 rounded-3xl shadow-card space-y-4">
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="w-4.5 h-4.5 text-accent-dark animate-pulse" />
-                        <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">AI Negotiation Hub – Đàm phán giảm giá thông minh</h4>
+                        <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">{t("aiNegotiationHubTitle")}</h4>
                       </div>
                       <p className="text-xs text-primary-dark/85 font-medium leading-relaxed">
-                        Bạn chưa ưng ý mức giá của nhà thầu? Chọn NCC và đặt mục tiêu. Trợ lý AI sẽ lập tức soạn thảo email Gmail thương thảo chuyên sâu. Đối tác khi phản hồi giảm giá, hệ thống sẽ tự động cập nhật bảng so sánh!
+                        {t("aiNegotiationDesc")}
                       </p>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col space-y-1.5">
-                          <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">NCC đàm phán:</label>
+                          <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">{t("targetSupplier")}</label>
                           <select
                             value={selectedNegSupplier}
                             onChange={e => setSelectedNegSupplier(e.target.value)}
                             className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                           >
-                            <option value="">-- Chọn nhà cung cấp --</option>
+                            <option value="">{t("selectSupplierPlaceholder")}</option>
                             {negotiationSupplierOptions.map((supplier) => (
                               <option key={supplier.supplierId} value={supplier.supplierId}>
-                                {supplier.name}{supplier.hasQuote ? " - đã có báo giá" : " - chờ báo giá"}
+                                {supplier.name}{supplier.hasQuote ? ` - ${t("hasQuote")}` : ` - ${t("awaitingQuote")}`}
                               </option>
                             ))}
                           </select>
                           {negotiationSupplierOptions.length === 0 && (
                             <p className="text-[10px] font-bold text-coral-dark">
-                              Chưa có NCC hợp lệ trong RFQ để thương lượng. Hãy gửi RFQ hoặc kiểm tra lại danh sách NCC.
+                              {t("noValidSupplierForNeg")}
                             </p>
                           )}
                         </div>
 
                         <div className="flex flex-col space-y-1.5">
-                          <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">Mục tiêu thương lượng:</label>
+                          <label className="text-[9px] font-bold text-primary-dark uppercase tracking-wider">{t("negotiationGoal")}</label>
                           <select
                             value={negGoal}
                             onChange={e => setNegGoal(e.target.value)}
                             className="p-2.5 border border-primary-dark/30 bg-white rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
                           >
-                            <option value="discount_5">Yêu cầu chiết khấu thêm 5% giá trị</option>
-                            <option value="faster_delivery">Yêu cầu rút ngắn thời gian giao hàng</option>
-                            <option value="longer_terms">Yêu cầu kéo dài chu kỳ công nợ</option>
+                            <option value="discount_5">{t("negGoalDiscount5")}</option>
+                            <option value="faster_delivery">{t("negGoalFasterDelivery")}</option>
+                            <option value="longer_terms">{t("negGoalLongerTerms")}</option>
                           </select>
                         </div>
                       </div>
@@ -2584,14 +2570,14 @@ export default function CaseDetailTimeline({
                           className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           {negLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                          AI soạn thư đàm phán
+                          {t("aiDraftNegEmail")}
                         </button>
                       </div>
 
                       {negDraft && (
                         <div className="border border-primary-dark rounded-2xl bg-white p-4 space-y-3 shadow-md animate-scale-up">
                           <div className="flex flex-col space-y-1.5">
-                            <label className="text-[9px] font-bold text-primary-dark uppercase">Bản thảo email đàm phán nháp:</label>
+                            <label className="text-[9px] font-bold text-primary-dark uppercase">{t("aiDraftLabel")}</label>
                             <textarea 
                               rows={5}
                               value={negEditedBody}
@@ -2600,14 +2586,14 @@ export default function CaseDetailTimeline({
                             />
                           </div>
                           <div className="flex justify-end gap-2.5">
-                            <button onClick={() => setNegDraft(null)} className="px-4 py-1.5 bg-white hover:bg-slate-55 border border-primary-dark text-primary-dark rounded-full font-bold text-xs uppercase cursor-pointer">Hủy</button>
+                            <button onClick={() => setNegDraft(null)} className="px-4 py-1.5 bg-white hover:bg-slate-55 border border-primary-dark text-primary-dark rounded-full font-bold text-xs uppercase cursor-pointer">{t("cancel")}</button>
                             <button
                               onClick={handleSendNegotiation}
                               disabled={loadingAction !== null || currentRole !== "procurement"}
                               className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               {loadingAction === "send_neg" ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                              Gửi email Gmail
+                              {t("sendGmailEmail")}
                             </button>
                           </div>
                         </div>
@@ -2618,9 +2604,9 @@ export default function CaseDetailTimeline({
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
                   <AlertTriangle className="w-10 h-10 text-coral animate-bounce" />
-                  <h4 className="text-sm font-bold text-primary-dark uppercase tracking-wider">Chưa nhận được báo giá thầu nào!</h4>
+                  <h4 className="text-sm font-bold text-primary-dark uppercase tracking-wider">{t("noQuotesReceived")}</h4>
                   <p className="text-xs text-primary-dark/85 font-medium max-w-sm leading-relaxed">
-                    Vui lòng bấm sang Bước 2 và sử dụng "Cổng giả lập đối tác nộp báo giá" để gửi dữ liệu thầu giả lập, AI sẽ phân tích ngay lập tức.
+                    {t("noQuotesHint")}
                   </p>
                 </div>
               )}
@@ -2630,10 +2616,10 @@ export default function CaseDetailTimeline({
           {/* Milestone 4 View: Manager Approval Queue */}
           {activeMilestone === 4 && (
             <div className="space-y-6">
-              {renderPermissionLock(["manager"], "Giám Đốc Phê Duyệt Hồ Sơ Thầu")}
+              {renderPermissionLock(["manager"], t("directorApprovalTitle"))}
               <div>
                 <h3 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2 font-display">
-                  <Award className="w-5 h-5 text-accent-dark" /> Bước 4: Giám Đốc Phê Duyệt Hồ Sơ Thầu (CEO Review)
+                  <Award className="w-5 h-5 text-accent-dark" /> {t("step4Title")}
                 </h3>
               </div>
 
@@ -2641,19 +2627,19 @@ export default function CaseDetailTimeline({
                 <div className="space-y-6">
                   {/* Selected Quote Summary Card */}
                   <div className="bg-cream border border-primary-dark p-5 rounded-2xl space-y-3 shadow-md border-l-8 border-l-accent-gold">
-                    <h4 className="text-[10px] font-bold text-primary-dark uppercase tracking-widest">Hồ sơ thầu được đề xuất ký PO:</h4>
+                    <h4 className="text-[10px] font-bold text-primary-dark uppercase tracking-widest">{t("bidFilesAwaitingApproval")}</h4>
                     
                     {comparison.matrix.filter((q: Quote) => q.status === "selected" || q.id === caseObj.selectedQuoteId).map((q: Quote) => (
                       <div key={q.id} className="bg-white border border-primary-dark p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
                         <div className="space-y-1">
                           <p className="font-bold text-sm text-primary-dark uppercase tracking-wide">{q.supplierName}</p>
-                          <p className="text-[9px] text-primary-dark/50 font-bold font-mono">Báo giá: {q.id} | Thời gian giao: {q.deliveryDays} ngày</p>
+                          <p className="text-[9px] text-primary-dark/50 font-bold font-mono">{t("quote")}: {q.id} | {t("deliveryTime")}: {q.deliveryDays} {t("days")}</p>
                           <p className="text-xs text-primary-dark font-bold mt-1.5">
-                            Thanh toán: <span className="text-primary font-bold uppercase font-mono">{q.paymentTerms}</span>
+                            {t("payment")}: <span className="text-primary font-bold uppercase font-mono">{q.paymentTerms}</span>
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] font-bold text-primary-dark/50 uppercase leading-none">Tổng giá trị PO thầu:</p>
+                          <p className="text-[9px] font-bold text-primary-dark/50 uppercase leading-none">{t("totalPoAmountLabel")}</p>
                           <p className="text-base font-bold text-primary-dark font-mono mt-1.5">{formatVND(q.totalAmount)}</p>
                           {getNegotiationBadgeText(q) && (
                             <span className="text-[9px] bg-primary-bg text-primary border border-primary font-mono font-bold px-2 py-0.5 rounded-md mt-1 block w-fit ml-auto shadow-sm">
@@ -2665,7 +2651,7 @@ export default function CaseDetailTimeline({
                     ))}
 
                     {comparison.matrix.filter((q: Quote) => q.status === "selected" || q.id === caseObj.selectedQuoteId).length === 0 && (
-                      <p className="text-xs text-primary-dark/50 italic font-bold">Chưa có NCC nào được chọn đề xuất. Hãy quay lại Bước 3 để đề xuất.</p>
+                      <p className="text-xs text-primary-dark/50 italic font-bold">{t("noSupplierSelectedYet")}</p>
                     )}
                   </div>
 
@@ -2674,14 +2660,14 @@ export default function CaseDetailTimeline({
                     <div className="bg-surface-base border border-primary-dark p-5 rounded-2xl space-y-4 shadow-sm">
                       <div className="flex items-center gap-1.5">
                         <Info className="w-4.5 h-4.5 text-accent-dark animate-pulse" />
-                        <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Quyết định phê duyệt của Giám Đốc (CEO)</h4>
+                        <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">{t("approvalDecision")}</h4>
                       </div>
                       
                       <div className="flex flex-col space-y-1.5">
-                        <label className="text-[10px] font-bold text-primary-dark uppercase tracking-widest">Ý kiến phê duyệt hoặc lý do bác bỏ thầu:</label>
+                        <label className="text-[10px] font-bold text-primary-dark uppercase tracking-widest">{t("approvalNoteLabel")}</label>
                         <textarea 
                           rows={3}
-                          placeholder="Duyệt đơn vị này do tổng chi phí tốt nhất và giao nhận nhanh..."
+                          placeholder={t("approvalNotePlaceholder")}
                           value={approvalComment}
                           onChange={e => setApprovalComment(e.target.value)}
                           className="p-2.5 border border-primary-dark/30 bg-cream focus:border-primary-dark rounded-xl text-xs font-bold text-primary-dark focus:outline-none"
@@ -2695,7 +2681,7 @@ export default function CaseDetailTimeline({
                           className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "reject_po" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ThumbsDown className="w-3.5 h-3.5" />}
-                          Bác bỏ &amp; Đàm phán lại
+                          {t("rejectAndRenegotiate")}
                         </button>
                         <button
                           id="btn-manager-approve-case"
@@ -2704,19 +2690,19 @@ export default function CaseDetailTimeline({
                           className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
                         >
                           {loadingAction === "approve_po" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
-                          Ký duyệt phê duyệt đơn PO
+                          {t("signApprovePO")}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex justify-between items-center bg-cream border border-primary-dark p-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm">
-                      <span className="text-primary-dark/70">Trạng thái phê duyệt:</span>
+                      <span className="text-primary-dark/70">{t("approvalStatus")}:</span>
                       {["approved", "po_draft", "po_sent", "receiving", "closed"].includes(caseObj.status) ? (
                         <span className="text-success flex items-center gap-1">
-                          <CheckCircle2 className="w-4.5 h-4.5 text-success stroke-[3]" /> Đã được Giám Đốc phê duyệt ký PO!
+                          <CheckCircle2 className="w-4.5 h-4.5 text-success stroke-[3]" /> {t("approvedByDirector")}
                         </span>
                       ) : (
-                        <span className="text-primary-dark/50 italic">Đang đợi đề xuất thầu sắm trình lên...</span>
+                        <span className="text-primary-dark/50 italic">{t("waitingForBidProposal")}</span>
                       )}
                     </div>
                   )}
@@ -2731,7 +2717,7 @@ export default function CaseDetailTimeline({
                         className="px-5 py-3 bg-accent-gold hover:bg-accent-dark text-primary-dark border border-primary-dark font-bold text-xs rounded-full flex items-center gap-1.5 shadow-accent-glow transition transform active:scale-95 cursor-pointer animate-pulse uppercase tracking-wider"
                       >
                         {loadingAction === "po_draft" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-primary-dark" />}
-                        Tạo Đơn đặt hàng nháp PO
+                        {t("createPODraft")}
                       </button>
                     </div>
                   )}
@@ -2739,7 +2725,7 @@ export default function CaseDetailTimeline({
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
                   <AlertTriangle className="w-10 h-10 text-coral" />
-                  <h4 className="text-sm font-bold text-primary-dark uppercase">Không tìm thấy hồ sơ báo giá!</h4>
+                  <h4 className="text-sm font-bold text-primary-dark uppercase">{t("noBidFileFound")}</h4>
                 </div>
               )}
             </div>
@@ -2750,7 +2736,7 @@ export default function CaseDetailTimeline({
             <div className="space-y-6 animate-fade-slide-up">
               <div className="pb-2 border-b border-dashed border-primary/20">
                 <h3 className="text-base font-bold text-primary-dark flex items-center gap-2 font-display uppercase tracking-wider">
-                  <Boxes className="w-5 h-5 text-primary-light" /> Bước 5: Đơn Đặt Hàng PO &amp; Ghi Nhận Nhập Kho
+                  <Boxes className="w-5 h-5 text-primary-light" /> {t("step5Title")}
                 </h3>
               </div>
 
@@ -2761,13 +2747,13 @@ export default function CaseDetailTimeline({
                       <div className="flex justify-between items-start border-b border-dashed border-primary/20 pb-3 flex-wrap gap-2">
                         <div className="space-y-1">
                           <p className="text-[9px] bg-cream border border-primary-dark px-2 py-0.5 rounded text-primary-dark font-mono font-bold shadow-sm">PO CODE: {po.id.toUpperCase()}</p>
-                          <h4 className="font-bold text-sm text-primary-dark uppercase tracking-wider mt-2">Nhà cung ứng: {po.supplierName}</h4>
+                          <h4 className="font-bold text-sm text-primary-dark uppercase tracking-wider mt-2">{t("supplierLabel")} {po.supplierName}</h4>
                         </div>
                         <div className="text-right">
                           <span className={`px-2.5 py-0.5 rounded-full border text-[8px] font-bold uppercase font-mono ${
                             po.status === "confirmed" ? "bg-emerald-50 border-success text-success" : "bg-accent-light/10 border-accent-gold text-accent-dark"
                           }`}>
-                            {po.status === "confirmed" ? "Đã phát thầu" : "Nháp"}
+                            {po.status === "confirmed" ? t("poConfirmed") : t("poDraft")}
                           </span>
                           <p className="text-sm font-bold text-primary-dark font-mono mt-1">{formatVND(po.totalAmount)}</p>
                         </div>
@@ -2775,23 +2761,23 @@ export default function CaseDetailTimeline({
 
                       {/* PO Items List with Goods receipt fields */}
                       <div className="space-y-3">
-                        <p className="text-xs font-bold text-slate-700">Chi tiết sản phẩm đặt hàng (PO):</p>
+                        <p className="text-xs font-bold text-slate-700">{t("poItemDetails")}:</p>
                         
                         <div className="space-y-2.5">
                           {po.items.map((it, idx) => (
                             <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 flex justify-between items-center gap-4">
                               <div className="space-y-0.5 flex-1 pr-4">
                                 <p className="font-bold text-xs text-slate-900">{it.name}</p>
-                                <p className="text-[10px] text-slate-500 font-bold font-mono">Số lượng đặt: {it.quantity} {it.unit} | Đơn giá: {formatVND(it.unitPrice)}</p>
+                                <p className="text-[10px] text-slate-500 font-bold font-mono">{t("quantityOrdered")}: {it.quantity} {it.unit} | {t("unitPrice")}: {formatVND(it.unitPrice)}</p>
                               </div>
                               <div className="text-right shrink-0">
                                 <p className="text-xs font-mono font-bold text-slate-750">{formatVND(it.quantity * it.unitPrice)}</p>
                                 {caseObj.status === "closed" ? (
                                   <span className="text-[10px] font-bold text-emerald-700 mt-1 flex items-center gap-1 justify-end">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 animate-pulse" /> Đã nhập {it.quantity} {it.unit}
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 animate-pulse" /> {t("goodsReceived")} ({it.quantity} {it.unit})
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] font-bold text-accent-dark/80 mt-1 block">Chờ nhập kho</span>
+                                  <span className="text-[10px] font-bold text-accent-dark/80 mt-1 block">{t("waitingForReceipt")}</span>
                                 )}
                               </div>
                             </div>
@@ -2809,7 +2795,7 @@ export default function CaseDetailTimeline({
                             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                           >
                             {loadingAction === "send_po" ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                            Gửi thầu PO chính thức
+                            {t("sendOfficialPO")}
                           </button>
                         </div>
                       )}
@@ -2817,7 +2803,7 @@ export default function CaseDetailTimeline({
                       {po.status === "issued" && currentRole !== "procurement" && (
                         <div className="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-850 font-bold mt-3.5 flex items-center gap-2">
                           <Lock className="w-4 h-4 text-amber-600" />
-                          <span>Chỉ Nhân viên Thu Mua mới có quyền gửi đơn PO đặt hàng.</span>
+                          <span>{t("onlyProcurementCanSendPO")}</span>
                         </div>
                       )}
 
@@ -2831,7 +2817,7 @@ export default function CaseDetailTimeline({
                             className="w-full sm:w-auto px-6 py-3 bg-[#9A6A2F] hover:bg-[#1A1A1A] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {loadingAction === "receive_all" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Boxes className="w-4 h-4" />}
-                            Xác nhận Kiểm Kho &amp; Hoàn Tất Nhập Kho (1-Click)
+                            {t("confirmGoodsReceipt")}
                           </button>
                         </div>
                       )}
@@ -2839,7 +2825,7 @@ export default function CaseDetailTimeline({
                       {po.status === "confirmed" && caseObj.status !== "closed" && currentRole !== "warehouse" && (
                         <div className="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-850 font-bold mt-4 flex items-center gap-2">
                           <Lock className="w-4 h-4 text-amber-600" />
-                          <span>Chỉ Thủ Kho mới có quyền xác nhận thực nhận và nhập kho.</span>
+                          <span>{t("onlyWarehouseCanConfirm")}</span>
                         </div>
                       )}
                     </div>
@@ -2847,9 +2833,9 @@ export default function CaseDetailTimeline({
                 </div>
               ) : (
                 <div className="bg-cream border border-primary-dark p-5 rounded-2xl space-y-3 shadow-md">
-                  <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">Chưa tạo đơn đặt hàng PO chính thức:</h4>
+                  <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider">{t("noPOCreated")}</h4>
                   <p className="text-xs text-primary-dark/85 font-medium">
-                    CEO đã duyệt phê duyệt thầu? Hãy click khởi tạo Bản thảo PO thầu để chính thức tạo đơn hàng gửi nhà thầu.
+                    {t("ceoApprovedClickToCreatePO")}
                   </p>
                   
                   {caseObj.status === "po_draft" || caseObj.status === "approved" ? (
@@ -2860,18 +2846,18 @@ export default function CaseDetailTimeline({
                         className="px-5 py-3 bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md cursor-pointer disabled:opacity-50"
                       >
                         {loadingAction === "po_draft" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        Khởi tạo bản thảo Đơn PO
+                        {t("initPODraft")}
                       </button>
                       
                       {currentRole !== "procurement" && (
                         <div className="bg-amber-50 border border-amber-200/80 p-3.5 rounded-xl text-xs text-amber-850 font-bold mt-2 flex items-center gap-2">
                           <Lock className="w-4 h-4 text-amber-600" />
-                          <span>Chỉ Nhân viên Thu Mua mới có quyền khởi tạo bản thảo Đơn PO.</span>
+                          <span>{t("onlyProcurementCanInitPO")}</span>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="text-xs text-primary-dark/50 italic font-bold">Chờ duyệt thầu của Giám đốc ở Bước 4...</div>
+                    <div className="text-xs text-primary-dark/50 italic font-bold">{t("waitingDirectorApproval")}</div>
                   )}
                 </div>
               )}
@@ -2884,28 +2870,28 @@ export default function CaseDetailTimeline({
           
           {/* Metadata Card */}
           <div className="bg-white border border-primary-dark rounded-3xl p-5 shadow-card space-y-4">
-            <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider font-display pb-2 border-b border-dashed border-primary/20">Thông tin nguồn phát:</h3>
+            <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider font-display pb-2 border-b border-dashed border-primary/20">{t("sourcingOriginTitle")}</h3>
             
             <div className="space-y-3 text-xs text-primary-dark font-bold">
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
-                <span className="text-primary-dark/65 font-medium">Phòng ban đề xuất:</span>
+                <span className="text-primary-dark/65 font-medium">{t("requestingDepartment")}:</span>
                 <span className="text-primary-dark uppercase font-bold">{caseObj.departmentName || "Bộ phận Bếp"}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
-                <span className="text-primary-dark/65 font-medium">Người đề xuất:</span>
+                <span className="text-primary-dark/65 font-medium">{t("requester")}:</span>
                 <span className="text-primary-dark font-bold">{caseObj.requesterName || "Bếp Trưởng Bình"}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
-                <span className="text-primary-dark/65 font-medium">Khởi tạo tự động:</span>
+                <span className="text-primary-dark/65 font-medium">{t("autoInitiatedFrom")}:</span>
                 <span className="text-primary uppercase font-bold font-mono">{caseObj.createdFrom}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
-                <span className="text-primary-dark/65 font-medium">Hạn giao hàng bếp:</span>
+                <span className="text-primary-dark/65 font-medium">{t("kitchenDeadline")}:</span>
                 <span className="text-coral font-mono font-bold">{caseObj.requiredDate}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-primary-dark/65 font-medium">Ngày lập:</span>
-                <span className="text-primary-dark font-mono font-bold">{new Date(caseObj.createdAt).toLocaleDateString("vi-VN")}</span>
+                <span className="text-primary-dark/65 font-medium">{t("createdDate")}:</span>
+              <span className="text-primary-dark font-mono font-bold">{new Date(caseObj.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "vi-VN")}</span>
               </div>
             </div>
           </div>
@@ -2913,7 +2899,7 @@ export default function CaseDetailTimeline({
           {/* Audit event timeline transition logs (retro board game lines) */}
           <div className="bg-white border border-primary-dark rounded-3xl p-5 shadow-card space-y-4">
             <h3 className="text-xs font-bold text-primary-dark uppercase tracking-wider font-display pb-2 border-b border-dashed border-primary/20 flex items-center gap-1.5">
-              <History className="w-4.5 h-4.5 text-primary" /> Nhật ký chuyển đổi Case thầu
+              <History className="w-4.5 h-4.5 text-primary" /> {t("caseTransitionLog")}
             </h3>
 
             <div className="space-y-4 relative pl-4.5 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-1 before:bg-primary-dark/15 before:border-l before:border-dashed before:border-primary-dark/25">
@@ -2924,7 +2910,7 @@ export default function CaseDetailTimeline({
                   
                   <div className="flex justify-between items-center text-[10px]">
                     <span className="text-primary-dark font-bold uppercase tracking-wide">{getStatusLabel(t.toStatus)}</span>
-                    <span className="text-primary-dark/50 font-mono font-bold">{new Date(t.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-primary-dark/50 font-mono font-bold">{new Date(t.createdAt).toLocaleTimeString(locale === "en" ? "en-US" : "vi-VN", { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   
                   <p className="text-[10px] text-primary-dark/80 leading-relaxed font-bold">
@@ -2939,7 +2925,7 @@ export default function CaseDetailTimeline({
               ))}
               
               {timeline.length === 0 && (
-                <p className="text-[9.5px] text-primary-dark/50 font-bold italic text-center py-4">Chưa có nhật ký ghi chép thầu.</p>
+                <p className="text-[9.5px] text-primary-dark/50 font-bold italic text-center py-4">{t("noTransitionLogYet")}</p>
               )}
             </div>
           </div>

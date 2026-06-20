@@ -4,7 +4,6 @@ import {
   Plus, 
   Search, 
   Sparkles, 
-  Clock, 
   Layers, 
   CheckCircle2, 
   AlertTriangle, 
@@ -12,7 +11,6 @@ import {
   SlidersHorizontal,
   ChevronRight,
   GitPullRequest,
-  Send,
   Coins,
   ShieldCheck,
   FileCheck,
@@ -24,19 +22,22 @@ import {
 } from "lucide-react";
 import { UserRole, ProcurementCase, PurchaseRequestItem } from "../types";
 import { useToast } from "../context/ToastContext";
+import MetricCard from "./dashboard/MetricCard";
 
 interface ProcurementDashboardProps {
   currentRole: UserRole;
   orgId: string;
   onSelectCase: (caseId: string) => void;
   isActive?: boolean;
+  t: (key: any) => string;
 }
 
 export default function ProcurementDashboard({ 
   currentRole, 
   orgId, 
   onSelectCase,
-  isActive = true
+  isActive = true,
+  t
 }: ProcurementDashboardProps) {
 
   const { showToast } = useToast();
@@ -68,7 +69,7 @@ export default function ProcurementDashboard({
       setLoading(false);
     } catch (e) {
       console.error(e);
-      showToast("Không thể tải danh sách hồ sơ thầu.", "error");
+      showToast(t("errLoadCases"), "error");
       setLoading(false);
     }
   };
@@ -82,40 +83,40 @@ export default function ProcurementDashboard({
   const lanes = [
     {
       id: "intake",
-      title: "Đón nhận",
-      desc: "Standardize & Audit",
+      title: t("laneIntakeTitle"),
+      desc: t("laneIntakeDesc"),
       statuses: ["draft_request", "request_submitted", "request_validating"],
       bgColor: "bg-white/78 border border-primary-dark/10",
       accentColor: "border border-primary-dark/10 text-primary-dark bg-[#F2F0EA]"
     },
     {
       id: "sourcing",
-      title: "Chào thầu",
-      desc: "Supplier Matching",
+      title: t("laneSourcingTitle"),
+      desc: t("laneSourcingDesc"),
       statuses: ["supplier_matching", "rfq_draft", "rfq_sent", "collecting_quotes"],
       bgColor: "bg-white/78 border border-primary-dark/10",
       accentColor: "border border-primary-dark/10 text-primary-dark bg-[#F2F0EA]"
     },
     {
       id: "negotiation",
-      title: "Đàm phán",
-      desc: "AI negotiation v2",
+      title: t("laneNegotiationTitle"),
+      desc: t("laneNegotiationDesc"),
       statuses: ["quote_review", "comparison_ready", "negotiating"],
       bgColor: "bg-white/78 border border-primary-dark/10",
       accentColor: "border border-primary-dark/10 text-primary-dark bg-[#F2F0EA]"
     },
     {
       id: "approval",
-      title: "Duyệt PO",
-      desc: "Manager signature",
+      title: t("laneApprovalTitle"),
+      desc: t("laneApprovalDesc"),
       statuses: ["pending_approval", "approved", "po_draft"],
       bgColor: "bg-white/78 border border-primary-dark/10",
       accentColor: "border border-primary-dark/10 text-accent-dark bg-[#F2F0EA]"
     },
     {
       id: "fulfillment",
-      title: "Nhập kho",
-      desc: "Receipt & Delivery",
+      title: t("laneFulfillmentTitle"),
+      desc: t("laneFulfillmentDesc"),
       statuses: ["po_sent", "receiving", "closed", "cancelled", "exception"],
       bgColor: "bg-white/78 border border-primary-dark/10",
       accentColor: "border border-primary-dark/10 text-success bg-[#F2F0EA]"
@@ -152,12 +153,12 @@ export default function ProcurementDashboard({
 
   const handleCreateCase = async () => {
     if (!newTitle) {
-      showToast("Vui lòng nhập tên hồ sơ mua sắm.", "error");
+      showToast(t("errCaseTitleEmpty"), "error");
       return;
     }
     const cleanItems = initialItems.filter(it => it.name.trim() !== "");
     if (cleanItems.length === 0) {
-      showToast("Vui lòng thêm ít nhất 1 mặt hàng có tên.", "error");
+      showToast(t("errCaseItemsEmpty"), "error");
       return;
     }
 
@@ -171,7 +172,7 @@ export default function ProcurementDashboard({
           priority: newPriority,
           requiredDate: newRequiredDate || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           requesterName: "Bếp Trưởng Bình",
-          departmentName: "Bộ phận Bếp STALLY",
+          departmentName: t("deptKitchen") + " STALLY",
           createdFrom: "manual",
           items: cleanItems
         })
@@ -179,13 +180,13 @@ export default function ProcurementDashboard({
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
 
-      showToast("Đã khởi tạo quy trình thầu sắm Case mới thành công!", "success");
+      showToast(t("successCaseCreated"), "success");
       setShowCreateModal(false);
       setNewTitle("");
       setInitialItems([{ name: "", quantity: 1, unit: "kg", notes: "" }]);
       fetchCases();
     } catch (e: any) {
-      showToast(e.message || "Không thể tạo hồ sơ thầu.", "error");
+      showToast(e.message || t("errCaseCreateFailed"), "error");
     } finally {
       setCreating(false);
     }
@@ -202,90 +203,50 @@ export default function ProcurementDashboard({
 
   const getPriorityLabel = (p: string) => {
     switch (p) {
-      case "urgent": return "🚨 Khẩn";
-      case "high": return "⚠️ Cao";
-      case "medium": return "Vừa";
-      default: return "Thấp";
+      case "urgent": return t("casePriorityUrgent");
+      case "high": return t("casePriorityHigh");
+      case "medium": return t("casePriorityMedium");
+      default: return t("casePriorityLow");
     }
   };
 
   const getStatusSimpleLabel = (s: string) => {
-    const map: Record<string, string> = {
-      draft_request: "PR Nháp",
-      request_submitted: "Bếp đã gửi PR",
-      request_validating: "Xác minh",
-      supplier_matching: "Khớp NCC",
-      rfq_draft: "Soạn RFQ",
-      rfq_sent: "Đã gửi RFQ",
-      collecting_quotes: "Chờ báo giá",
-      quote_review: "Xem xét báo giá",
-      comparison_ready: "Sẵn sàng duyệt",
-      negotiating: "Đàm phán AI",
-      pending_approval: "Chờ CEO Duyệt",
-      approved: "Đã ký duyệt PO",
-      po_draft: "Soạn PO nháp",
-      po_sent: "Đã gửi PO",
-      receiving: "Đang nhận hàng",
-      closed: "Hoàn tất đóng",
-      cancelled: "Đã hủy bỏ",
-      exception: "Sự cố hao hụt"
-    };
-    return map[s] || s;
+    return t(`status_${s}` as any);
   };
 
   return (
     <div className="flex-1 flex flex-col space-y-5 select-none overflow-hidden h-full">
 
       {/* KPI summaries */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-        
-        <div className="lux-card p-5 flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="text-[9px] text-primary-dark/50 font-bold uppercase tracking-[0.22em] font-sans">Hồ sơ mua sắm</p>
-            <h3 className="text-3xl font-normal text-primary-dark font-display tracking-tight">{totalActiveCases}</h3>
-            <p className="text-[11px] text-primary-dark/55 font-medium">Đang vận hành</p>
-          </div>
-          <div className="p-2.5 rounded-full bg-primary-bg text-primary-dark border border-primary-dark/10">
-            <Layers className="w-5 h-5 text-primary-dark" />
-          </div>
-        </div>
-
-        <div className="lux-card p-5 flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="text-[9px] text-primary-dark/50 font-bold uppercase tracking-[0.22em] font-sans">Chờ duyệt PO</p>
-            <h3 className={`text-3xl font-normal font-display tracking-tight ${pendingApprovalCount > 0 ? "text-accent-dark" : "text-primary-dark"}`}>
-              {pendingApprovalCount}
-            </h3>
-            <p className="text-[11px] text-primary-dark/55 font-medium">Đợi manager ký</p>
-          </div>
-          <div className="p-2.5 rounded-full bg-accent-light/25 text-accent-dark border border-primary-dark/10">
-            <FileCheck className="w-5 h-5 text-accent-dark" />
-          </div>
-        </div>
-
-        <div className="lux-card p-5 flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="text-[9px] text-primary-dark/50 font-bold uppercase tracking-[0.22em] font-sans">Hao hụt &amp; Cảnh báo</p>
-            <h3 className={`text-3xl font-normal font-display tracking-tight ${exceptionCount > 0 ? "text-coral-dark" : "text-primary-dark"}`}>
-              {exceptionCount}
-            </h3>
-            <p className="text-[11px] text-primary-dark/55 font-medium">Cần xử lý</p>
-          </div>
-          <div className="p-2.5 rounded-full bg-coral-light/15 text-coral-dark border border-primary-dark/10">
-            <AlertTriangle className="w-5 h-5 text-coral-dark" />
-          </div>
-        </div>
-
-        <div className="lux-card p-5 flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="text-[9px] text-primary-dark/50 font-bold uppercase tracking-[0.22em] font-sans">Lô thầu đã đóng</p>
-            <h3 className="text-3xl font-normal text-success font-display tracking-tight">{totalCompletedCount}</h3>
-            <p className="text-[11px] text-primary-dark/55 font-medium">Hoàn tất nhập kho</p>
-          </div>
-          <div className="p-2.5 rounded-full bg-emerald-50 text-success border border-primary-dark/10">
-            <CheckCircle2 className="w-5 h-5 text-success" />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <MetricCard
+          label={t("kpiCasesTitle")}
+          value={totalActiveCases}
+          subtitle={t("kpiCasesDesc")}
+          icon={Layers}
+          tone="neutral"
+        />
+        <MetricCard
+          label={t("kpiPendingApprovalTitle")}
+          value={pendingApprovalCount}
+          subtitle={t("kpiPendingApprovalDesc")}
+          icon={FileCheck}
+          tone={pendingApprovalCount > 0 ? "warning" : "neutral"}
+        />
+        <MetricCard
+          label={t("kpiExceptionTitle")}
+          value={exceptionCount}
+          subtitle={t("kpiExceptionDesc")}
+          icon={AlertTriangle}
+          tone={exceptionCount > 0 ? "danger" : "neutral"}
+        />
+        <MetricCard
+          label={t("kpiClosedTitle")}
+          value={totalCompletedCount}
+          subtitle={t("kpiClosedDesc")}
+          icon={CheckCircle2}
+          tone="success"
+        />
       </div>
 
       {/* Interactive Controls & Filters */}
@@ -296,7 +257,7 @@ export default function ProcurementDashboard({
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <input 
               type="text" 
-              placeholder="Tìm thầu, mã case, bếp trưởng..."
+              placeholder={t("searchCasesPlaceholder")}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 border border-primary-dark/10 bg-[#F7F5F0] focus:border-accent-gold rounded-full text-xs font-medium text-primary-dark focus:outline-none transition-all"
@@ -307,17 +268,17 @@ export default function ProcurementDashboard({
           {/* Priority filter */}
           <div className="flex items-center space-x-1.5 text-xs font-bold text-primary-dark">
             <SlidersHorizontal className="w-4 h-4 text-accent-dark" />
-            <span>Mức ưu tiên:</span>
+            <span>{t("priorityLabel")}</span>
             <select
               value={priorityFilter}
               onChange={e => setPriorityFilter(e.target.value)}
               className="p-2 bg-[#F7F5F0] border border-primary-dark/10 rounded-full text-xs font-medium text-primary-dark focus:outline-none"
             >
-              <option value="all">Tất cả</option>
-              <option value="urgent">🚨 Khẩn cấp</option>
-              <option value="high">⚠️ Cao</option>
-              <option value="medium">Vừa</option>
-              <option value="low">Thấp</option>
+              <option value="all">{t("priorityAll")}</option>
+              <option value="urgent">{t("casePriorityUrgent")}</option>
+              <option value="high">{t("casePriorityHigh")}</option>
+              <option value="medium">{t("casePriorityMedium")}</option>
+              <option value="low">{t("casePriorityLow")}</option>
             </select>
           </div>
         </div>
@@ -327,7 +288,7 @@ export default function ProcurementDashboard({
             onClick={fetchCases}
             className="px-4 py-2.5 border border-primary-dark/15 bg-white hover:bg-primary-dark hover:text-white text-primary-dark font-bold text-xs rounded-full flex items-center gap-1.5 transition cursor-pointer shadow-sm"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Làm mới
+            <RefreshCw className="w-3.5 h-3.5" /> {t("refreshBtn")}
           </button>
           
           <button
@@ -335,13 +296,16 @@ export default function ProcurementDashboard({
             onClick={() => setShowCreateModal(true)}
             className="px-5 py-2.5 lux-button text-xs rounded-full flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
           >
-            <Plus className="w-4 h-4 text-primary-dark" /> Tạo thầu mới
+            <Plus className="w-4 h-4 text-primary-dark" /> {t("createCaseBtn")}
           </button>
         </div>
       </div>
 
       {/* 5-Lane Kanban Board Layout (Responsive smooth-scrolling Board) */}
-      <div className="flex flex-row gap-5 overflow-x-auto flex-1 pb-4 w-full select-none scroll-smooth min-h-0 relative">
+      <div
+        data-testid="procurement-kanban-board"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 flex-1 pb-4 w-full select-none min-h-0 relative overflow-hidden"
+      >
         {loading && (
           <div className="absolute inset-0 z-10 bg-white/55 backdrop-blur-[2px] flex items-center justify-center rounded-3xl border border-primary-dark/10">
             <div className="lux-card p-6 flex flex-col items-center gap-4 animate-scale-up">
@@ -349,7 +313,7 @@ export default function ProcurementDashboard({
                 <RefreshCw className="w-8 h-8 text-accent-dark animate-spin" />
                 <Sparkles className="w-4 h-4 text-accent-gold absolute top-0 right-0 animate-bounce" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary-dark font-mono">Đang nạp dữ liệu thầu...</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary-dark font-sans">{t("loadingCases")}</span>
             </div>
           </div>
         )}
@@ -359,13 +323,13 @@ export default function ProcurementDashboard({
           return (
             <div 
               key={lane.id} 
-              className={`w-[280px] sm:w-[320px] shrink-0 p-4 rounded-[2rem] flex flex-col space-y-4 h-full overflow-hidden ${lane.bgColor} relative shadow-sm`}
+              className={`min-w-0 p-3 rounded-2xl flex flex-col space-y-3 h-full overflow-hidden ${lane.bgColor} relative shadow-sm`}
             >
               {/* Lane Header */}
-              <div className={`p-3.5 rounded-2xl flex justify-between items-center ${lane.accentColor}`}>
+              <div className={`p-3 rounded-xl flex justify-between items-center ${lane.accentColor}`}>
                 <div className="overflow-hidden">
-                  <h4 className="text-sm font-display font-normal tracking-tight truncate leading-none">{lane.title}</h4>
-                  <span className="text-[8px] text-primary-dark/45 font-bold font-sans tracking-[0.2em] mt-1 block uppercase leading-none">{lane.desc}</span>
+                  <h4 className="text-sm font-display font-bold tracking-tight truncate leading-none">{lane.title}</h4>
+                  <span className="text-[8px] text-primary-dark/45 font-medium font-sans tracking-[0.2em] mt-1 block uppercase leading-none">{lane.desc}</span>
                 </div>
                 <span className="text-xs font-bold font-mono bg-white px-2 py-0.5 rounded-full border border-primary-dark/10 shadow-sm shrink-0">
                   {laneCases.length}
@@ -379,7 +343,7 @@ export default function ProcurementDashboard({
                     key={c.id}
                     id={laneCases.indexOf(c) === 0 ? "case-card-first" : undefined}
                     onClick={() => onSelectCase(c.id)}
-                    className="bg-white border border-primary-dark/10 p-4 rounded-3xl shadow-card hover:shadow-accent-glow transition-all cursor-pointer space-y-3 flex flex-col group relative overflow-hidden duration-200 border-l-4"
+                    className="bg-white border border-primary-dark/10 p-3 rounded-2xl shadow-card hover:shadow-accent-glow transition-all cursor-pointer space-y-2.5 flex flex-col group relative overflow-hidden duration-200 border-l-4"
                     style={{
                       borderLeftColor: 
                         c.priority === "urgent" ? "#B85B3F" :
@@ -402,8 +366,8 @@ export default function ProcurementDashboard({
                     </div>
 
                     {/* Items snippet (Cream background container) */}
-                    <div className="bg-[#F7F5F0] border border-primary-dark/10 p-2.5 rounded-2xl space-y-1.5">
-                      <p className="text-[8px] font-bold text-primary-dark/45 uppercase tracking-widest leading-none">Vật tư yêu cầu ({c.items.length}):</p>
+                    <div className="bg-[#F7F5F0] border border-primary-dark/10 p-2 rounded-xl space-y-1.5">
+                      <p className="text-[8px] font-bold text-primary-dark/45 uppercase tracking-widest leading-none">{t("itemsRequiredCount").replace("{count}", String(c.items.length))}</p>
                       <div className="space-y-0.5">
                         {c.items.slice(0, 2).map((it, idx) => (
                           <p key={idx} className="text-[10px] font-bold text-primary-dark truncate leading-normal">
@@ -411,13 +375,13 @@ export default function ProcurementDashboard({
                           </p>
                         ))}
                         {c.items.length > 2 && (
-                          <p className="text-[9px] font-bold text-primary-dark/50 italic font-mono pl-2 leading-none">và {c.items.length - 2} hàng khác...</p>
+                          <p className="text-[9px] font-bold text-primary-dark/50 italic font-sans pl-2 leading-none">{t("moreItemsCount").replace("{count}", String(c.items.length - 2))}</p>
                         )}
                       </div>
                     </div>
 
                     {/* Bottom Metadata row */}
-                    <div className="flex justify-between items-center text-[9.5px] text-primary-dark/60 font-bold border-t border-primary-dark/10 pt-2.5 mt-1 uppercase tracking-wider">
+                    <div className="flex justify-between items-center text-[9.5px] text-primary-dark/60 font-bold border-t border-primary-dark/10 pt-2 mt-1 uppercase tracking-wider">
                       <span className="truncate max-w-[90px]">{c.requesterName.split(' ')[0]}</span>
                       <span className="font-mono text-[8px] bg-cream px-2 py-0.5 rounded-full border border-primary-dark/10">{getStatusSimpleLabel(c.status)}</span>
                     </div>
@@ -427,7 +391,7 @@ export default function ProcurementDashboard({
                 {laneCases.length === 0 && (
                   <div className="flex flex-col items-center justify-center p-6 border border-dashed border-primary-dark/15 rounded-3xl h-32 text-center text-primary-dark/40 font-bold text-[10px] space-y-1">
                     <FolderOpen className="w-6 h-6 text-primary-light" />
-                    <span>LÀN TRỐNG</span>
+                    <span>{t("emptyLane")}</span>
                   </div>
                 )}
               </div>
@@ -445,7 +409,7 @@ export default function ProcurementDashboard({
             <div className="p-5 border-b border-primary-dark/10 flex justify-between items-center bg-cream">
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-accent-dark" />
-                <h3 className="text-xl font-normal text-primary-dark font-display tracking-tight">Khởi tạo case thu mua</h3>
+                <h3 className="text-xl font-normal text-primary-dark font-display tracking-tight">{t("createCaseModalTitle")}</h3>
               </div>
               <button 
                 onClick={() => setShowCreateModal(false)}
@@ -460,10 +424,10 @@ export default function ProcurementDashboard({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col space-y-1.5">
-                  <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">Tiêu đề thầu sắm:</label>
+                  <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">{t("fieldCaseTitle")}</label>
                   <input 
                     type="text" 
-                    placeholder="Ví dụ: Cung ứng hải sản tươi sống ca tối"
+                    placeholder={t("placeholderCaseTitle")}
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
                     className="p-2.5 border border-primary-dark/10 bg-cream rounded-2xl text-xs font-medium text-primary-dark focus:outline-none focus:border-accent-gold"
@@ -471,7 +435,7 @@ export default function ProcurementDashboard({
                 </div>
 
                 <div className="flex flex-col space-y-1.5">
-                  <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">Hạn nhận hàng dự kiến:</label>
+                  <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">{t("fieldExpectedDelivery")}</label>
                   <input 
                     type="date" 
                     value={newRequiredDate}
@@ -482,13 +446,13 @@ export default function ProcurementDashboard({
               </div>
 
               <div className="flex flex-col space-y-1.5">
-                <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">Độ ưu tiên thầu:</label>
+                <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">{t("fieldCasePriority")}</label>
                 <div className="grid grid-cols-4 gap-2 text-xs font-bold text-center uppercase tracking-wider">
                   {[
-                    { val: "low", label: "Thấp" },
-                    { val: "medium", label: "Vừa" },
-                    { val: "high", label: "Cao ⚠️" },
-                    { val: "urgent", label: "Khẩn 🚨" }
+                    { val: "low", label: t("casePriorityLow") },
+                    { val: "medium", label: t("casePriorityMedium") },
+                    { val: "high", label: t("casePriorityHigh") },
+                    { val: "urgent", label: t("casePriorityUrgent") }
                   ].map((opt) => (
                     <button
                       key={opt.val}
@@ -508,12 +472,12 @@ export default function ProcurementDashboard({
               {/* Items checklist editor */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">Danh mục mặt hàng ban đầu:</label>
+                  <label className="text-[10px] font-bold text-primary-dark uppercase tracking-[0.22em]">{t("fieldInitialItems")}</label>
                   <button
                     onClick={handleAddInitialItem}
                     className="p-1 px-3 text-[10px] bg-primary-bg hover:bg-accent-gold border border-primary-dark/10 text-primary-dark font-bold uppercase rounded-full tracking-wider transition cursor-pointer"
                   >
-                    + Thêm hàng
+                    {t("addInitialItemBtn")}
                   </button>
                 </div>
 
@@ -523,7 +487,7 @@ export default function ProcurementDashboard({
                       <div className="sm:col-span-5 flex flex-col space-y-1">
                         <input 
                           type="text" 
-                          placeholder="Tên nguyên liệu..."
+                          placeholder={t("placeholderItemName")}
                           value={item.name}
                           onChange={e => handleItemFieldChange(idx, "name", e.target.value)}
                           className="p-2 border border-primary-dark/10 bg-cream focus:border-accent-gold rounded-2xl text-xs font-medium text-primary-dark focus:outline-none"
@@ -532,7 +496,7 @@ export default function ProcurementDashboard({
                       <div className="sm:col-span-3 flex flex-col space-y-1">
                         <input 
                           type="number" 
-                          placeholder="SL"
+                          placeholder={t("placeholderItemQty")}
                           value={item.quantity}
                           onChange={e => handleItemFieldChange(idx, "quantity", Number(e.target.value))}
                           className="p-2 border border-primary-dark/10 bg-cream focus:border-accent-gold rounded-2xl text-xs font-mono font-bold text-center focus:outline-none"
@@ -544,11 +508,11 @@ export default function ProcurementDashboard({
                           onChange={e => handleItemFieldChange(idx, "unit", e.target.value)}
                           className="p-2 border border-primary-dark/10 bg-cream focus:border-accent-gold rounded-2xl text-xs font-bold text-primary-dark focus:outline-none"
                         >
-                          <option value="kg">kg</option>
-                          <option value="bao">bao</option>
-                          <option value="hộp">hộp</option>
-                          <option value="chai">chai (5L)</option>
-                          <option value="đv">đơn vị</option>
+                          <option value="kg">{t("optionUnitKg")}</option>
+                          <option value="bao">{t("optionUnitBag")}</option>
+                          <option value="hộp">{t("optionUnitBox")}</option>
+                          <option value="chai">{t("optionUnitBottle")}</option>
+                          <option value="đv">{t("optionUnitUnit")}</option>
                         </select>
                       </div>
                       <div className="sm:col-span-1 text-center">
@@ -572,7 +536,7 @@ export default function ProcurementDashboard({
                 onClick={() => setShowCreateModal(false)}
                 className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-primary-dark/15 text-primary-dark font-bold text-xs rounded-full uppercase tracking-wider cursor-pointer"
               >
-                Hủy bỏ
+                {t("cancelBtn")}
               </button>
               <button
                 onClick={handleCreateCase}
@@ -580,7 +544,7 @@ export default function ProcurementDashboard({
                 className="px-6 py-2.5 lux-button text-xs rounded-full flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
               >
                 {creating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                Khởi tạo thầu
+                {t("createCaseSubmitBtn")}
               </button>
             </div>
           </div>

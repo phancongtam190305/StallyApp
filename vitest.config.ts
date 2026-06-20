@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/backend/__tests__/**/*.test.ts"],
+    include: ["src/backend/__tests__/**/*.test.ts", "src/**/*.test.ts"],
     env: {
       VERCEL: "1",
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/stally",

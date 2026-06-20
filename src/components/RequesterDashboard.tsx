@@ -567,7 +567,6 @@ export default function RequesterDashboard({
             <div className="flex items-center gap-2 text-xs font-bold text-primary-dark uppercase tracking-wider">
               <span>📋</span> Lịch Sử Giao Nhận & Đặt Thầu ({filteredPrs.length})
             </div>
-            <span className="text-[9px] bg-cream border border-primary-dark/30 text-primary-dark/70 font-mono font-bold px-2 py-0.5 rounded-md">Cách ly: org-1</span>
           </div>
 
           {filteredPrs.length === 0 ? (

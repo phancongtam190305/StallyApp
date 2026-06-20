@@ -30,6 +30,9 @@ interface RfqComparisonProps {
   onCreateRfq: (prId: string, supplierIds: string[]) => Promise<{ ok: boolean; message: string; details?: string }>;
   onApproveQuote: (rfqId: string, quoteId: string) => void;
   onSimulateInboundEmail: (rfqCaseId: string, supplierId: string, bodyText: string, filename: string) => void;
+  onOpenPurchaseRequests: () => void;
+  t: (key: any) => string;
+  locale: "vi" | "en";
 }
 
 export interface MatchedSupplier {
@@ -46,9 +49,25 @@ export default function RfqComparison({
   currentRole,
   onCreateRfq,
   onApproveQuote,
-  onSimulateInboundEmail
+  onSimulateInboundEmail,
+  onOpenPurchaseRequests,
+  t,
+  locale
 }: RfqComparisonProps) {
   const showDevTools = import.meta.env.VITE_ENABLE_DEV_TOOLS === "true";
+
+  const translateRiskFlag = (flag: string): string => {
+    if (flag.includes("dưới ngưỡng")) {
+      const scoreMatch = flag.match(/cậy (\d+)\/100/);
+      const score = scoreMatch ? scoreMatch[1] : "0";
+      return t("riskConfidenceUnderThreshold").replace("{score}", score);
+    }
+    if (flag.includes("Tổng tiền không hợp lệ")) return t("riskInvalidTotalAmount");
+    if (flag.includes("Tổng tiền quá nhỏ")) return t("riskTotalAmountTooSmall");
+    if (flag.includes("Thiếu điều khoản")) return t("riskMissingPaymentTerms");
+    if (flag.includes("thiếu đơn giá")) return t("riskMissingUnitPrice");
+    return flag;
+  };
 
   const [matches, setMatches] = useState<MatchedSupplier[]>([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
@@ -265,19 +284,23 @@ Tất cả báo giá hiện có đang có red-flag hoặc thiếu dữ liệu qu
           return;
         }
 
-        adviceHtml = `### KIỂM SOÁT BÁO GIÁ & ĐỀ XUẤT CHỌN NHÀ CUNG CẤP
+        const amountLow = lowPriceQuote.totalAmount.toLocaleString();
+        const daysLow = lowPriceQuote.deliveryDays;
+        const daysFast = fastDeliveryQuote.deliveryDays;
 
-Dựa trên các báo giá không có red-flag, hệ thống đề xuất phương án để phòng mua hàng kiểm tra và lưu audit trail:
+        adviceHtml = `### ${t("aiAdviceTitle")}
 
-1. **Đề xuất tối ưu nhất: ${lowPriceQuote.supplierName}**
-   - **Ưu điểm:** Giá trị đơn đặt hàng thấp nhất (${lowPriceQuote.totalAmount.toLocaleString()}đ, bao gồm VAT). Tiết kiệm chi phí kho tối ưu.
-   - **Hạn chế:** Thời gian giao hàng là ${lowPriceQuote.deliveryDays} ngày (chậm hơn đối thủ).
+${t("aiAdviceHeader")}
+
+1. **${t("aiAdviceOption1Title").replace("{supplier}", lowPriceQuote.supplierName)}**
+   - **${locale === "en" ? "Pros" : "Ưu điểm"}:** ${t("aiAdviceOption1Pros").replace("{amount}", amountLow)}
+   - **${locale === "en" ? "Cons" : "Hạn chế"}:** ${t("aiAdviceOption1Cons").replace("{days}", String(daysLow))}
    
-2. **Phương án khẩn cấp: ${fastDeliveryQuote.supplierName}**
-   - **Ưu điểm:** Giao hàng cực kỳ nhanh chóng (${fastDeliveryQuote.deliveryDays} ngày). Đảm bảo vận hành bếp ngay.
-   - **Hạn chế:** Chi phí tổng thể nhỉnh hơn khoảng 8-10%.
+2. **${t("aiAdviceOption2Title").replace("{supplier}", fastDeliveryQuote.supplierName)}**
+   - **${locale === "en" ? "Pros" : "Ưu điểm"}:** ${t("aiAdviceOption2Pros").replace("{days}", String(daysFast))}
+   - **${locale === "en" ? "Cons" : "Hạn chế"}:** ${t("aiAdviceOption2Cons")}
 
-**Khuyến nghị:** Chỉ trình duyệt **${lowPriceQuote.supplierName}** sau khi người mua kiểm tra các dòng red-flag, file gốc và điều khoản thanh toán.`;
+**${locale === "en" ? "Recommendation" : "Khuyến nghị"}:** ${t("aiAdviceRecommendation").replace("{supplier}", lowPriceQuote.supplierName)}`;
         
         setAiAdvice(adviceHtml);
         setGeneratingAdvice(false);
@@ -299,12 +322,12 @@ Dựa trên các báo giá không có red-flag, hệ thống đề xuất phươ
   const handleCreateRfqClick = async () => {
     if (!selectedPr) return;
     if (selectedSuppliers.length === 0) {
-      alert("Vui lòng chọn ít nhất 1 nhà cung cấp để phát hành yêu cầu báo giá.");
+      alert(t("errSelectAtLeastOneSupplier"));
       return;
     }
     setSendingRfq(true);
     setRfqMessageType("info");
-    setRfqCreatedMessage("Đang gửi email RFQ thật tới nhà cung cấp...");
+    setRfqCreatedMessage(t("sendingRfqEmailProgress"));
 
     const result = await onCreateRfq(selectedPr.id, selectedSuppliers);
     setSendingRfq(false);
@@ -321,7 +344,14 @@ Dựa trên các báo giá không có red-flag, hệ thống đề xuất phươ
     const supObj = suppliers.find(s => s.id === supplierId);
     const randUnitPrice = supplierId === "sup-1" ? 25000 : supplierId === "sup-2" ? 27000 : 29000;
     
-    const simulatedMailBody = `Xin chào Ban Mua Sắm Stally F&B,
+    const simulatedMailBody = locale === "en"
+      ? `Dear Stally F&B Procurement team,
+We are submitting our quotation in response to RFQ #${currentRfq.id}.
+Quoted items:
+${selectedPr ? selectedPr.items.map(it => `- ${it.name}: Price ${randUnitPrice}đ/${it.unit}.`).join("\n") : ""}
+Shipping 80k. Delivery today.
+Attachment: quote_${supplierId}.pdf`
+      : `Xin chào Ban Mua Sắm Stally F&B,
 Chúng tôi xin nộp bảng chào giá phản hồi cho RFQ #${currentRfq.id}.
 Các hạng mục báo giá:
 ${selectedPr ? selectedPr.items.map(it => `- ${it.name}: Giá trị ${randUnitPrice}đ/${it.unit}.`).join("\n") : ""}
@@ -339,17 +369,45 @@ Vận chuyển 80k. Giao hàng trong ngày.
   return (
     <div className="space-y-6 animate-fade-slide-up">
       {/* Title */}
-      <div>
-        <h2 className="text-3xl font-normal font-display text-[#1A1A1A] tracking-tight">Vòng thầu &amp; So sánh RFQ</h2>
-        <p className="text-xs text-slate-500 mt-1">Ghép nối nhà cung cấp tối ưu, tự động gửi RFQ và phân tích báo giá bằng AI.</p>
+      <div className="enterprise-section p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent-dark font-extrabold">{t("rfqTitle")}</p>
+          <h2 className="text-2xl font-extrabold font-display text-[#1A1A1A] tracking-tight">{t("rfqCompareTitle")}</h2>
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            {t("rfqCompareDesc")}
+          </p>
+        </div>
+        <span className="text-[10px] px-3 py-1.5 rounded-xl border border-coral/25 bg-coral-light/10 text-coral-dark font-bold uppercase tracking-wider">
+          {t("aiConfidenceWarning")}
+        </span>
+      </div>
+      <div className="sr-only">
+        <h2 className="text-3xl font-normal font-display text-[#1A1A1A] tracking-tight">{t("rfqCompareTitle")}</h2>
+        <p className="text-xs text-slate-500 mt-1">{t("rfqCompareDesc")}</p>
       </div>
 
       {!selectedPr ? (
-        <div className="text-center py-20 lux-card space-y-4 max-w-4xl mx-auto">
-          <Building2 className="w-12 h-12 text-[#1A1A1A]/30 mx-auto" />
-          <p className="text-slate-700 text-sm font-extrabold">Chưa chọn yêu cầu mua sắm để so sánh đấu thầu.</p>
-          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Hãy truy cập danh sách <strong className="text-accent-dark">Yêu cầu mua sắm (PR)</strong>, chọn một phiếu yêu cầu bất kỳ và bấm băm nút <strong className="font-semibold text-primary-dark">"Tiếp quản &amp; Khảo giá NCC (RFQ)"</strong>.
+        <div className="text-center py-16 lux-card space-y-5 max-w-4xl mx-auto px-6">
+          <div className="space-y-2">
+            <p className="text-slate-800 text-base font-extrabold">{t("prSelectTitle")}</p>
+            <p className="text-xs text-slate-500 max-w-xl mx-auto leading-relaxed">
+              {t("prDemoFlowText")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenPurchaseRequests}
+            className="inline-flex items-center justify-center gap-2 bg-[#111827] hover:bg-black text-white px-4 py-2.5 rounded-xl text-xs font-bold transition"
+          >
+            {t("prOpenListBtn")}
+          </button>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.18em]">
+            {t("auditTrailLabel")}
+          </p>
+          <Building2 className="hidden w-12 h-12 text-[#1A1A1A]/30 mx-auto" />
+          <p className="sr-only">Chưa chọn yêu cầu mua sắm để so sánh đấu thầu.</p>
+          <p className="sr-only">
+            Hãy truy cập danh sách <strong className="text-accent-dark">Yêu cầu mua sắm (PR)</strong>, chọn một phiếu yêu cầu bất kỳ và bấm nút <strong className="font-semibold text-primary-dark">"Tiếp quản &amp; Khảo giá NCC (RFQ)"</strong>.
           </p>
         </div>
       ) : (
@@ -358,11 +416,11 @@ Vận chuyển 80k. Giao hàng trong ngày.
           <div className="lg:col-span-4 space-y-5">
             <div className="lux-card p-5 space-y-4">
               <div className="border-b border-slate-150 pb-3">
-                <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-mono font-bold text-accent-dark uppercase tracking-wider">Bước 1: Sourcing gợi ý</span>
+                <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-mono font-bold text-accent-dark uppercase tracking-wider">{t("step1SourcingTitle")}</span>
                 <h3 className="text-xs font-bold text-slate-700 mt-2 flex items-center gap-1.5">
-                  <Cpu className="w-4 h-4 text-accent-dark" /> AI Đề xuất nhà cung ứng phù hợp
+                  <Cpu className="w-4 h-4 text-accent-dark" /> {t("aiMatchingTitle")}
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-1">Tìm kiếm dựa trên lịch sử giao dịch và chất lượng thầu.</p>
+                <p className="text-[11px] text-slate-400 mt-1">{t("sourcingDescription")}</p>
               </div>
 
               {rfqCreatedMessage && (
@@ -380,7 +438,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
               {loadingMatches ? (
                 <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin text-accent-dark" />
-                  <span>AI đang ghép cặp hồ sơ thương mại đối tác...</span>
+                  <span>{t("aiMatchingProgress")}</span>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -434,7 +492,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   }`}
                 >
                   {sendingRfq ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  {sendingRfq ? "Đang gửi RFQ..." : "Gửi Yêu cầu Báo giá (RFQ)"}
+                  {sendingRfq ? t("sendingRfqProgress") : t("sendingRfqText")}
                 </button>
               )}
             </div>
@@ -443,9 +501,9 @@ Vận chuyển 80k. Giao hàng trong ngày.
             {showDevTools && currentRfq && (
               <div className="lux-card p-5 space-y-4">
                 <div className="border-b border-slate-150 pb-3">
-                  <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-700 font-mono font-bold uppercase tracking-wider">Hộp Thử nghiệm</span>
-                  <h3 className="text-xs font-bold text-slate-705 mt-2">Mô phỏng Email báo giá nộp về</h3>
-                  <p className="text-[11px] text-slate-400 mt-1">Giả lập webhook nhận phản hồi email để AI bóc tách.</p>
+                  <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-700 font-mono font-bold uppercase tracking-wider">{t("sandboxTitle")}</span>
+                  <h3 className="text-xs font-bold text-slate-705 mt-2">{t("mockInboundEmailTitle")}</h3>
+                  <p className="text-[11px] text-slate-400 mt-1">{t("mockWebhookDesc")}</p>
                 </div>
 
                 <div className="space-y-2">
@@ -481,26 +539,26 @@ Vận chuyển 80k. Giao hàng trong ngày.
             <div className="lux-card p-6 space-y-5">
               <div className="flex justify-between items-center border-b border-slate-150 pb-4">
                 <div>
-                  <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-accent-dark font-mono font-bold uppercase tracking-wider">Bước 2: Ma trận giá</span>
-                  <h3 className="text-sm font-bold text-slate-800 mt-2">Bảng đối chiếu so sánh phương án</h3>
+                  <span className="text-[9px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-accent-dark font-mono font-bold uppercase tracking-wider">{t("step2MatrixTitle")}</span>
+                  <h3 className="text-sm font-bold text-slate-800 mt-2"> {t("comparisonSheetTitle")}</h3>
                   {riskyQuoteCount > 0 && (
                     <p className="text-[11px] text-coral-dark font-bold mt-1 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5" />
-                      {riskyQuoteCount} báo giá cần kiểm tra thủ công trước khi trình duyệt PO.
+                      {t("riskyQuotesAlert").replace("{count}", String(riskyQuoteCount))}
                     </p>
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] text-slate-500 font-bold font-mono">CODE RFQ: #{currentRfq ? currentRfq.id.toUpperCase() : "CHƯA TẠO"}</p>
+                  <p className="text-[10px] text-slate-500 font-bold font-mono">{t("rfqCodeLabel").replace("{code}", currentRfq ? currentRfq.id.toUpperCase() : t("rfqCodeNotCreated"))}</p>
                 </div>
               </div>
 
               {currentQuotes.length === 0 ? (
                 <div className="text-center py-16">
                   <Mail className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="text-slate-400 text-xs mt-3 font-semibold">Đang trông đợi phản hồi báo giá từ NCC thầu thợ...</p>
+                  <p className="text-slate-400 text-xs mt-3 font-semibold">{t("awaitingQuotesText")}</p>
                   <p className="text-[11px] text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
-                    Hệ thống đang lắng nghe email phản hồi thật qua Gmail/IMAP và sẽ tự bóc tách dữ liệu phi cấu trúc bằng AI.
+                    {t("awaitingQuotesDesc")}
                   </p>
                 </div>
               ) : (
@@ -599,7 +657,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider bg-[#F7F5F0]">
-                          <th className="p-4 font-bold text-slate-600">Tiêu chí bóc tách</th>
+                          <th className="p-4 font-bold text-slate-600">{t("criteriaHeader")}</th>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0 || q.items.length === 0;
                             return (
@@ -619,7 +677,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                                   {q.negotiationStatus === "supplier_responded" && (
                                     <span className="inline-flex mt-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[9px] text-emerald-700 font-bold uppercase tracking-wider">
-                                      Đã đồng ý đàm phán V{q.versionCount || 2}
+                                      {t("negotiationAgreedBadge").replace("{version}", String(q.versionCount || 2))}
                                     </span>
                                   )}
                                 </div>
@@ -638,7 +696,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                   <ItemIcon name={prItem.name} size="sm" className="shadow-xs scale-90 border-slate-205/30" />
                                   <div>
                                     <span className="font-extrabold text-slate-700 block">{prItem.name}</span>
-                                    <span className="text-[10px] text-slate-400">Yêu cầu: {prItem.quantity} {prItem.unit}</span>
+                                    <span className="text-[10px] text-slate-400">{t("itemsRequestLabel").replace("{qty}", String(prItem.quantity)).replace("{unit}", prItem.unit)}</span>
                                   </div>
                                 </div>
                               </td>
@@ -647,7 +705,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                 if (isMissing) {
                                   return (
                                     <td key={q.id} className="p-4 border-l border-slate-200 text-slate-400 font-sans italic bg-rose-50/5">
-                                      Thiếu thông tin hàng
+                                      {t("missingItemInfo")}
                                     </td>
                                   );
                                 }
@@ -658,10 +716,10 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                     {qItem ? (
                                       <div>
                                         <p className="text-slate-700 font-bold">{qItem.unitPrice.toLocaleString()} đ</p>
-                                        <p className="text-[10px] text-slate-400 font-medium">T.Tiền: {qItem.totalPrice.toLocaleString()} đ</p>
+                                        <p className="text-[10px] text-slate-400 font-medium">{locale === "en" ? "Total" : "T.Tiền"}: {qItem.totalPrice.toLocaleString()} đ</p>
                                       </div>
                                     ) : (
-                                      <span className="text-slate-400 font-sans italic font-normal">Không nộp thầu</span>
+                                      <span className="text-slate-400 font-sans italic font-normal">{t("noQuoteSubmitted")}</span>
                                     )}
                                   </td>
                                 );
@@ -672,12 +730,12 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* Compare delivery days */}
                         <tr className="bg-slate-50/50">
-                          <td className="p-4 font-extrabold text-slate-600">Giao hàng dự kiến</td>
+                          <td className="p-4 font-extrabold text-slate-600">{t("expectedDeliveryLabel")}</td>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
                             return (
                               <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-slate-700 font-bold ${isMissing ? "bg-rose-50/5 text-slate-400 font-normal italic" : ""}`}>
-                                {isMissing ? "Chưa có" : `${q.deliveryDays} ngày`}
+                                {isMissing ? t("notAvailableYet") : t("deliveryDaysLabel").replace("{days}", String(q.deliveryDays))}
                               </td>
                             );
                           })}
@@ -685,12 +743,12 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* Payment terms */}
                         <tr>
-                          <td className="p-4 font-extrabold text-slate-600">Điều khoản công nợ</td>
+                          <td className="p-4 font-extrabold text-slate-600">{t("paymentTermsLabel")}</td>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
                             return (
                               <td key={q.id} className={`p-4 border-l border-slate-200 text-slate-600 ${isMissing ? "bg-rose-50/5 text-slate-400 italic" : ""}`}>
-                                {isMissing ? "Chưa có" : q.paymentTerms}
+                                {isMissing ? t("notAvailableYet") : q.paymentTerms}
                               </td>
                             );
                           })}
@@ -698,12 +756,12 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* Tax amount */}
                         <tr>
-                          <td className="p-4 font-extrabold text-slate-600">Thuế GTGT (VAT)</td>
+                          <td className="p-4 font-extrabold text-slate-600">{t("vatLabel")}</td>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
                             return (
                               <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-slate-500 font-medium ${isMissing ? "bg-rose-50/5 text-slate-450 italic" : ""}`}>
-                                {isMissing ? "Chưa có" : `${q.taxAmount.toLocaleString()} đ`}
+                                {isMissing ? t("notAvailableYet") : `${q.taxAmount.toLocaleString()} đ`}
                               </td>
                             );
                           })}
@@ -711,12 +769,12 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* Shipping */}
                         <tr>
-                          <td className="p-4 font-extrabold text-slate-600">Phí vận đơn</td>
+                          <td className="p-4 font-extrabold text-slate-600">{t("shippingFeeLabel")}</td>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
                             return (
                               <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-slate-500 font-medium ${isMissing ? "bg-rose-50/5 text-slate-450 italic" : ""}`}>
-                                {isMissing ? "Chưa có" : `${q.shippingFee.toLocaleString()} đ`}
+                                {isMissing ? t("notAvailableYet") : `${q.shippingFee.toLocaleString()} đ`}
                               </td>
                             );
                           })}
@@ -724,20 +782,20 @@ Vận chuyển 80k. Giao hàng trong ngày.
 
                         {/* Total pricing SUMMARY */}
                         <tr className="bg-amber-50/40 font-bold border-t border-slate-200">
-                          <td className="p-4 text-primary-dark text-xs uppercase tracking-wider font-extrabold">TỔNG GHI TRÊN HÓA ĐƠN</td>
+                          <td className="p-4 text-primary-dark text-xs uppercase tracking-wider font-extrabold">{t("totalInvoiceSummary")}</td>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
                             return (
                               <td key={q.id} className={`p-4 border-l border-slate-200 font-mono text-primary-dark text-sm font-bold ${isMissing ? "bg-rose-50/5 text-rose-650 italic font-normal" : ""}`}>
-                                {isMissing ? "Lỗi trích xuất" : `${q.totalAmount.toLocaleString()} đ`}
+                                {isMissing ? t("extractionError") : `${q.totalAmount.toLocaleString()} đ`}
                               </td>
                             );
                           })}
                         </tr>
 
-                        {/* AI Confidence Score */}
+                        {/* Compare AI Confidence Score */}
                         <tr className="text-[10px] text-slate-400">
-                          <td className="p-4 font-medium uppercase tracking-wider font-mono">Độ tin cậy &amp; red-flag</td>
+                          <td className="p-4 font-medium uppercase tracking-wider font-mono">{t("aiConfidenceAndRisk")}</td>
                           {sortedQuotes.map((q) => {
                             const isMissing = q.totalAmount === null || q.totalAmount === undefined || q.totalAmount <= 0;
                             if (isMissing) {
@@ -745,10 +803,10 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                 <td key={q.id} className="p-4 border-l border-slate-200 text-[10px] font-bold bg-rose-50/5">
                                   <div className="text-rose-650 flex items-center gap-1">
                                     <AlertTriangle className="w-3.5 h-3.5" />
-                                    <span>Thất bại trích xuất / Thiếu dữ liệu</span>
+                                    <span>{t("extractionFailedMissingData")}</span>
                                   </div>
                                   <p className="mt-1 text-[9px] text-slate-455 font-sans font-normal leading-normal">
-                                    Báo giá đính kèm bị lỗi định dạng hoặc thiếu các thông tin cốt lõi (sản phẩm, giá tiền). Vui lòng tải file gốc về kiểm tra.
+                                    {t("extractionFailedMissingDataDesc")}
                                   </p>
                                 </td>
                               );
@@ -767,7 +825,7 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                     ))}
                                   </ul>
                                 ) : (
-                                  <span className="mt-1 inline-flex text-emerald-700 font-sans">Đạt ngưỡng kiểm tra</span>
+                                  <span className="mt-1 inline-flex text-emerald-700 font-sans">{t("auditPassedText")}</span>
                                 )}
                               </td>
                             );
@@ -797,11 +855,11 @@ Vận chuyển 80k. Giao hàng trong ngày.
                                       disabled={isMissing}
                                       className="w-full bg-[#1A1A1A] hover:bg-[#000000] text-white font-bold text-xs p-2.5 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm disabled:bg-slate-250 disabled:text-slate-450 disabled:cursor-not-allowed"
                                     >
-                                      <UserCheck className="w-4 h-4" /> Duyệt &amp; Ký PO
+                                      <UserCheck className="w-4 h-4" /> {t("approveAndSignPoBtn")}
                                     </button>
                                   ) : (
                                     <div className="text-slate-400 text-[10px] italic text-center p-2.5 bg-slate-50 rounded-xl border border-slate-200 font-bold">
-                                      Cần vai trò [Giám đốc] đề duyệt
+                                      {t("requiresManagerApproval")}
                                     </div>
                                   )}
                                 </td>
@@ -818,9 +876,9 @@ Vận chuyển 80k. Giao hàng trong ngày.
                     <div className="bg-emerald-50 border border-emerald-150 p-4 rounded-xl flex items-center gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 animate-pulse" />
                       <div>
-                        <h4 className="text-xs font-bold text-slate-800">Đơn Đặt Mua Hàng (PO) đã được khởi tạo hoàn tất!</h4>
+                        <h4 className="text-xs font-bold text-slate-800">{t("poCompletedTitle")}</h4>
                         <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                          Hệ thống đã ban hành PO chính thức đến nhà thầu được tuyển chọn. Danh mục sản phẩm đã được đưa vào luồng **"Đang vận chuyển"**.
+                          {t("poCompletedDesc")}
                         </p>
                       </div>
                     </div>
@@ -830,13 +888,13 @@ Vận chuyển 80k. Giao hàng trong ngày.
                   {generatingAdvice ? (
                     <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center text-xs text-slate-400 space-y-2">
                       <RefreshCw className="w-4 h-4 text-accent-dark animate-spin mx-auto" />
-                      <p className="font-semibold">Stally AI đang bốc tách ma trận rủi ro báo giá...</p>
+                      <p className="font-semibold">{t("aiAnalyzingQuote")}</p>
                     </div>
                   ) : (
                     aiAdvice && (
                       <div className="bg-amber-50/15 p-5 rounded-2xl border border-accent-gold/10 shadow-sm relative overflow-hidden">
                         <div className="absolute top-3.5 right-3.5 flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 border border-amber-200/50 text-primary-dark text-[9px] font-mono font-bold">
-                          <Cpu className="w-3 h-3 text-accent-dark" /> STALLY PROCUREMENT AI
+                          <Cpu className="w-3 h-3 text-accent-dark" /> {t("stallyAiProcurementHeader")}
                         </div>
                         <div className="text-xs text-slate-600 leading-relaxed font-sans space-y-3">
                           <div className="prose prose-xs">
