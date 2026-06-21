@@ -40,7 +40,7 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
           {
             tab: "overview",
             title: "BƯỚC 1 - KIỂM TRA TỒN KHO",
-            description: "Trước khi tạo yêu cầu mua, xem nhanh mặt hàng nào đang dưới mức tồn tối thiểu để ưu tiên đúng nhu cầu của bếp.",
+            description: "Trước khi tạo yêu cầu mua, xem nhanh mặt hàng nào đang dưới mức tồn tối thiểu để ưu tiên đúng nhu cầu của bộ phận yêu cầu.",
             targetId: "#btn-tab-overview",
             tooltip: "Mở Tổng quan để xem cảnh báo tồn kho thấp."
           },
@@ -78,7 +78,7 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
           {
             tab: "cases",
             title: "BƯỚC 2 - TẠO HOẶC MỞ CASE",
-            description: "Nếu có yêu cầu mới, tạo case thu mua. Nếu đã có case từ bếp, bấm vào thẻ để vào timeline xử lý chi tiết.",
+            description: "Nếu có yêu cầu mới, tạo case thu mua. Nếu đã có case từ bộ phận yêu cầu, bấm vào thẻ để vào timeline xử lý chi tiết.",
             targetId: "#btn-create-case",
             tooltip: "Tạo case mới hoặc mở thẻ case đang chờ."
           },

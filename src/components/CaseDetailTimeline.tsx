@@ -1231,11 +1231,14 @@ export default function CaseDetailTimeline({
         body: JSON.stringify({ comment: approvalComment })
       });
       const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Phê duyệt thất bại");
+      }
       showToast("Đã phê duyệt báo giá! Hệ thống tự sinh Đơn đặt hàng nháp PO.", "success");
       if (onStateChanged) onStateChanged();
       setTimeout(fetchData, 850);
-    } catch (e) {
-      showToast("Phê duyệt thất bại", "error");
+    } catch (e: any) {
+      showToast(e.message || "Phê duyệt thất bại", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -1268,10 +1271,13 @@ export default function CaseDetailTimeline({
         headers: { "X-Organization-Id": orgId }
       });
       const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Không tạo được bản thảo PO.");
+      }
       setPoDraft(data.data);
       showToast("Đã khởi tạo bản thảo PO đặt hàng chính thức!", "success");
-    } catch (e) {
-      showToast("Không tạo được bản thảo PO.", "error");
+    } catch (e: any) {
+      showToast(e.message || "Không tạo được bản thảo PO.", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -1285,11 +1291,15 @@ export default function CaseDetailTimeline({
         headers: { "X-Organization-Id": orgId }
       });
       const data = await res.json();
-      showToast("Đã gửi đơn đặt hàng PO chính thức đến NCC qua Gmail thành công!", "success");
+      if (!res.ok || data.error) {
+        throw new Error(data.error?.message || data.error || "Gửi đơn đặt hàng PO thất bại.");
+      }
+      const sentTo = data.email?.to ? ` (${data.email.to})` : "";
+      showToast(`Đã gửi đơn đặt hàng PO chính thức đến NCC qua Gmail thành công!${sentTo}`, "success");
       if (onStateChanged) onStateChanged();
       setTimeout(fetchData, 650);
-    } catch (e) {
-      showToast("Gửi đơn đặt hàng PO thất bại.", "error");
+    } catch (e: any) {
+      showToast(e.message || "Gửi đơn đặt hàng PO thất bại.", "error");
     } finally {
       setLoadingAction(null);
     }
@@ -2919,11 +2929,11 @@ export default function CaseDetailTimeline({
             <div className="space-y-3 text-xs text-primary-dark font-bold">
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">{t("requestingDepartment")}:</span>
-                <span className="text-primary-dark uppercase font-bold">{caseObj.departmentName || "Bộ phận Bếp"}</span>
+                <span className="text-primary-dark uppercase font-bold">{caseObj.departmentName || "Bộ phận yêu cầu"}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">{t("requester")}:</span>
-                <span className="text-primary-dark font-bold">{caseObj.requesterName || "Bếp Trưởng Bình"}</span>
+                <span className="text-primary-dark font-bold">{caseObj.requesterName || "Người Yêu Cầu Bình"}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-primary-dark/10">
                 <span className="text-primary-dark/65 font-medium">{t("autoInitiatedFrom")}:</span>

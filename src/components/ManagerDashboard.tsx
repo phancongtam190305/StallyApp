@@ -492,7 +492,7 @@ export default function ManagerDashboard({
             <h3 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-1.5 font-display">
               <PieChart className="w-4 h-4 text-[#B85B3F]" /> Phân bổ Cơ cấu Chi tiêu Mua sắm
             </h3>
-            <p className="text-[11px] text-slate-455 mt-0.5 font-semibold">Tỉ trọng giải ngân theo nhóm ngành hàng thực phẩm & bếp.</p>
+            <p className="text-[11px] text-slate-455 mt-0.5 font-semibold">Tỉ trọng giải ngân theo nhóm ngành hàng thực phẩm & bộ phận yêu cầu.</p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-8">
               
@@ -1136,7 +1136,7 @@ export default function ManagerDashboard({
                             <span>Từ: Phan Công Tâm (AI Procurement Agent)</span>
                             <span>Đến: {recommendedQuote?.supplierName} Sales</span>
                           </div>
-                          <p className="font-bold text-primary-dark">Chủ đề: [STALLY RFQ-{activeRfq.id.toUpperCase()}] Yêu cầu báo giá nguyên liệu bếp đợt khẩn cấp</p>
+                          <p className="font-bold text-primary-dark">Chủ đề: [STALLY RFQ-{activeRfq.id.toUpperCase()}] Yêu cầu báo giá vật tư yêu cầu đợt khẩn cấp</p>
                           <p className="text-slate-500 leading-normal italic pl-3 border-l-4 border-[#E6A756]">
                             "Kính mời quý đối tác {recommendedQuote?.supplierName} gửi báo giá chính thức cho các mặt hàng gạo ST25 và dầu ăn. Hạn gửi thầu trước ngày {activeRfq.dueDate}. Hệ thống sẽ bóc tách dữ liệu tự động..."
                           </p>

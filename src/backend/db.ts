@@ -536,6 +536,8 @@ function getPilotTestSuppliers(): Supplier[] {
 }
 
 async function ensurePilotTestSuppliers() {
+  if (process.env.PILOT_TEST_SUPPLIERS_ENABLED !== "true") return;
+
   const orgResult = await db.query('SELECT 1 FROM "organizations" WHERE "id" = $1 LIMIT 1', ["org-1"]);
   if (orgResult.rowCount === 0) return;
 

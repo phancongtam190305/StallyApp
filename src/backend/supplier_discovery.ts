@@ -238,7 +238,7 @@ export function runDiscoverySimulation(query: string, limit: number, existingSup
         website: "https://dalatgreen.vn",
         tags: ["rau củ", "nông sản", "rau sạch", "đà lạt"],
         sourceUrls: ["https://dalatgreen.vn/gioi-thieu"],
-        evidence: "Nhà vườn đạt chuẩn VietGAP, chuyên canh rau củ tươi sỉ số lượng lớn cho bếp ăn công nghiệp.",
+        evidence: "Nhà vườn đạt chuẩn VietGAP, chuyên canh rau củ tươi sỉ số lượng lớn cho đơn vị vận hành.",
         confidence: 90
       },
       {
@@ -316,7 +316,7 @@ export function runDiscoverySimulation(query: string, limit: number, existingSup
         website: "https://hoanglongwholesale.com",
         tags: [query, "sỉ", "tổng kho"],
         sourceUrls: ["https://hoanglongwholesale.com/about-us"],
-        evidence: "Chuyên cung ứng nguyên liệu sỉ đầu vào cho các chuỗi ẩm thực và bếp ăn tập thể.",
+        evidence: "Chuyên cung ứng nguyên liệu sỉ đầu vào cho các chuỗi ẩm thực và đơn vị vận hành.",
         confidence: 87
       },
       {

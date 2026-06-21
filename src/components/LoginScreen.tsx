@@ -65,11 +65,11 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
   const roles = [
     {
       id: "requester" as UserRole,
-      title: "Bếp Trưởng",
+      title: "Người Yêu Cầu",
       name: "Trần Lý Bình",
       dept: "Khối Vận hành Nhà Hàng",
       icon: Utensils,
-      desc: "Chuyên trách quản lý bếp, định hình định mức, tạo yêu cầu mua sắm thực vật tư khi có thâm hụt.",
+      desc: "Chuyên trách quản lý nhu cầu vận hành, định hình định mức, tạo yêu cầu mua sắm thực vật tư khi có thâm hụt.",
       responsibilities: ["Đề xuất yêu cầu mua hàng", "Dùng AI trợ lý tạo dự thảo", "Theo dõi tồn khả dụng tối thiểu"],
     },
     {
@@ -314,7 +314,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
                 Procurement OS cho doanh nghiệp cần kiểm soát, không chỉ tốc độ.
               </h2>
               <p className="text-primary-dark/60 text-sm mt-5 max-w-lg leading-relaxed font-medium">
-                Chuẩn hóa yêu cầu mua hàng từ bếp, gửi RFQ có kiểm duyệt, đọc báo giá và giữ audit trail để CFO/COO nhìn rõ chi tiêu trong vài giây.
+                Chuẩn hóa yêu cầu mua hàng từ bộ phận yêu cầu, gửi RFQ có kiểm duyệt, đọc báo giá và giữ audit trail để CFO/COO nhìn rõ chi tiêu trong vài giây.
               </p>
             </div>
 

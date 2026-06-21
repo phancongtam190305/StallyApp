@@ -420,7 +420,7 @@ export default function WarehouseDashboard({
                   <ShieldCheck className="w-10 h-10" />
                 </div>
                 <h3 className="text-base font-bold text-primary-dark uppercase tracking-wider">Ghi Nhận Thành Công!</h3>
-                <p className="text-xs text-primary-dark/85 font-bold">Dữ liệu thực tồn kho bếp ăn đã được điều chỉnh cộng bù.</p>
+                <p className="text-xs text-primary-dark/85 font-bold">Dữ liệu thực tồn kho bộ phận yêu cầu ăn đã được điều chỉnh cộng bù.</p>
               </div>
             ) : (
               <>

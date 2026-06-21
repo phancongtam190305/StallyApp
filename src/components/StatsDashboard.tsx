@@ -259,7 +259,7 @@ export default function StatsDashboard({
               {[
                 { name: "Lương thực & Gạo thơm (ST25)", progress: 78, color: "bg-amber-500", raw: "5.4 M / 7 M", icon: ChefHat },
                 { name: "Thịt Sạch & Hải Sản tươi", progress: 62, color: "bg-primary-dark", raw: "12.4 M / 20 M", icon: Utensils },
-                { name: "Gia vị & Khối Bếp chế biến", progress: 41, color: "bg-indigo-500", raw: "2.1 M / 5 M", icon: Coins },
+                { name: "Gia vị & Khối yêu cầu vận hành", progress: 41, color: "bg-indigo-500", raw: "2.1 M / 5 M", icon: Coins },
                 { name: "Rau củ hữu cơ Đà Lạt", progress: 91, color: "bg-emerald-500", raw: "4.5 M / 5 M", icon: ShoppingBag }
               ].map((category, idx) => {
                 const Icon = category.icon;
@@ -369,7 +369,7 @@ export default function StatsDashboard({
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60 text-center space-y-2">
             <div className="w-9 h-9 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mx-auto text-xs font-bold">1</div>
             <p className="text-xs font-bold text-slate-800">Yêu cầu nội bộ (PR)</p>
-            <p className="text-[11px] text-slate-500 leading-normal">Bếp đề xuất mua hàng hoặc kho tự động sinh yêu cầu bổ sung khi vơi.</p>
+            <p className="text-[11px] text-slate-500 leading-normal">Bộ phận yêu cầu đề xuất mua hàng hoặc kho tự động sinh yêu cầu bổ sung khi vơi.</p>
           </div>
 
           <div className="bg-[#e0f1f2]/40 p-4 rounded-xl border border-[#b2dfdb]/40 text-center space-y-2">

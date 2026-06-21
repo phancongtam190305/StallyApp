@@ -263,10 +263,10 @@ export default function RequesterDashboard({
           </div>
           <div>
             <h2 className="text-lg font-bold font-display text-primary-dark uppercase tracking-tight">
-              Không Gian Bếp Trưởng &amp; Cung Ứng
+              Không Gian Người Yêu Cầu &amp; Cung Ứng
             </h2>
             <p className="text-primary-dark/80 text-xs mt-0.5 font-bold">
-              Phác thảo nhanh các phiếu đặt hàng thực phẩm, quản lý tồn bếp thực tế.
+              Phác thảo nhanh các phiếu đặt hàng thực phẩm, quản lý tồn kho bộ phận yêu cầu thực tế.
             </p>
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function RequesterDashboard({
             <div>
               <h4 className="text-sm font-bold text-coral-dark uppercase tracking-wider">CẢNH BÁO: PHÁT HIỆN THÂM HỤT TỒN KHO</h4>
               <p className="text-xs text-primary-dark font-bold mt-0.5">
-                Hiện có <span className="text-coral-dark font-extrabold">{lowStockCount} mặt hàng</span> trong kho nhà bếp đang vơi dưới ngưỡng an toàn tối thiểu.
+                Hiện có <span className="text-coral-dark font-extrabold">{lowStockCount} mặt hàng</span> trong kho bộ phận yêu cầu đang vơi dưới ngưỡng an toàn tối thiểu.
               </p>
             </div>
           </div>
@@ -709,7 +709,7 @@ export default function RequesterDashboard({
                                 <th className="p-3 pl-4">Tên sản phẩm</th>
                                 <th className="p-3 text-center">Số lượng</th>
                                 <th className="p-3">Đơn vị</th>
-                                <th className="p-3">Ghi chú bếp trưởng</th>
+                                <th className="p-3">Ghi chú người yêu cầu</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-primary-dark/10 text-primary-dark font-bold">

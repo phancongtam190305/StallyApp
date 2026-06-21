@@ -142,13 +142,13 @@ export default function FloatingChatbot({
     return [
       {
         q: "Tôi mới vào hệ thống thì đi theo luồng nào?",
-        a: "Luồng chuẩn của Stally là:\n1. **Bếp/Requester** kiểm tra tồn kho và tạo PR khi cần mua thêm.\n2. **Thu mua/Procurement** mở hoặc tạo case, chọn NCC, soạn RFQ bằng AI rồi gửi Gmail thật.\n3. Hệ thống đọc Gmail reply của NCC, trích xuất báo giá và cập nhật bảng so sánh.\n4. Thu mua chọn NCC tốt nhất, có thể đàm phán bằng AI, rồi trình duyệt PO.\n5. **Manager** duyệt hoặc trả về đàm phán.\n6. Thu mua gửi PO chính thức.\n7. **Thủ kho/Warehouse** xác nhận hàng về, hệ thống tự cập nhật tồn kho.",
+        a: "Luồng chuẩn của Stally là:\n1. **Requester** kiểm tra tồn kho và tạo PR khi cần mua thêm.\n2. **Thu mua/Procurement** mở hoặc tạo case, chọn NCC, soạn RFQ bằng AI rồi gửi Gmail thật.\n3. Hệ thống đọc Gmail reply của NCC, trích xuất báo giá và cập nhật bảng so sánh.\n4. Thu mua chọn NCC tốt nhất, có thể đàm phán bằng AI, rồi trình duyệt PO.\n5. **Manager** duyệt hoặc trả về đàm phán.\n6. Thu mua gửi PO chính thức.\n7. **Thủ kho/Warehouse** xác nhận hàng về, hệ thống tự cập nhật tồn kho.",
         tags: ["hướng dẫn", "workflow", "luồng", "mới dùng", "onboarding"]
       },
       {
-        q: "Requester/Bếp tạo yêu cầu mua hàng như thế nào?",
+        q: "Requester tạo yêu cầu mua hàng như thế nào?",
         a: "Vào tab **Yêu cầu** để lập PR.\n1. Kiểm tra trước tab **Tổng quan** để biết mặt hàng nào đang thấp tồn.\n2. Tạo PR với tên nhu cầu, mức ưu tiên, ngày cần hàng và danh sách mặt hàng.\n3. Gửi PR cho phòng thu mua.\n4. Sau khi case đi hết quy trình PO và thủ kho nhận hàng, quay lại **Tồn kho** để kiểm tra số lượng đã tăng.",
-        tags: ["requester", "bếp", "pr", "yêu cầu", "tồn kho"]
+        tags: ["requester", "bộ phận yêu cầu", "pr", "yêu cầu", "tồn kho"]
       },
       {
         q: "Thu mua gửi yêu cầu báo giá Gmail thật ra sao?",
@@ -206,7 +206,7 @@ export default function FloatingChatbot({
     if (currentRole === "requester") {
       list.push(
         { title: locale === "en" ? "Create Request" : "Tạo Yêu Cầu Mới", tab: "pr", query: locale === "en" ? "Help me draft a PR request." : "Tôi muốn mở danh mục Tạo Yêu Cầu và nhờ bạn hướng dẫn lập PR nháp.", icon: PlusCircle },
-        { title: locale === "en" ? "Order History" : "Lịch Sử Đặt Hàng", tab: "pr", query: locale === "en" ? "Show me my PR request history." : "Cho tôi xem danh sách lịch sử yêu cầu PR mua nguyên liệu của bếp.", icon: History }
+        { title: locale === "en" ? "Order History" : "Lịch Sử Đặt Hàng", tab: "pr", query: locale === "en" ? "Show me my PR request history." : "Cho tôi xem danh sách lịch sử yêu cầu PR mua nguyên liệu của bộ phận yêu cầu.", icon: History }
       );
     } else if (currentRole === "procurement") {
       list.push(

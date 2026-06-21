@@ -179,7 +179,7 @@ export default function ProcurementDashboard({
           title: newTitle,
           priority: newPriority,
           requiredDate: newRequiredDate || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          requesterName: "Bếp Trưởng Bình",
+          requesterName: "Người Yêu Cầu Bình",
           departmentName: t("deptKitchen") + " STALLY",
           createdFrom: "manual",
           items: cleanItems
