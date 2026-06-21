@@ -37,6 +37,21 @@ describe("buildDashboardMetrics", () => {
     expect(metrics.operator.priorityQueue[0].kind).toBe("quote_risk");
   });
 
+  it("links risky quotes back to their procurement case when possible", () => {
+    const metrics = buildDashboardMetrics({
+      ...emptyState,
+      rfqs: [rfq({ id: "rfq-quote", purchaseRequestId: "pr-quote" })],
+      cases: [procurementCase({ id: "case-quote", currentRfqId: "rfq-quote", requestId: "pr-quote" })],
+      quotes: [
+        quote({ id: "risk-linked", rfqCaseId: "rfq-quote", aiConfidenceScore: 40, totalAmount: 500000 }),
+      ],
+    });
+
+    expect(metrics.operator.priorityQueue[0].targetTab).toBe("cases");
+    expect(metrics.operator.priorityQueue[0].targetCaseId).toBe("case-quote");
+    expect(metrics.operator.priorityQueue[0].targetRfqId).toBe("rfq-quote");
+  });
+
   it("orders queue by risk before deadline before value", () => {
     const metrics = buildDashboardMetrics({
       ...emptyState,
@@ -90,6 +105,19 @@ function procurementCase(overrides: Partial<ProcurementCase>): ProcurementCase {
     items: [{ name: "Item", quantity: 1, unit: "unit" }],
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function rfq(overrides: Partial<RfqCase>): RfqCase {
+  return {
+    id: "rfq-1",
+    organizationId: "org-1",
+    purchaseRequestId: "pr-1",
+    status: "sent",
+    dueDate: "2099-01-01",
+    suppliers: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
 }

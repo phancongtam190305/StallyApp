@@ -420,6 +420,36 @@ function getNegotiationBadgeText(quote: Quote): string {
   return "";
 }
 
+function getPoTimestamp(po: PurchaseOrder): number {
+  const value = new Date(po.createdAt || po.approvedAt || 0).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getPoStatusMeta(po: PurchaseOrder, t: (key: any) => string) {
+  if (po.status === "received") {
+    return {
+      label: t("poReceived"),
+      className: "bg-emerald-50 border-success text-success"
+    };
+  }
+  if (po.status === "confirmed" || po.status === "shipping") {
+    return {
+      label: t("poConfirmed"),
+      className: "bg-emerald-50 border-success text-success"
+    };
+  }
+  if (po.status === "cancelled") {
+    return {
+      label: t("poCancelled"),
+      className: "bg-rose-50 border-rose-300 text-rose-700"
+    };
+  }
+  return {
+    label: t("poDraft"),
+    className: "bg-accent-light/10 border-accent-gold text-accent-dark"
+  };
+}
+
 export default function CaseDetailTimeline({ 
   caseId, 
   onBackToList, 
@@ -756,6 +786,15 @@ export default function CaseDetailTimeline({
   }
 
   const negotiationSupplierOptions = getNegotiationSupplierOptions(comparison);
+  const sortedPoList = [...poList].sort((a, b) => getPoTimestamp(b) - getPoTimestamp(a));
+  const activePo =
+    sortedPoList.find(po => po.id === caseObj.purchaseOrderId) ||
+    sortedPoList.find(po => po.status !== "cancelled") ||
+    null;
+  const visiblePoList = activePo ? [activePo] : [];
+  const hiddenDuplicatePoCount = activePo
+    ? poList.filter(po => po.id !== activePo.id).length
+    : 0;
 
   const milestones = [
     { num: 1, label: t("milestoneIntakeLabel"), desc: t("milestoneIntakeDesc") },
@@ -2740,9 +2779,16 @@ export default function CaseDetailTimeline({
                 </h3>
               </div>
 
-              {poList.length > 0 ? (
+              {visiblePoList.length > 0 ? (
                 <div className="space-y-6">
-                  {poList.map((po) => (
+                  {hiddenDuplicatePoCount > 0 && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-800">
+                      {t("poDuplicateHiddenNotice").replace("{count}", String(hiddenDuplicatePoCount))}
+                    </div>
+                  )}
+                  {visiblePoList.map((po) => {
+                    const statusMeta = getPoStatusMeta(po, t);
+                    return (
                     <div key={po.id} className="border border-primary-dark rounded-3xl overflow-hidden bg-white p-5 space-y-4 shadow-card">
                       <div className="flex justify-between items-start border-b border-dashed border-primary/20 pb-3 flex-wrap gap-2">
                         <div className="space-y-1">
@@ -2750,10 +2796,8 @@ export default function CaseDetailTimeline({
                           <h4 className="font-bold text-sm text-primary-dark uppercase tracking-wider mt-2">{t("supplierLabel")} {po.supplierName}</h4>
                         </div>
                         <div className="text-right">
-                          <span className={`px-2.5 py-0.5 rounded-full border text-[8px] font-bold uppercase font-mono ${
-                            po.status === "confirmed" ? "bg-emerald-50 border-success text-success" : "bg-accent-light/10 border-accent-gold text-accent-dark"
-                          }`}>
-                            {po.status === "confirmed" ? t("poConfirmed") : t("poDraft")}
+                          <span className={`px-2.5 py-0.5 rounded-full border text-[8px] font-bold uppercase font-mono ${statusMeta.className}`}>
+                            {statusMeta.label}
                           </span>
                           <p className="text-sm font-bold text-primary-dark font-mono mt-1">{formatVND(po.totalAmount)}</p>
                         </div>
@@ -2829,7 +2873,7 @@ export default function CaseDetailTimeline({
                         </div>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               ) : (
                 <div className="bg-cream border border-primary-dark p-5 rounded-2xl space-y-3 shadow-md">

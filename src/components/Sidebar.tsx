@@ -3,9 +3,8 @@ import { UserRole } from "../types";
 import { 
   LayoutDashboard, 
   GitMerge, 
-  FileSpreadsheet, 
-  SendToBack, 
   Building2, 
+  Boxes,
   LogOut,
   ChevronRight
 } from "lucide-react";
@@ -22,9 +21,8 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, t }: Sideba
   const menuItems = [
     { id: "overview", label: t("dashboard"), icon: LayoutDashboard },
     { id: "cases", label: t("cases"), icon: GitMerge },
-    { id: "pr", label: t("purchaseRequests"), icon: FileSpreadsheet },
-    { id: "rfq", label: t("rfq"), icon: SendToBack },
     { id: "suppliers", label: t("suppliers"), icon: Building2 },
+    { id: "inventory", label: t("inventory"), icon: Boxes },
   ];
 
   return (

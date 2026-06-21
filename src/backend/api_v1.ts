@@ -3457,6 +3457,30 @@ apiV1Router.post("/cases/:caseId/po-draft", async (req: Request, res: Response) 
   if (!caseObj || !caseObj.selectedQuoteId) {
     return res.status(400).json({ error: "Chưa chọn hoặc chưa duyệt báo giá thầu" });
   }
+
+  const existingPo = dbState.purchase_orders.find(po =>
+    po.organizationId === orgId &&
+    po.caseId === caseId &&
+    po.status !== "cancelled" &&
+    (po.id === caseObj.purchaseOrderId || po.quoteId === caseObj.selectedQuoteId)
+  );
+  if (existingPo) {
+    if (caseObj.purchaseOrderId !== existingPo.id) {
+      caseObj.purchaseOrderId = existingPo.id;
+      try {
+        await persistRecord("procurement_cases", caseObj);
+      } catch (err) {
+        logFlow("warn", "po.draft.link_existing_persist_failed", {
+          traceId: req.traceId || createTraceId("po-draft"),
+          caseId,
+          poId: existingPo.id,
+          orgId,
+          err: safeError(err),
+        });
+      }
+    }
+    return res.json({ data: existingPo, reused: true });
+  }
   
   const quote = dbState.quotes.find(q => q.id === caseObj.selectedQuoteId);
   if (!quote) return res.status(400).json({ error: "Không tìm thấy báo giá" });
@@ -3521,15 +3545,131 @@ apiV1Router.post("/cases/:caseId/po-draft", async (req: Request, res: Response) 
   res.json({ data: po });
 });
 
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatVndForEmail(value: number) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+}
+
+function buildPurchaseOrderEmailHtml(po: PurchaseOrder, caseObj: ProcurementCase) {
+  const rows = po.items.map(item => `
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(item.name)}</td>
+      <td style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">${escapeHtml(item.quantity)} ${escapeHtml(item.unit)}</td>
+      <td style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">${formatVndForEmail(item.unitPrice)}</td>
+      <td style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">${formatVndForEmail(item.totalPrice)}</td>
+    </tr>
+  `).join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif;color:#111827;line-height:1.5;">
+      <h2 style="margin:0 0 12px;">Xác nhận đơn đặt hàng chính thức</h2>
+      <p>Xin chào <strong>${escapeHtml(po.supplierName)}</strong>,</p>
+      <p>Stally xác nhận đặt hàng chính thức theo thông tin dưới đây. Vui lòng phản hồi email này để xác nhận lịch giao hàng và các điều kiện thực hiện đơn hàng.</p>
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin:16px 0;">
+        <p style="margin:0;"><strong>Mã PO:</strong> ${escapeHtml(po.id.toUpperCase())}</p>
+        <p style="margin:6px 0 0;"><strong>Hồ sơ mua hàng:</strong> ${escapeHtml(caseObj.title)}</p>
+        <p style="margin:6px 0 0;"><strong>Tổng giá trị:</strong> ${formatVndForEmail(po.totalAmount)}</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <thead>
+          <tr style="background:#f3f4f6;">
+            <th style="padding:10px;text-align:left;">Mặt hàng</th>
+            <th style="padding:10px;text-align:right;">Số lượng</th>
+            <th style="padding:10px;text-align:right;">Đơn giá</th>
+            <th style="padding:10px;text-align:right;">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="margin-top:16px;">Trân trọng,<br/>Stally Procurement</p>
+    </div>
+  `.trim();
+}
+
 apiV1Router.post("/purchase-orders/:poId/send", async (req: Request, res: Response) => {
   const orgId = req.organizationId || "org-1";
   const { poId } = req.params;
   
   const po = dbState.purchase_orders.find(p => p.id === poId && p.organizationId === orgId);
   if (!po) return res.status(404).json({ error: "Không tìm thấy PO" });
+  if (po.status !== "issued") {
+    return res.status(409).json({
+      error: {
+        code: "PO_ALREADY_SENT_OR_CLOSED",
+        message: "PO này đã được gửi, nhập kho hoặc hủy trước đó.",
+      }
+    });
+  }
   
   const caseObj = dbState.procurement_cases.find(c => c.id === po.caseId);
   if (!caseObj) return res.status(404).json({ error: "Không tìm thấy case" });
+
+  const supplier = dbState.suppliers.find(s => s.id === po.supplierId && s.organizationId === orgId);
+  const rfqSupplierEmail = caseObj.currentRfqId
+    ? dbState.rfq_cases
+      .find(rfq => rfq.id === caseObj.currentRfqId && rfq.organizationId === orgId)
+      ?.suppliers.find(item => item.supplierId === po.supplierId)?.email
+    : "";
+  const supplierEmail = supplier?.email || rfqSupplierEmail;
+  if (!supplierEmail) {
+    return res.status(400).json({
+      error: {
+        code: "SUPPLIER_EMAIL_MISSING",
+        message: "NCC chưa có email hợp lệ để gửi PO chính thức.",
+      }
+    });
+  }
+
+  const poEmailSubject = `[STALLY PO-${po.id.toUpperCase()}] Xác nhận đơn đặt hàng chính thức`;
+  const poEmailHtml = buildPurchaseOrderEmailHtml(po, caseObj);
+  const poEmailText = [
+    `Stally xác nhận đơn đặt hàng chính thức ${po.id.toUpperCase()}.`,
+    `Hồ sơ: ${caseObj.title}`,
+    `Nhà cung cấp: ${po.supplierName}`,
+    `Tổng giá trị: ${formatVndForEmail(po.totalAmount)}`,
+    "",
+    "Chi tiết hàng đặt:",
+    ...po.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatVndForEmail(item.unitPrice)} = ${formatVndForEmail(item.totalPrice)}`),
+    "",
+    "Vui lòng phản hồi email này để xác nhận lịch giao hàng và các điều kiện thực hiện đơn hàng.",
+  ].join("\n");
+
+  const sendResult = await sendRealEmail({
+    to: supplierEmail,
+    subject: poEmailSubject,
+    html: poEmailHtml,
+    text: poEmailText,
+  });
+  if (!sendResult.success) {
+    logFlow("error", "po.email.send_failed", {
+      traceId: req.traceId || createTraceId("po-send"),
+      poId,
+      caseId: po.caseId,
+      orgId,
+      supplierId: po.supplierId,
+      supplierEmail: maskEmail(supplierEmail),
+      err: safeError(sendResult.error),
+    });
+    return res.status(502).json({
+      error: {
+        code: "PO_EMAIL_SEND_FAILED",
+        message: "Không gửi được email PO chính thức đến NCC. Trạng thái PO chưa được cập nhật.",
+        details: sendResult.error,
+      }
+    });
+  }
   
   po.status = "confirmed";
   
@@ -3551,6 +3691,28 @@ apiV1Router.post("/purchase-orders/:poId/send", async (req: Request, res: Respon
       for (const item of touchedInventoryItems) {
         await persistRecord("inventory_items", item, client);
       }
+      const outboundEmail: EmailMessage = {
+        id: `email-out-po-${Date.now()}-${po.id}`,
+        organizationId: orgId,
+        gmailAccountId: "gmail-api-1",
+        gmailMessageId: sendResult.messageId || `gmail-api-po-${Date.now()}-${po.id}`,
+        gmailThreadId: `thread-po-${Date.now()}`,
+        internetMessageId: `<po-${Date.now()}@stally.com>`,
+        direction: "outbound",
+        from: process.env.GMAIL_API_SENDER_EMAIL || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || "procurement@stally.com",
+        to: [supplierEmail],
+        subject: poEmailSubject,
+        bodyText: poEmailText,
+        bodyHtml: poEmailHtml,
+        sentAt: new Date().toISOString(),
+        linkedCaseId: po.caseId,
+        linkedSupplierId: po.supplierId,
+        classification: "po",
+        attachments: [],
+        createdAt: new Date().toISOString()
+      };
+      dbState.email_messages.push(outboundEmail);
+      await persistRecord("email_messages", outboundEmail, client);
       await client.query("COMMIT");
     } catch (txErr) {
       await client.query("ROLLBACK");
@@ -3596,7 +3758,7 @@ apiV1Router.post("/purchase-orders/:poId/send", async (req: Request, res: Respon
     });
   }, 400);
   
-  res.json({ message: "PO confirmed and sent.", data: po });
+  res.json({ message: "PO confirmed and sent.", data: po, email: { messageId: sendResult.messageId, to: supplierEmail } });
 });
 
 apiV1Router.get("/purchase-orders", (req: Request, res: Response) => {

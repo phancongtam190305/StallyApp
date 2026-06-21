@@ -14,7 +14,7 @@ import { ToastProvider, useToast } from "./context/ToastContext";
 import ProcurementDashboard from "./components/ProcurementDashboard";
 import CaseDetailTimeline from "./components/CaseDetailTimeline";
 import FloatingChatbot from "./components/FloatingChatbot";
-import { buildDashboardMetrics } from "./dashboardMetrics";
+import { buildDashboardMetrics, DashboardTask } from "./dashboardMetrics";
 import OperatorDashboard from "./components/dashboard/OperatorDashboard";
 import ExecutiveDashboard from "./components/dashboard/ExecutiveDashboard";
 
@@ -66,6 +66,7 @@ export function AppContent() {
 
   // Cases dashboard state
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [caseCreateRequestToken, setCaseCreateRequestToken] = useState(0);
 
   // Sourced states
   const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
@@ -425,6 +426,27 @@ export function AppContent() {
     setSelectedCaseId(null);
   };
 
+  const handlePriorityTaskNavigate = (task: DashboardTask) => {
+    if (task.targetCaseId) {
+      setSelectedCaseId(task.targetCaseId);
+      setActiveTab("cases");
+      return;
+    }
+
+    if (task.targetPrId) {
+      const pr = purchaseRequests.find((item) => item.id === task.targetPrId);
+      if (pr) setSelectedPr(pr);
+    }
+
+    setActiveTab(task.targetTab);
+  };
+
+  const handleCreateCaseShortcut = () => {
+    setSelectedCaseId(null);
+    setActiveTab("cases");
+    setCaseCreateRequestToken((value) => value + 1);
+  };
+
   const dashboardMetrics = buildDashboardMetrics({
     purchaseRequests,
     rfqs,
@@ -640,32 +662,22 @@ export function AppContent() {
                   {activeTab === "pr" && t("pageTitlePr")}
                   {activeTab === "rfq" && t("pageTitleRfq")}
                   {activeTab === "suppliers" && t("pageTitleSuppliers")}
+                  {activeTab === "inventory" && t("pageTitleInventory")}
                 </h1>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mt-1" />
               </div>
 
               {/* Dynamic CTA Buttons based on active tab */}
               <div className="flex items-center gap-2.5">
-                {(activeTab === "overview" || activeTab === "pr") && (
+                {(activeTab === "overview" || activeTab === "cases") && (
                   <button
                     type="button"
-                    id="content-btn-create-pr"
-                    onClick={() => setActiveTab("pr")}
+                    id="content-btn-create-case"
+                    onClick={handleCreateCaseShortcut}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-coral hover:bg-coral-dark rounded-full cursor-pointer transition-all shadow-sm shadow-coral/10"
                   >
                     <Plus className="w-4 h-4" />
-                    {t("createPr")}
-                  </button>
-                )}
-                {(activeTab === "overview" || activeTab === "rfq") && (
-                  <button
-                    type="button"
-                    id="content-btn-create-rfq"
-                    onClick={() => setActiveTab("rfq")}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-coral hover:bg-coral-dark rounded-full cursor-pointer transition-all shadow-sm shadow-coral/10"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {t("createRfq")}
+                    {t("createCaseBtn")}
                   </button>
                 )}
                 {activeTab === "overview" && (
@@ -692,7 +704,7 @@ export function AppContent() {
               ) : (
                 <OperatorDashboard
                   metrics={dashboardMetrics}
-                  onNavigate={(tab) => setActiveTab(tab)}
+                  onNavigate={handlePriorityTaskNavigate}
                   t={t}
                 />
               )}
@@ -723,6 +735,7 @@ export function AppContent() {
                     orgId={orgId}
                     onSelectCase={(caseId) => setSelectedCaseId(caseId)}
                     isActive={activeTab === "cases"}
+                    createRequestToken={caseCreateRequestToken}
                     t={t}
                   />
                 </div>

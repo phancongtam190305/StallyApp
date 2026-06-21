@@ -277,6 +277,56 @@ describe("Stally B2B API v1 & Multi-Tenant Testing Suite", () => {
     });
   });
 
+  describe("POST /api/v1/cases/:caseId/po-draft - Idempotent PO creation", () => {
+    beforeEach(() => {
+      const caseObj = dbState.procurement_cases.find((c: any) => c.id === "case-mock-1");
+      if (caseObj) {
+        caseObj.status = "po_draft";
+        caseObj.selectedQuoteId = "quote-po-idempotent";
+        caseObj.purchaseOrderId = undefined;
+      }
+      dbState.quotes = [
+        {
+          id: "quote-po-idempotent",
+          organizationId: "org-1",
+          rfqCaseId: "rfq-po-idempotent",
+          supplierId: "sup-1",
+          supplierName: "NCC Thực Phẩm Sạch Cầu Đất",
+          items: [
+            { name: "Gạo ST25 Cao Cấp", quantity: 150, unit: "kg", unitPrice: 28000, totalPrice: 4200000 }
+          ],
+          subtotal: 4200000,
+          taxAmount: 0,
+          shippingFee: 0,
+          totalAmount: 4200000,
+          deliveryDays: 2,
+          paymentTerms: "Net 30",
+          validUntil: "2026-07-01",
+          aiConfidenceScore: 95,
+          status: "selected",
+          createdAt: new Date().toISOString()
+        }
+      ];
+      dbState.purchase_orders = [];
+    });
+
+    it("returns the existing active PO instead of creating duplicates", async () => {
+      const first = await request(app)
+        .post("/api/v1/cases/case-mock-1/po-draft")
+        .set("x-organization-id", "org-1");
+
+      const second = await request(app)
+        .post("/api/v1/cases/case-mock-1/po-draft")
+        .set("x-organization-id", "org-1");
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(second.body.reused).toBe(true);
+      expect(second.body.data.id).toBe(first.body.data.id);
+      expect(dbState.purchase_orders.filter((po: any) => po.caseId === "case-mock-1")).toHaveLength(1);
+    });
+  });
+
   describe("POST /api/v1/purchase-orders/:poId/receive - Warehouse inventory receiving", () => {
     beforeEach(() => {
       dbState.inventory_items = [

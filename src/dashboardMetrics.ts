@@ -14,6 +14,10 @@ export interface DashboardTask {
   title: string;
   reason: string;
   targetTab: "cases" | "pr" | "rfq" | "suppliers";
+  targetCaseId?: string;
+  targetRfqId?: string;
+  targetPrId?: string;
+  targetSupplierId?: string;
   severity: "high" | "medium" | "low";
   dueLabel: string;
   value: number;
@@ -48,6 +52,8 @@ export function buildDashboardMetrics(input: DashboardMetricsInput): DashboardMe
   const quoteRiskTasks = input.quotes
     .filter((quote) => getQuoteRiskFlags(quote).length > 0)
     .map((quote): DashboardTask => {
+      const rfq = input.rfqs.find((item) => item.id === quote.rfqCaseId);
+      const relatedCase = findCaseForRfq(input.cases, quote.rfqCaseId, rfq?.purchaseRequestId);
       const rawFlag = getQuoteRiskFlags(quote)[0] || "Báo giá cần kiểm tra thủ công";
       let businessReason = rawFlag;
       if (rawFlag.includes("Độ tin cậy")) {
@@ -64,7 +70,10 @@ export function buildDashboardMetrics(input: DashboardMetricsInput): DashboardMe
         kind: "quote_risk",
         title: quote.supplierName || "Báo giá cần kiểm tra",
         reason: businessReason,
-        targetTab: "rfq",
+        targetTab: relatedCase ? "cases" : "rfq",
+        targetCaseId: relatedCase?.id,
+        targetRfqId: quote.rfqCaseId,
+        targetPrId: rfq?.purchaseRequestId,
         severity: "high",
         dueLabel: "Cần review",
         value: quote.totalAmount || 0,
@@ -79,6 +88,9 @@ export function buildDashboardMetrics(input: DashboardMetricsInput): DashboardMe
       title: caseItem.title,
       reason: "Hồ sơ mua hàng quá hạn xử lý - cần đốc thúc hoặc hủy",
       targetTab: "cases",
+      targetCaseId: caseItem.id,
+      targetPrId: caseItem.requestId,
+      targetRfqId: caseItem.currentRfqId,
       severity: "high",
       dueLabel: caseItem.requiredDate || "Quá hạn",
       value: priorityValue(caseItem.priority),
@@ -86,16 +98,22 @@ export function buildDashboardMetrics(input: DashboardMetricsInput): DashboardMe
 
   const rfqWaitingTasks = input.rfqs
     .filter((rfq) => ["sent", "quotes_received"].includes(rfq.status))
-    .map((rfq): DashboardTask => ({
-      id: `rfq-${rfq.id}`,
-      kind: "rfq_waiting",
-      title: rfq.id.toUpperCase(),
-      reason: "So sánh báo giá và phản hồi RFQ từ các nhà cung cấp",
-      targetTab: "rfq",
-      severity: rfq.status === "quotes_received" ? "medium" : "low",
-      dueLabel: rfq.dueDate,
-      value: 0,
-    }));
+    .map((rfq): DashboardTask => {
+      const relatedCase = findCaseForRfq(input.cases, rfq.id, rfq.purchaseRequestId);
+      return {
+        id: `rfq-${rfq.id}`,
+        kind: "rfq_waiting",
+        title: relatedCase?.title || rfq.id.toUpperCase(),
+        reason: "So sánh báo giá và phản hồi RFQ từ các nhà cung cấp",
+        targetTab: relatedCase ? "cases" : "rfq",
+        targetCaseId: relatedCase?.id,
+        targetRfqId: rfq.id,
+        targetPrId: rfq.purchaseRequestId,
+        severity: rfq.status === "quotes_received" ? "medium" : "low",
+        dueLabel: rfq.dueDate,
+        value: 0,
+      };
+    });
 
   const prIntakeTasks = input.purchaseRequests
     .filter((pr) => ["draft", "submitted"].includes(pr.status))
@@ -105,6 +123,8 @@ export function buildDashboardMetrics(input: DashboardMetricsInput): DashboardMe
       title: pr.title,
       reason: "Chuẩn hóa thông tin yêu cầu mua (PR) và tạo RFQ thầu",
       targetTab: "pr",
+      targetCaseId: input.cases.find((caseItem) => caseItem.requestId === pr.id)?.id,
+      targetPrId: pr.id,
       severity: pr.priority === "high" ? "medium" : "low",
       dueLabel: pr.requiredDate,
       value: priorityValue(pr.priority),
@@ -118,6 +138,7 @@ export function buildDashboardMetrics(input: DashboardMetricsInput): DashboardMe
       title: supplier.name,
       reason: "Cập nhật thông tin liên hệ và phân loại ngành hàng NCC",
       targetTab: "suppliers",
+      targetSupplierId: supplier.id,
       severity: "low",
       dueLabel: "Bổ sung hồ sơ",
       value: supplier.rating || 0,
@@ -175,6 +196,11 @@ function isCaseOverdue(caseItem: ProcurementCase) {
   if (!caseItem.requiredDate || ["closed", "cancelled"].includes(caseItem.status)) return false;
   const dueDate = new Date(`${caseItem.requiredDate}T23:59:59`);
   return Number.isFinite(dueDate.getTime()) && dueDate.getTime() < Date.now();
+}
+
+function findCaseForRfq(cases: ProcurementCase[], rfqId: string, purchaseRequestId?: string) {
+  return cases.find((caseItem) => caseItem.currentRfqId === rfqId)
+    || cases.find((caseItem) => Boolean(purchaseRequestId) && caseItem.requestId === purchaseRequestId);
 }
 
 function priorityValue(priority: string | undefined) {

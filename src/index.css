@@ -74,6 +74,16 @@ body {
   font-feature-settings: "kern";
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 ::selection {
   background: #E6A756;
   color: #fff;

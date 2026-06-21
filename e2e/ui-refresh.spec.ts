@@ -21,9 +21,9 @@ test.describe("Stally procurement UI refresh", () => {
   test("guides the procurement demo path with audit-focused CTAs", async ({ page }) => {
     await loginAsProcurement(page);
 
-    await page.click("#btn-tab-rfq");
-    await expect(page.getByRole("button", { name: /Mở danh sách PR/i })).toBeVisible();
-    await expect(page.getByText(/Độ tin cậy AI dưới ngưỡng, yêu cầu con người kiểm duyệt/i)).toBeVisible();
+    await page.click("#btn-tab-cases");
+    await expect(page.locator("#btn-create-case")).toBeVisible();
+    await expect(page.getByTestId("procurement-kanban-board")).toBeVisible();
 
     await page.click("#btn-tab-suppliers");
     await expect(page.getByText(/Catalog Horeca/i)).toBeVisible();

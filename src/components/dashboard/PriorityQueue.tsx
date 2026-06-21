@@ -4,7 +4,7 @@ import { DashboardTask } from "../../dashboardMetrics";
 
 interface PriorityQueueProps {
   tasks: DashboardTask[];
-  onNavigate: (tab: DashboardTask["targetTab"]) => void;
+  onNavigate: (task: DashboardTask) => void;
   t: (key: any) => string;
 }
 
@@ -108,13 +108,14 @@ function formatVND(value: number): string {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
+                        onClick={() => onNavigate(task)}
                         className="px-2.5 py-1.5 text-[10px] font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                       >
                         {t("pqActionReview")}
                       </button>
                       <button
                         type="button"
-                        onClick={() => onNavigate(task.targetTab)}
+                        onClick={() => onNavigate(task)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-white bg-slate-900 rounded-lg hover:bg-black transition-colors cursor-pointer"
                       >
                         {t("pqActionProcess")}
@@ -154,8 +155,8 @@ function formatVND(value: number): string {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-slate-700">{formatVND(task.value)}</span>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="px-2.5 py-1.5 text-[10px] font-bold text-slate-600 border border-slate-200 rounded-lg">{t("pqActionReview")}</button>
-                  <button type="button" onClick={() => onNavigate(task.targetTab)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-white bg-slate-900 rounded-lg hover:bg-black">
+                  <button type="button" onClick={() => onNavigate(task)} className="px-2.5 py-1.5 text-[10px] font-bold text-slate-600 border border-slate-200 rounded-lg">{t("pqActionReview")}</button>
+                  <button type="button" onClick={() => onNavigate(task)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-white bg-slate-900 rounded-lg hover:bg-black">
                     {t("pqActionProcess")} <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>

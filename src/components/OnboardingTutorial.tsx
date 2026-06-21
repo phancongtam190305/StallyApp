@@ -45,18 +45,18 @@ export default function OnboardingTutorial({ role, activeTab, setActiveTab, onCo
             tooltip: "Mở Tổng quan để xem cảnh báo tồn kho thấp."
           },
           {
-            tab: "pr",
-            title: "BƯỚC 2 - TẠO PHIẾU PR",
-            description: "Vào tab Yêu cầu để nhập mặt hàng, số lượng, đơn vị và ngày cần hàng. PR là đầu vào để phòng mua hàng tạo case thu mua.",
-            targetId: "#btn-tab-pr",
-            tooltip: "Mở tab Yêu cầu để lập phiếu mua."
+            tab: "cases",
+            title: "BƯỚC 2 - TẠO HỒ SƠ MUA HÀNG",
+            description: "Vào Hồ sơ mua hàng để nhập mặt hàng, số lượng, đơn vị và ngày cần hàng. Hồ sơ là đầu vào chính cho phòng mua hàng xử lý sourcing.",
+            targetId: "#btn-tab-cases",
+            tooltip: "Mở Hồ sơ mua hàng để tạo yêu cầu."
           },
           {
-            tab: "pr",
+            tab: "cases",
             title: "BƯỚC 3 - GỬI CHO THU MUA",
-            description: "Sau khi kiểm tra nội dung PR, bấm nút gửi. Phòng mua hàng sẽ tiếp nhận, chọn nhà cung cấp và gửi RFQ.",
-            targetId: "#btn-create-pr",
-            tooltip: "Điền đủ mặt hàng rồi bấm nút tạo/gửi PR."
+            description: "Sau khi kiểm tra nội dung hồ sơ, bấm tạo. Phòng mua hàng sẽ tiếp nhận, chọn nhà cung cấp và gửi RFQ trong cùng một timeline.",
+            targetId: "#btn-create-case",
+            tooltip: "Bấm Tạo hồ sơ mua hàng rồi điền đủ mặt hàng."
           },
           {
             tab: "inventory",

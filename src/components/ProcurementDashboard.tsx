@@ -29,6 +29,7 @@ interface ProcurementDashboardProps {
   orgId: string;
   onSelectCase: (caseId: string) => void;
   isActive?: boolean;
+  createRequestToken?: number;
   t: (key: any) => string;
 }
 
@@ -37,6 +38,7 @@ export default function ProcurementDashboard({
   orgId, 
   onSelectCase,
   isActive = true,
+  createRequestToken = 0,
   t
 }: ProcurementDashboardProps) {
 
@@ -79,6 +81,12 @@ export default function ProcurementDashboard({
       fetchCases(cases.length > 0);
     }
   }, [orgId, isActive]);
+
+  useEffect(() => {
+    if (createRequestToken > 0) {
+      setShowCreateModal(true);
+    }
+  }, [createRequestToken]);
 
   const lanes = [
     {

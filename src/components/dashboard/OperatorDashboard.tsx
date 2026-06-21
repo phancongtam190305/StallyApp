@@ -1,12 +1,12 @@
 import React from "react";
 import { AlertCircle, AlertTriangle, ClipboardCheck, Send } from "lucide-react";
-import { DashboardMetrics } from "../../dashboardMetrics";
+import { DashboardMetrics, DashboardTask } from "../../dashboardMetrics";
 import MetricCard from "./MetricCard";
 import PriorityQueue from "./PriorityQueue";
 
 interface OperatorDashboardProps {
   metrics: DashboardMetrics;
-  onNavigate: (tab: "cases" | "pr" | "rfq" | "suppliers") => void;
+  onNavigate: (task: DashboardTask) => void;
   t: (key: any) => string;
 }
 

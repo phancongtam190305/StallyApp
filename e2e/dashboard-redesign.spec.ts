@@ -21,18 +21,15 @@ test.describe("Stally dashboard redesign", () => {
     await enterWorkspace(page);
 
     await expect(page.locator("#global-search")).toBeVisible();
-    await expect(page.locator("#content-btn-create-pr")).toBeVisible();
-    await expect(page.locator("#content-btn-create-rfq")).toBeVisible();
+    await expect(page.locator("#content-btn-create-case")).toBeVisible();
     await expect(page.locator("#content-btn-add-supplier")).toBeVisible();
     await expect(page.locator("#btn-lang-vi")).toBeVisible();
     await expect(page.locator("#btn-lang-en")).toBeVisible();
 
     await expect(page.locator("#btn-tab-overview")).toBeVisible();
     await expect(page.locator("#btn-tab-cases")).toBeVisible();
-    await expect(page.locator("#btn-tab-pr")).toBeVisible();
-    await expect(page.locator("#btn-tab-rfq")).toBeVisible();
     await expect(page.locator("#btn-tab-suppliers")).toBeVisible();
-    await expect(page.locator("#btn-tab-inventory")).toHaveCount(0);
+    await expect(page.locator("#btn-tab-inventory")).toBeVisible();
 
     await expect(page.getByTestId("operator-dashboard")).toBeVisible();
     await page.click("#btn-settings");

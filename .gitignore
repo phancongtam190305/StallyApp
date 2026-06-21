@@ -17,4 +17,14 @@ chrome-profile/
 chrome_log.txt
 chrome_error.log
 
+# Local Figma exports / generated standalone marketing previews.
+local-figma-sites/
+Landing Page – Figma Make.html
+Landing Page – Figma Make_files/
+Stally Website – Figma Make.html
+Stally Website – Figma Make_files/
+figma-landing.html
+figma-stally.html
+figma-sites.html
+
 .vercel
