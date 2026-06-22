@@ -11,7 +11,14 @@ interface PriorityQueueProps {
 function formatVND(value: number): string {
   if (!value || value === 0) return "—";
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
-}export default function PriorityQueue({ tasks, onNavigate, t }: PriorityQueueProps) {
+}
+
+function formatTaskValue(task: DashboardTask): string {
+  if (task.kind !== "quote_risk") return "—";
+  return formatVND(task.value);
+}
+
+export default function PriorityQueue({ tasks, onNavigate, t }: PriorityQueueProps) {
   const kindLabels: Record<string, { label: string; color: string }> = {
     quote_risk: { label: t("pqKindQuoteRisk"), color: "bg-rose-50 text-rose-700 border-rose-200" },
     case_overdue: { label: t("pqKindCaseOverdue"), color: "bg-amber-50 text-amber-700 border-amber-200" },
@@ -103,7 +110,7 @@ function formatVND(value: number): string {
                       {translateDueLabel(task.dueLabel)}
                     </span>
                   </td>
-                  <td className="px-3 py-3.5 text-right font-mono text-slate-700 font-bold">{formatVND(task.value)}</td>
+                  <td className="px-3 py-3.5 text-right font-mono text-slate-700 font-bold">{formatTaskValue(task)}</td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -153,7 +160,7 @@ function formatVND(value: number): string {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold text-slate-700">{formatVND(task.value)}</span>
+                <span className="text-xs font-mono font-bold text-slate-700">{formatTaskValue(task)}</span>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => onNavigate(task)} className="px-2.5 py-1.5 text-[10px] font-bold text-slate-600 border border-slate-200 rounded-lg">{t("pqActionReview")}</button>
                   <button type="button" onClick={() => onNavigate(task)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-white bg-slate-900 rounded-lg hover:bg-black">
