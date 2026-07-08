@@ -50,6 +50,8 @@ interface SupplierMatch {
   name: string;
   email: string;
   rating?: number;
+  reputationScore?: number;
+  reputationLevel?: string;
   tags?: string[];
   source?: string;
   rerankedBy?: string;
@@ -2008,6 +2010,24 @@ export default function CaseDetailTimeline({
                           <span className="text-[9px] bg-primary-bg text-primary-dark px-1.5 py-0.5 rounded border border-primary font-mono font-bold">
                             {t("matchPercent").replace("{score}", String(item.score))}
                           </span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono font-bold ${
+                            item.reputationLevel === "high"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : item.reputationLevel === "low"
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}>
+                            {locale === "en" ? "Trust" : "Uy tín"} {item.rating || 0}/5
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 max-w-[180px] bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${item.reputationLevel === "high" ? "bg-emerald-500" : item.reputationLevel === "low" ? "bg-rose-500" : "bg-amber-400"}`}
+                              style={{ width: `${Math.min(100, Math.round(((item.reputationScore || 0) / 90) * 100))}%` }}
+                            />
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-bold">{item.reputationScore || 0}/90</span>
                         </div>
                         <p className="text-[10px] text-primary-dark/50 font-bold font-mono">{item.email}</p>
                         <div className="flex flex-wrap gap-1">

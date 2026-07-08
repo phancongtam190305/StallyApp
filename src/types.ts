@@ -131,6 +131,16 @@ export interface Supplier {
   phone: string;
   address: string;
   rating: number; // 1-5
+  reputationScore?: number; // 0-90, derived from scoring criteria
+  reputationLevel?: "high" | "medium" | "low";
+  reputationCriteria?: Array<{
+    key: string;
+    label: string;
+    score: number;
+    maxScore: number;
+    note: string;
+  }>;
+  reputationRiskFlags?: string[];
   tags: string[]; // Offered products or labels
   historicalPricing?: string; // Rich historical pricing text or record
   source?: "crm" | "discovered" | "manual" | "crawled";

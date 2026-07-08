@@ -6,6 +6,7 @@ import { persistDbState, persistUser, persistRecord, deleteRecord, persistRecord
 import { sendRealEmail } from "./mailer.js";
 import { createTraceId, logFlow, maskEmail, maskEmails, safeError, subjectSummary, textSummary } from "./logger.js";
 import { buildSupplierFromCandidate, discoverSuppliers } from "./supplier_discovery.js";
+import { applySupplierReputation } from "../supplierReputation.js";
 import { 
   ProcurementCase, 
   CaseStatus, 
@@ -810,6 +811,8 @@ type SupplierMatchResult = {
   name: string;
   email: string;
   rating: number;
+  reputationScore?: number;
+  reputationLevel?: string;
   tags: string[];
   source: string;
   score: number;
@@ -840,7 +843,8 @@ const handleSupplierMatchesList = async (req: Request, res: Response) => {
   
   const matches: SupplierMatchResult[] = dbState.suppliers
     .filter(s => s.organizationId === orgId)
-    .map(sup => {
+    .map(rawSupplier => {
+      const sup = applySupplierReputation(rawSupplier);
       let score = 35;
       const supplierText = normalizeMatchText([
         sup.name,
@@ -866,6 +870,7 @@ const handleSupplierMatchesList = async (req: Request, res: Response) => {
       score += Math.min(24, matchedTokens.length * 6);
       
       score += Math.round((sup.rating - 3.0) * 10);
+      score += Math.round(((sup.reputationScore || 0) - 55) / 8);
       if (sup.historicalPricing) score += 8;
       if (sup.source === "crm" || sup.source === "manual") score += 6;
       if (sup.email) score += 3;
@@ -877,7 +882,7 @@ const handleSupplierMatchesList = async (req: Request, res: Response) => {
       if (matchedTags.length > 0) reasons.push(`Khớp danh mục: ${matchedTags.slice(0, 3).join(", ")}`);
       if (matchedTokens.length > 0) reasons.push(`Khớp từ khóa yêu cầu: ${matchedTokens.slice(0, 4).join(", ")}`);
       if (sup.historicalPricing) reasons.push("Có lịch sử báo giá/ghi chú mua hàng trong CRM");
-      if (sup.rating >= 4.5) reasons.push(`Đánh giá NCC cao: ${sup.rating}/5.0`);
+      if (sup.rating >= 4.5) reasons.push(`Điểm uy tín cao: ${sup.rating}/5.0 (${sup.reputationScore || Math.round((sup.rating - 1) * 22.5)}/90)`);
       if (reasons.length === 0) reasons.push("Có trong danh bạ NCC nhưng mức khớp mặt hàng còn thấp");
       
       return {
@@ -885,12 +890,16 @@ const handleSupplierMatchesList = async (req: Request, res: Response) => {
         name: sup.name,
         email: sup.email,
         rating: sup.rating,
+        reputationScore: sup.reputationScore,
+        reputationLevel: sup.reputationLevel,
         tags: sup.tags,
         source: sup.source || "crm",
         score,
         reasons,
         riskFlags: [
           ...(score < 50 ? ["Mức khớp thấp, cần kiểm tra thủ công"] : []),
+          ...((sup.reputationLevel === "low" || (sup.reputationScore || 0) < 50) ? ["Điểm uy tín thấp, cần thẩm định hồ sơ NCC"] : []),
+          ...((sup.reputationRiskFlags || []).slice(0, 2)),
           ...(sup.source === "discovered" || sup.source === "crawled" ? ["NCC mới/crawl, cần xác minh trước khi gửi thật"] : [])
         ]
       };
@@ -915,6 +924,7 @@ ${topCandidates.map((item, index) => `${index + 1}. supplierId=${item.supplierId
 Tên: ${item.name}
 Email: ${item.email}
 Rating: ${item.rating || 0}
+Điểm uy tín: ${item.reputationScore || 0}/90 (${item.reputationLevel || "unknown"})
 Nguồn: ${item.source || "crm"}
 Tags: ${(item.tags || []).join(", ")}
 Rule score: ${item.score}
@@ -1435,12 +1445,12 @@ apiV1Router.post("/cases/:caseId/suppliers/promote-candidates", (req: Request, r
 
 // SUPPLIERS CRM REST
 apiV1Router.get("/suppliers", (req: Request, res: Response) => {
-  res.json({ data: dbState.suppliers.filter(s => s.organizationId === req.organizationId) });
+  res.json({ data: dbState.suppliers.filter(s => s.organizationId === req.organizationId).map(applySupplierReputation) });
 });
 
 apiV1Router.post("/suppliers", (req: Request, res: Response) => {
-  const { name, contactPerson, email, phone, address, rating, tags, historicalPricing } = req.body;
-  const newSupplier: Supplier = {
+  const { name, contactPerson, email, phone, address, tags, historicalPricing } = req.body;
+  const newSupplier: Supplier = applySupplierReputation({
     id: `sup-${Date.now()}`,
     organizationId: req.organizationId,
     name,
@@ -1448,11 +1458,10 @@ apiV1Router.post("/suppliers", (req: Request, res: Response) => {
     email,
     phone,
     address: address || "",
-    rating: Number(rating) || 4.5,
     tags: tags || [],
     historicalPricing: historicalPricing || "",
     source: "crm"
-  };
+  });
   dbState.suppliers.push(newSupplier);
   res.status(201).json({ data: newSupplier });
 });
@@ -1467,7 +1476,7 @@ apiV1Router.patch("/suppliers/:supplierId", (req: Request, res: Response) => {
   const idx = dbState.suppliers.findIndex(s => s.id === req.params.supplierId && s.organizationId === req.organizationId);
   if (idx === -1) return res.status(404).json({ error: "Không tìm thấy" });
   
-  const updated = { ...dbState.suppliers[idx], ...req.body };
+  const updated = applySupplierReputation({ ...dbState.suppliers[idx], ...req.body });
   dbState.suppliers[idx] = updated;
   res.json({ data: updated });
 });

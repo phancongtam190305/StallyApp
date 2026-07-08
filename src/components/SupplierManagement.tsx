@@ -20,6 +20,7 @@ import {
   Search
 } from "lucide-react";
 import { Supplier, UserRole } from "../types";
+import { calculateSupplierReputation } from "../supplierReputation";
 
 interface SupplierManagementProps {
   currentRole: UserRole;
@@ -58,7 +59,6 @@ export default function SupplierManagement({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [rating, setRating] = useState(5);
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [historicalPricing, setHistoricalPricing] = useState("");
@@ -104,7 +104,6 @@ export default function SupplierManagement({
     setEmail("");
     setPhone("");
     setAddress("");
-    setRating(5);
     setTagInput("");
     setTags([]);
     setHistoricalPricing("");
@@ -120,7 +119,6 @@ export default function SupplierManagement({
     setEmail(sup.email);
     setPhone(sup.phone);
     setAddress(sup.address || "");
-    setRating(sup.rating);
     setTags(sup.tags || []);
     setTagInput("");
     setHistoricalPricing(sup.historicalPricing || "");
@@ -155,7 +153,6 @@ export default function SupplierManagement({
       email: email.trim(),
       phone: phone.trim(),
       address: address.trim(),
-      rating: Number(rating),
       tags,
       historicalPricing: historicalPricing.trim()
     };
@@ -224,6 +221,22 @@ export default function SupplierManagement({
     (s.tags && s.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))) ||
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const draftReputation = calculateSupplierReputation({
+    name,
+    contactPerson,
+    email,
+    phone,
+    address,
+    tags,
+    historicalPricing,
+    source: selectedSupplier?.source || "crm",
+  });
+  const selectedReputation = selectedSupplier ? calculateSupplierReputation(selectedSupplier) : null;
+  const levelLabel = (level: string) => {
+    if (locale === "en") return level === "high" ? "High trust" : level === "medium" ? "Needs review" : "High risk";
+    return level === "high" ? "Uy tín cao" : level === "medium" ? "Cần rà soát" : "Rủi ro cao";
+  };
 
   return (
     <div className="space-y-6 animate-fade-slide-up">
@@ -301,6 +314,7 @@ export default function SupplierManagement({
             ) : (
               filteredSuppliers.map((sup) => {
                 const isActive = sup.id === selectedSupplierId;
+                const reputation = calculateSupplierReputation(sup);
                 return (
                   <div
                     key={sup.id}
@@ -321,9 +335,18 @@ export default function SupplierManagement({
                       <h4 className="font-extrabold text-xs text-slate-700 capitalize truncate">{sup.name}</h4>
                       <div className="flex items-center gap-0.5 text-amber-500 font-mono text-[9px] shrink-0 bg-amber-50 p-0.5 px-1.5 rounded-lg border border-amber-200/50">
                         <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                        <span className="font-bold">{sup.rating}</span>
+                        <span className="font-bold">{reputation.rating}</span>
                       </div>
                     </div>
+                    <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${reputation.level === "high" ? "bg-emerald-500" : reputation.level === "medium" ? "bg-amber-400" : "bg-rose-500"}`}
+                        style={{ width: `${Math.min(100, Math.round((reputation.reputationScore / 90) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-[9px] text-slate-400 mt-1 font-bold">
+                      {locale === "en" ? "Reputation" : "Uy tín"}: {reputation.reputationScore}/90 - {levelLabel(reputation.level)}
+                    </p>
                     <p className="text-[10px] text-slate-400 truncate mt-1 font-medium">{t("contactPersonLabel").replace("{name}", sup.contactPerson || "N/A")}</p>
                     
                     <div className="flex flex-wrap gap-1 mt-2.5 select-none">
@@ -395,7 +418,7 @@ export default function SupplierManagement({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldOfficialEmail")} <span className="text-rose-500">*</span></label>
                   <input
@@ -419,21 +442,40 @@ export default function SupplierManagement({
                     className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wide">{t("fieldReputationRating")}</label>
-                  <select
-                    value={rating}
-                    onChange={(e) => setRating(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-200 focus:outline-none focus:border-accent-gold rounded-xl p-2.5 text-xs text-slate-800"
-                  >
-                    <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
-                    <option value="4">⭐⭐⭐⭐ (4/5)</option>
-                    <option value="3">⭐⭐⭐ (3/5)</option>
-                    <option value="2">⭐⭐ (2/5)</option>
-                    <option value="1">⭐ (1/5)</option>
-                  </select>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-500 font-extrabold">
+                      {locale === "en" ? "Auto reputation score" : "Điểm uy tín tự động"}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {locale === "en" ? "Calculated from contact verification, profile depth, category tags, commercial history and source reliability." : "Tính từ xác thực liên hệ, độ đầy đủ hồ sơ, ngành hàng, lịch sử giá/giao dịch và độ tin cậy nguồn."}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-black text-primary-dark">{draftReputation.rating}/5.0</p>
+                    <p className="text-[10px] font-bold text-slate-500">{draftReputation.reputationScore}/90 - {levelLabel(draftReputation.level)}</p>
+                  </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                  {draftReputation.criteria.map((criterion) => (
+                    <div key={criterion.key} className="bg-white border border-slate-150 rounded-xl p-2">
+                      <p className="text-[9px] font-extrabold text-slate-500 leading-tight">{criterion.label}</p>
+                      <p className="text-xs font-black text-primary-dark mt-1">{criterion.score}/{criterion.maxScore}</p>
+                    </div>
+                  ))}
+                </div>
+                {draftReputation.riskFlags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {draftReputation.riskFlags.map((risk) => (
+                      <span key={risk} className="text-[9px] bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-0.5 font-bold">
+                        {risk}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -524,7 +566,7 @@ export default function SupplierManagement({
                 </button>
               </div>
             </form>
-          ) : selectedSupplier ? (
+          ) : selectedSupplier && selectedReputation ? (
             // VIEW MODE: SUPPLIER PROFILE PREVIEW CARD
             <div className="space-y-6 flex flex-col justify-between h-full">
               <div className="space-y-5">
@@ -551,10 +593,52 @@ export default function SupplierManagement({
                       <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wide">{t("trustedPartner")}</span>
                       <div className="flex items-center gap-0.5 font-mono font-extrabold text-amber-500">
                         <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                        <span>{selectedSupplier.rating}</span> / 5.0
+                        <span>{selectedReputation.rating}</span> / 5.0
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-extrabold">
+                        {locale === "en" ? "Reputation criteria" : "Tiêu chí điểm uy tín"}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        {locale === "en" ? "This score is recalculated from supplier data instead of being entered manually." : "Điểm này được tính lại từ dữ liệu NCC, không còn nhập tay mặc định."}
+                      </p>
+                    </div>
+                    <div className="min-w-32">
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${selectedReputation.level === "high" ? "bg-emerald-500" : selectedReputation.level === "medium" ? "bg-amber-400" : "bg-rose-500"}`}
+                          style={{ width: `${Math.min(100, Math.round((selectedReputation.reputationScore / 90) * 100))}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-right font-bold text-slate-500 mt-1">
+                        {selectedReputation.reputationScore}/90 - {levelLabel(selectedReputation.level)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                    {selectedReputation.criteria.map((criterion) => (
+                      <div key={criterion.key} className="bg-slate-50 border border-slate-150 rounded-xl p-2.5">
+                        <p className="text-[9px] font-extrabold text-slate-500 leading-tight">{criterion.label}</p>
+                        <p className="text-xs font-black text-primary-dark mt-1">{criterion.score}/{criterion.maxScore}</p>
+                        <p className="text-[8.5px] text-slate-400 mt-0.5 leading-tight">{criterion.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedReputation.riskFlags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedReputation.riskFlags.map((risk) => (
+                        <span key={risk} className="text-[9px] bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-0.5 font-bold">
+                          {risk}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Profiles cards */}

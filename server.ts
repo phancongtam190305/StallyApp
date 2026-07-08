@@ -127,6 +127,7 @@ if (aiClients.length > 0) {
 import { 
   initDb, loadDbState, checkDbHealth, persistDbState, loadDbStateQueue
 } from "./src/backend/db.ts";
+import { applySupplierReputation } from "./src/supplierReputation.ts";
 
 export let dbState: any = {
   organizations: [],
@@ -369,7 +370,7 @@ declare global {
 app.get("/api/state", (req, res) => {
   res.json({
     users: dbState.users,
-    suppliers: dbState.suppliers.filter(s => s.organizationId === req.organizationId),
+    suppliers: dbState.suppliers.filter(s => s.organizationId === req.organizationId).map(applySupplierReputation),
     inventory: dbState.inventory_items.filter(i => i.organizationId === req.organizationId),
     purchaseRequests: dbState.purchase_requests.filter(pr => pr.organizationId === req.organizationId),
     rfqs: dbState.rfq_cases.filter(rfq => rfq.organizationId === req.organizationId),
@@ -382,15 +383,15 @@ app.get("/api/state", (req, res) => {
 
 // SUPPLIERS CRUD FOR SOURCING
 app.get("/api/suppliers", (req, res) => {
-  res.json(dbState.suppliers.filter(s => s.organizationId === req.organizationId));
+  res.json(dbState.suppliers.filter(s => s.organizationId === req.organizationId).map(applySupplierReputation));
 });
 
 app.post("/api/suppliers", (req, res) => {
-  const { name, contactPerson, email, phone, address, rating, tags, historicalPricing } = req.body;
+  const { name, contactPerson, email, phone, address, tags, historicalPricing } = req.body;
   if (!name || !email || !phone) {
     return res.status(400).json({ error: "Vui lòng nhập tên nhà cung cấp, email và số điện thoại." });
   }
-  const newSupplier = {
+  const newSupplier = applySupplierReputation({
     id: `sup-${Date.now()}`,
     organizationId: req.organizationId,
     name,
@@ -398,33 +399,31 @@ app.post("/api/suppliers", (req, res) => {
     email,
     phone,
     address: address || "",
-    rating: Number(rating) || 5,
     tags: tags || [],
     historicalPricing: historicalPricing || "",
     source: "crm" as "crm" | "crawled"
-  };
+  });
   dbState.suppliers.push(newSupplier);
   res.status(201).json(newSupplier);
 });
 
 app.put("/api/suppliers/:id", (req, res) => {
-  const { name, contactPerson, email, phone, address, rating, tags, historicalPricing } = req.body;
+  const { name, contactPerson, email, phone, address, tags, historicalPricing } = req.body;
   const idx = dbState.suppliers.findIndex(s => s.id === req.params.id && s.organizationId === req.organizationId);
   if (idx === -1) {
     return res.status(404).json({ error: "Không tìm thấy nhà cung cấp hoặc bạn không có quyền thao tác trên nhà cung ứng này." });
   }
   
-  dbState.suppliers[idx] = {
+  dbState.suppliers[idx] = applySupplierReputation({
     ...dbState.suppliers[idx],
     name: name || dbState.suppliers[idx].name,
     contactPerson: contactPerson !== undefined ? contactPerson : dbState.suppliers[idx].contactPerson,
     email: email || dbState.suppliers[idx].email,
     phone: phone || dbState.suppliers[idx].phone,
     address: address !== undefined ? address : dbState.suppliers[idx].address,
-    rating: rating !== undefined ? Number(rating) : dbState.suppliers[idx].rating,
     tags: tags !== undefined ? tags : dbState.suppliers[idx].tags,
     historicalPricing: historicalPricing !== undefined ? historicalPricing : dbState.suppliers[idx].historicalPricing
-  };
+  });
   res.json(dbState.suppliers[idx]);
 });
 
@@ -507,7 +506,8 @@ app.get("/api/purchase-requests/:id/match-suppliers", (req, res) => {
   // Extract keywords from items to suggest suppliers
   const itemNames = pr.items.map(it => it.name.toLowerCase());
   
-  const matches = dbState.suppliers.filter(s => s.organizationId === req.organizationId).map(sup => {
+  const matches = dbState.suppliers.filter(s => s.organizationId === req.organizationId).map(rawSupplier => {
+    const sup = applySupplierReputation(rawSupplier);
     // Score based on matching tags
     let score = 0.5; // Baseline
     sup.tags.forEach(tag => {

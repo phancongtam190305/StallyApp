@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { ProcurementCase, Supplier } from "../types.js";
+import { applySupplierReputation } from "../supplierReputation.js";
 
 export interface SupplierDiscoveryInput {
   query: string;
@@ -165,7 +166,7 @@ function normalizeCandidate(raw: any, query: string, existingSuppliers: Supplier
 }
 
 export function buildSupplierFromCandidate(candidate: SupplierDiscoveryCandidate, orgId: string, index: number): Supplier {
-  return {
+  return applySupplierReputation({
     id: `sup-crawled-${Date.now()}-${index}`,
     organizationId: orgId,
     name: candidate.name,
@@ -173,7 +174,6 @@ export function buildSupplierFromCandidate(candidate: SupplierDiscoveryCandidate
     email: candidate.email,
     phone: candidate.phone,
     address: candidate.address || "Chưa xác minh",
-    rating: Math.max(3.5, Math.min(4.8, 3.6 + candidate.confidence / 100)),
     tags: candidate.tags.length ? candidate.tags : ["crawled"],
     historicalPricing: [
       candidate.evidence || "Nguồn crawler AI, cần procurement kiểm tra trước khi gửi RFQ.",
@@ -181,7 +181,7 @@ export function buildSupplierFromCandidate(candidate: SupplierDiscoveryCandidate
       candidate.sourceUrls.length ? `Nguồn: ${candidate.sourceUrls.join(", ")}` : "",
     ].filter(Boolean).join("\n"),
     source: "crawled",
-  };
+  });
 }
 
 export function runDiscoverySimulation(query: string, limit: number, existingSuppliers: Supplier[]): SupplierDiscoveryCandidate[] {
