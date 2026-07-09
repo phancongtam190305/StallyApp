@@ -821,6 +821,14 @@ type SupplierMatchResult = {
   rerankedBy?: "llm";
 };
 
+type SupplierMatchRerankMeta = {
+  attempted: boolean;
+  status: "skipped" | "success" | "failed";
+  model?: string;
+  error?: string;
+  rerankedCount?: number;
+};
+
 const handleSupplierMatchesList = async (req: Request, res: Response) => {
   const orgId = req.organizationId;
   const { caseId } = req.params;
@@ -907,13 +915,16 @@ const handleSupplierMatchesList = async (req: Request, res: Response) => {
     .sort((a, b) => b.score - a.score);
 
   let finalMatches: SupplierMatchResult[] = matches;
+  let rerankMeta: SupplierMatchRerankMeta = { attempted: false, status: "skipped" };
   const rerankParam = String(req.query.rerank || "true").toLowerCase();
   const rerankEnabled = process.env.SUPPLIER_MATCH_LLM_RERANK_ENABLED !== "false" && rerankParam !== "false";
   if (ai && rerankEnabled && matches.length > 1) {
     const topCandidates = matches.slice(0, 10);
+    const rerankModel = process.env.SUPPLIER_MATCH_LLM_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    rerankMeta = { attempted: true, status: "failed", model: rerankModel };
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: rerankModel,
         contents: `Bạn là chuyên gia mua hàng B2B. Hãy rerank danh sách nhà cung cấp CÓ SẴN cho yêu cầu mua hàng bên dưới.
 
 YÊU CẦU MUA:
@@ -948,6 +959,9 @@ QUY TẮC:
       const text = response.text?.trim() || "";
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       const reranked: any[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      if (reranked.length === 0) {
+        throw new Error("AI rerank không trả JSON array hợp lệ.");
+      }
       const byId = new Map(matches.map(item => [item.supplierId, item]));
       const usedIds = new Set<string>();
       const llmMatches = reranked.reduce<SupplierMatchResult[]>((acc, item: any) => {
@@ -966,22 +980,39 @@ QUY TẮC:
           });
           return acc;
         }, []);
+      if (llmMatches.length === 0) {
+        throw new Error("AI rerank không khớp supplierId nào trong danh sách hiện có.");
+      }
       finalMatches = [
         ...llmMatches.sort((a: any, b: any) => b.score - a.score),
         ...matches.filter(item => !usedIds.has(item.supplierId))
       ];
+      rerankMeta = {
+        attempted: true,
+        status: "success",
+        model: rerankModel,
+        rerankedCount: llmMatches.length,
+      };
       logFlow("info", "supplier.matches.llm_rerank.success", {
         traceId: req.traceId || createTraceId("supplier-matches"),
         caseId,
         orgId,
+        model: rerankModel,
         candidateCount: topCandidates.length,
         rerankedCount: llmMatches.length,
       });
     } catch (err: any) {
+      rerankMeta = {
+        attempted: true,
+        status: "failed",
+        model: rerankModel,
+        error: err?.message || "AI rerank thất bại, đang dùng rule score.",
+      };
       logFlow("warn", "supplier.matches.llm_rerank.failed", {
         traceId: req.traceId || createTraceId("supplier-matches"),
         caseId,
         orgId,
+        model: rerankModel,
         error: safeError(err),
       });
       finalMatches = matches;
@@ -995,9 +1026,10 @@ QUY TẮC:
     method: req.method,
     matchesCount: finalMatches.length,
     rerankEnabled: Boolean(ai && rerankEnabled),
+    rerankStatus: rerankMeta.status,
   });
 
-  res.json({ data: finalMatches });
+  res.json({ data: finalMatches, rerank: rerankMeta });
 };
 
 apiV1Router.get("/cases/:caseId/supplier-matches", handleSupplierMatchesList);

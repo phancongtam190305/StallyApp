@@ -479,6 +479,7 @@ export default function CaseDetailTimeline({
   const supplierRerankedSignatureRef = useRef("");
   const { showToast } = useToast();
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
+  const [supplierRerankError, setSupplierRerankError] = useState("");
 
   useEffect(() => {
     try {
@@ -707,10 +708,17 @@ export default function CaseDetailTimeline({
             .then(data => {
               const rerankedMatches = data.data || [];
               supplierRerankedSignatureRef.current = ruleSignature;
-              setMatchedSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(rerankedMatches) ? rerankedMatches : prev);
-              setLastSupplierRerankedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+              if (data.rerank?.status === "success") {
+                setSupplierRerankError("");
+                setMatchedSuppliers(prev => JSON.stringify(prev) !== JSON.stringify(rerankedMatches) ? rerankedMatches : prev);
+                setLastSupplierRerankedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+              } else {
+                setSupplierRerankError(data.rerank?.error || (locale === "en" ? "AI rerank failed, using rule score." : "AI rerank lỗi, đang dùng rule score."));
+              }
             })
-            .catch(() => {})
+            .catch(() => {
+              setSupplierRerankError(locale === "en" ? "AI rerank request failed, using rule score." : "Request AI rerank lỗi, đang dùng rule score.");
+            })
             .finally(() => {
               supplierRerankInFlightRef.current = false;
               setIsSupplierReranking(false);
@@ -1882,6 +1890,11 @@ export default function CaseDetailTimeline({
                             <Sparkles className="w-3 h-3" />
                             {locale === "en" ? `AI reranked ${llmRerankedCount} suppliers${lastSupplierRerankedAt ? ` at ${lastSupplierRerankedAt}` : ""}` : `AI đã rerank ${llmRerankedCount} NCC${lastSupplierRerankedAt ? ` lúc ${lastSupplierRerankedAt}` : ""}`}
                           </span>
+                        ) : supplierRerankError ? (
+                          <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full">
+                            <AlertTriangle className="w-3 h-3" />
+                            {locale === "en" ? "AI rerank fallback: rule score" : "AI rerank fallback: dùng rule score"}
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full">
                             Rule score tức thì, AI rerank chạy nền
@@ -1905,10 +1918,17 @@ export default function CaseDetailTimeline({
                             .then(data => {
                               const rerankedMatches = data.data || [];
                               supplierRerankedSignatureRef.current = currentSignature || getSupplierMatchSignature(rerankedMatches);
-                              setMatchedSuppliers(rerankedMatches);
-                              setLastSupplierRerankedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+                              if (data.rerank?.status === "success") {
+                                setSupplierRerankError("");
+                                setMatchedSuppliers(rerankedMatches);
+                                setLastSupplierRerankedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+                              } else {
+                                setSupplierRerankError(data.rerank?.error || (locale === "en" ? "AI rerank failed, using rule score." : "AI rerank lỗi, đang dùng rule score."));
+                              }
                             })
-                            .catch(() => {})
+                            .catch(() => {
+                              setSupplierRerankError(locale === "en" ? "AI rerank request failed, using rule score." : "Request AI rerank lỗi, đang dùng rule score.");
+                            })
                             .finally(() => {
                               supplierRerankInFlightRef.current = false;
                               setIsSupplierReranking(false);
@@ -1934,6 +1954,11 @@ export default function CaseDetailTimeline({
                       </button>
                     </div>
                   </div>
+                  {supplierRerankError && (
+                    <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 font-bold">
+                      {supplierRerankError}
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-2 bg-white border border-primary-dark/10 rounded-2xl p-3">
                     <input
