@@ -427,6 +427,61 @@ describe("Email E2E desired behavior", () => {
     expect(comparisonRes.body.summary.recommendationReason).toContain("red-flag");
   });
 
+  it("extracts a real PDF attachment from an inbound supplier email", async () => {
+    const { caseId } = await createCaseReadyForRfq();
+    mocks.genAiResponseText = JSON.stringify({
+      items: [{ name: "Gao ST25", quantity: 100, unit: "kg", unitPrice: 25000, totalPrice: 2500000 }],
+      subtotal: 2500000,
+      taxAmount: 250000,
+      shippingFee: 0,
+      totalAmount: 2750000,
+      deliveryDays: 3,
+      paymentTerms: "Net 15",
+      validUntil: "2026-06-30",
+      aiConfidenceScore: 92,
+    });
+
+    const inboundRes = await request(app)
+      .post("/api/v1/webhooks/inbound-email")
+      .set("x-organization-id", ORG_ID)
+      .send({
+        fromEmail: "supplier-one@example.test",
+        fromName: "Supplier One",
+        subject: `Re: [STALLY RFQ-${caseId.toUpperCase()}] Quote with PDF`,
+        bodyText: "Vui lòng xem báo giá trong file PDF đính kèm.",
+        fileName: "real-quotation.pdf",
+        fileContentBase64: Buffer.from("%PDF-test").toString("base64"),
+        mimeType: "application/pdf",
+        sizeBytes: 8,
+        messageId: "<supplier-pdf-quote@example.test>",
+        threadId: "<thread-pdf-quote@example.test>",
+        internetMessageId: "<supplier-pdf-quote@example.test>",
+        receivedAt: "2026-06-04T03:30:00.000Z",
+      });
+
+    expect(inboundRes.status).toBe(200);
+    expect(inboundRes.body.linkedCaseId).toBe(caseId);
+    expect(inboundRes.body.linkedSupplierId).toBe("sup-e2e-1");
+
+    await sleep(450);
+
+    const inboundEmail = dbState.email_messages.find((message: any) => message.direction === "inbound");
+    expect(inboundEmail?.attachments[0]).toMatchObject({
+      fileName: "real-quotation.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 8,
+    });
+    expect(dbState.quotes).toHaveLength(1);
+    expect(dbState.quote_versions).toHaveLength(1);
+    expect(dbState.quotes[0]).toMatchObject({
+      supplierId: "sup-e2e-1",
+      totalAmount: 2750000,
+      paymentTerms: "Net 15",
+      originalFileUrl: "real-quotation.pdf",
+    });
+    expect(dbState.procurement_cases.find((item: any) => item.id === caseId)?.status).toBe("comparison_ready");
+  });
+
   it("keeps negotiation reply from overwriting an existing quote with zero values", async () => {
     const { caseId, quoteId } = createNegotiatingCaseWithExistingQuote();
     dbState.ai_negotiation_logs.push({

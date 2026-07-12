@@ -2416,6 +2416,66 @@ apiV1Router.post("/webhooks/inbound-email", async (req: Request, res: Response) 
   }
 });
 
+const QUOTE_ATTACHMENT_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+]);
+const QUOTE_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+function fileSignatureMatchesMime(buffer: Buffer, mimeType: string) {
+  if (mimeType === "application/pdf") return buffer.subarray(0, 5).toString("ascii") === "%PDF-";
+  if (mimeType === "image/png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (mimeType === "image/jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  return false;
+}
+
+function normalizeExtractedQuoteDraft(raw: any, caseObj: ProcurementCase) {
+  const sourceItems = Array.isArray(raw?.items) ? raw.items : [];
+  const items = sourceItems.map((item: any) => {
+    const quantity = Number(item?.quantity);
+    const unitPrice = Number(item?.unitPrice);
+    const totalPrice = Number(item?.totalPrice);
+    return {
+      name: String(item?.name || "").trim(),
+      quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 0,
+      unit: String(item?.unit || "").trim(),
+      unitPrice: Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : 0,
+      totalPrice: Number.isFinite(totalPrice) && totalPrice >= 0
+        ? totalPrice
+        : (Number.isFinite(quantity) && Number.isFinite(unitPrice) ? quantity * unitPrice : 0),
+    };
+  }).filter((item: QuoteItem) => item.name);
+
+  const computedSubtotal = items.reduce((sum: number, item: QuoteItem) => sum + item.totalPrice, 0);
+  const subtotal = parseFiniteNumber(raw?.subtotal);
+  const taxAmount = parseFiniteNumber(raw?.taxAmount);
+  const shippingFee = parseFiniteNumber(raw?.shippingFee);
+  const totalAmount = parseFiniteNumber(raw?.totalAmount);
+  const deliveryDays = parseFiniteNumber(raw?.deliveryDays);
+  const confidence = parseFiniteNumber(raw?.aiConfidenceScore);
+
+  return {
+    items: items.length > 0 ? items : caseObj.items.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: 0,
+      totalPrice: 0,
+    })),
+    subtotal: subtotal !== null && subtotal >= 0 ? subtotal : computedSubtotal,
+    taxAmount: taxAmount !== null && taxAmount >= 0 ? taxAmount : 0,
+    shippingFee: shippingFee !== null && shippingFee >= 0 ? shippingFee : 0,
+    totalAmount: totalAmount !== null && totalAmount >= 0
+      ? totalAmount
+      : computedSubtotal + Math.max(0, taxAmount || 0) + Math.max(0, shippingFee || 0),
+    deliveryDays: deliveryDays !== null && deliveryDays > 0 ? Math.round(deliveryDays) : 3,
+    paymentTerms: String(raw?.paymentTerms || "Không đề cập").trim(),
+    validUntil: String(raw?.validUntil || "").trim(),
+    aiConfidenceScore: confidence !== null ? Math.min(100, Math.max(0, Math.round(confidence))) : 0,
+  };
+}
+
 // ----------------------------------------------------
 // DOCUMENT QUOTE EXTRACTION PIPELINE
 // ----------------------------------------------------
@@ -2484,29 +2544,81 @@ async function triggerQuoteExtractionPipeline(caseId: string, supplierId: string
   
   const multiplier = supplierId === "sup-1" ? 0.95 : supplierId === "sup-2" ? 0.9 : supplierId === "sup-3" ? 1.05 : 1.1;
   const rawTextForGemini = email.bodyText + " " + (fileName ? `Scan file: ${fileName}` : "");
+  const attachment = email.attachments?.[0];
+  const attachmentMimeType = attachment?.mimeType || "";
+  const attachmentSize = attachment?.sizeBytes || 0;
+  let attachmentInlineData: { mimeType: string; data: string } | null = null;
+
+  if (fileContentBase64 && attachmentMimeType) {
+    try {
+      const fileBuffer = Buffer.from(fileContentBase64, "base64");
+      if (!QUOTE_ATTACHMENT_MIME_TYPES.has(attachmentMimeType)) {
+        logFlow("warn", "quote.extraction.attachment_unsupported", {
+          traceId,
+          caseId,
+          supplierId,
+          emailMessageId: email.id,
+          fileName,
+          mimeType: attachmentMimeType,
+        });
+      } else if (fileBuffer.length === 0 || fileBuffer.length > QUOTE_ATTACHMENT_MAX_BYTES || attachmentSize > QUOTE_ATTACHMENT_MAX_BYTES) {
+        logFlow("warn", "quote.extraction.attachment_size_invalid", {
+          traceId,
+          caseId,
+          supplierId,
+          emailMessageId: email.id,
+          fileName,
+          mimeType: attachmentMimeType,
+          sizeBytes: fileBuffer.length,
+        });
+      } else if (!fileSignatureMatchesMime(fileBuffer, attachmentMimeType)) {
+        logFlow("warn", "quote.extraction.attachment_signature_mismatch", {
+          traceId,
+          caseId,
+          supplierId,
+          emailMessageId: email.id,
+          fileName,
+          mimeType: attachmentMimeType,
+          sizeBytes: fileBuffer.length,
+        });
+      } else {
+        attachmentInlineData = { mimeType: attachmentMimeType, data: fileBuffer.toString("base64") };
+      }
+    } catch (err) {
+      logFlow("warn", "quote.extraction.attachment_decode_failed", {
+        traceId,
+        caseId,
+        supplierId,
+        emailMessageId: email.id,
+        fileName,
+        err: safeError(err),
+      });
+    }
+  }
   
   let isFallback = !ai;
   let usedNegotiationMerge = false;
   if (ai) {
     try {
       // Real Gemini API Extraction
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `Hãy đóng vai trò là một AI chuyên gia bóc tách báo giá B2B cực kỳ nghiêm ngặt và chính xác. Đọc nội dung email/file đính kèm dưới đây và đối chiếu với danh sách Mặt Hàng Gốc để trích xuất JSON.
+      const extractionPrompt = `Hãy đóng vai trò là một AI chuyên gia bóc tách báo giá B2B cực kỳ nghiêm ngặt và chính xác. Đọc nội dung email và ${attachmentInlineData ? "file đính kèm thật" : "nội dung email"} dưới đây, sau đó đối chiếu với danh sách Mặt Hàng Gốc để trích xuất JSON.
 
 QUY TẮC CỰC KỲ QUAN TRỌNG:
-1. KHÔNG ĐƯỢC TỰ Ý BỊA ĐẶT (hallucinate) thông tin. Chỉ trích xuất các sản phẩm thật sự xuất hiện trong nội dung email phản hồi.
-2. ĐỐI CHIẾU MẶT HÀNG GỐC: So khớp tên sản phẩm trong báo giá với danh sách "MẶT HÀNG GỐC" để lấy tên chính xác nhất. Nếu không khớp, giữ nguyên tên trong email.
-3. GIỮ NGUYÊN GIÁ TRỊ: Trích xuất đúng đơn giá (unitPrice) và thành tiền (totalPrice) mà đối tác báo qua email. Tuyệt đối không tự ý áp dụng chiết khấu hay tính toán toán học khác trừ khi email có ghi rõ tỷ lệ phần trăm cụ thể.
+1. KHÔNG ĐƯỢC TỰ Ý BỊA ĐẶT (hallucinate) thông tin. Chỉ trích xuất các sản phẩm thật sự xuất hiện trong email hoặc tài liệu đính kèm.
+2. ĐỐI CHIẾU MẶT HÀNG GỐC: So khớp tên sản phẩm trong báo giá với danh sách "MẶT HÀNG GỐC" để lấy tên chính xác nhất. Nếu không khớp, giữ nguyên tên trong báo giá.
+3. GIỮ NGUYÊN GIÁ TRỊ: Trích xuất đúng đơn giá (unitPrice) và thành tiền (totalPrice) mà đối tác báo. Tuyệt đối không tự ý áp dụng chiết khấu hay tính toán khác trừ khi báo giá ghi rõ.
 4. XỬ LÝ KHI THIẾU THÔNG TIN:
-   - Phí vận chuyển (shippingFee): Nếu email KHÔNG đề cập phí vận chuyển, bắt buộc điền 0. TUYỆT ĐỐI NGHIÊM CẤM TỰ BỊA RA PHÍ VẬN CHUYỂN.
-   - Thuế VAT (taxAmount): Nếu email không nhắc tới VAT, mặc định điền 0.
+   - Phí vận chuyển (shippingFee): Nếu không đề cập, điền 0.
+   - Thuế VAT (taxAmount): Nếu không đề cập, điền 0.
    - Số ngày giao hàng (deliveryDays): Nếu không có thông tin, mặc định điền 3.
    - Điều khoản thanh toán (paymentTerms): Nếu không có, mặc định điền "Không đề cập".
-5. TRÁNH NHẦM LẪN ĐƠN GIÁ VÀ TỔNG TIỀN (Unit Price vs Total Price): Hãy phân biệt rõ giữa đơn giá (unitPrice - giá của 1 đơn vị sản phẩm) và thành tiền (totalPrice của từng mặt hàng) hoặc tổng thanh toán (totalAmount của cả đơn). Nếu email phản hồi thầu ghi "tổng tiền", "tổng giá trị là X" cho toàn bộ đơn hàng/gói hàng, thì X chính là totalPrice hoặc totalAmount. Tuyệt đối KHÔNG ĐƯỢC điền X vào đơn giá (unitPrice) của từng món hàng để tránh tính toán sai lệch nhân lên hàng chục lần (Ví dụ: nếu đơn thầu gồm 10 kg và tổng tiền sau giảm giá của món đó là 1,000,000đ, thì totalPrice = 1,000,000đ và unitPrice phải được tính lùi là 100,000đ).
+5. TRÁNH NHẦM LẪN ĐƠN GIÁ VÀ TỔNG TIỀN. Nếu báo giá ghi tổng tiền cho cả dòng hàng/gói hàng, đó là totalPrice hoặc totalAmount, không phải unitPrice.
 
-NỘI DUNG EMAIL & FILE:
+NỘI DUNG EMAIL:
 ${rawTextForGemini}
+
+FILE ĐÍNH KÈM:
+${attachmentInlineData ? `${fileName || "quotation"} (${attachmentMimeType}) đã được gửi kèm trong request này.` : "Không có file hợp lệ; chỉ đọc nội dung email."}
 
 MẶT HÀNG GỐC:
 ${caseObj ? JSON.stringify(caseObj.items) : "Không"}
@@ -2523,12 +2635,20 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
   "deliveryDays": số ngày giao hàng,
   "paymentTerms": "điều khoản thanh toán",
   "aiConfidenceScore": độ tin cậy 1-100
-}`
+}`;
+
+      const parts: any[] = [{ text: extractionPrompt }];
+      if (attachmentInlineData) {
+        parts.push({ inlineData: attachmentInlineData });
+      }
+      const response = await ai.models.generateContent({
+        model: process.env.GEMINI_EXTRACTION_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        contents: [{ role: "user", parts }],
       });
       if (response.text) {
         const jsonMatch = response.text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          extractedQuote = JSON.parse(jsonMatch[0]);
+          extractedQuote = normalizeExtractedQuoteDraft(JSON.parse(jsonMatch[0]), caseObj as ProcurementCase);
         } else {
           throw new Error("Không tìm thấy khối JSON hợp lệ trong phản hồi của Gemini.");
         }
@@ -2607,6 +2727,8 @@ Hãy trả về mã JSON hợp lệ duy nhất, không kèm theo bất kỳ lờ
     emailMessageId: email.id,
     isFallback,
     itemCount: normalizedItems.length,
+    attachmentUsed: Boolean(attachmentInlineData),
+    attachmentMimeType: attachmentInlineData?.mimeType,
     subtotal: normalizedSubtotal,
     taxAmount: normalizedTaxAmount,
     shippingFee: normalizedShippingFee,

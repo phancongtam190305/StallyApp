@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { apiUrl } from "../config";
 import { 
   ChevronLeft, 
+  ChevronDown,
   Sparkles, 
   Send, 
   CheckCircle2, 
@@ -26,7 +27,8 @@ import {
   Info,
   Check,
   Boxes,
-  Lock
+  Lock,
+  Star
 } from "lucide-react";
 import { UserRole, ProcurementCase, PurchaseRequestItem, Supplier, Quote, CaseTransition, PurchaseOrder } from "../types";
 import { getQuoteRiskFlags, quoteNeedsHumanReview } from "../quoteRisk";
@@ -510,6 +512,7 @@ export default function CaseDetailTimeline({
 
   // Sourcing States
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [expandedSupplierIds, setExpandedSupplierIds] = useState<string[]>([]);
   const [supplierFilterKeyword, setSupplierFilterKeyword] = useState("");
   const [supplierMinScore, setSupplierMinScore] = useState(0);
   const [supplierMinRating, setSupplierMinRating] = useState(0);
@@ -2011,7 +2014,7 @@ export default function CaseDetailTimeline({
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredMatchedSuppliers.map((item) => (
                     <div 
                       key={item.supplierId} 
@@ -2021,77 +2024,92 @@ export default function CaseDetailTimeline({
                           prev.includes(item.supplierId) ? prev.filter(id => id !== item.supplierId) : [...prev, item.supplierId]
                         );
                       }}
-                      className={`p-4 rounded-3xl border transition-all flex justify-between items-start border-l-8 ${
+                      className={`rounded-2xl border transition-all overflow-hidden ${
                         canEditSourcing ? "cursor-pointer" : "cursor-default opacity-90"
                       } ${
                         selectedSuppliers.includes(item.supplierId) 
-                          ? "bg-cream border-primary-dark shadow-accent-glow border-l-accent-gold transform scale-[1.01]" 
-                          : canEditSourcing ? "bg-white border-primary-dark/20 hover:border-primary-dark border-l-primary-light" : "bg-white border-primary-dark/10 border-l-primary-light"
+                          ? "bg-cream border-primary-dark shadow-accent-glow ring-1 ring-accent-gold/60"
+                          : canEditSourcing ? "bg-white border-primary-dark/30 hover:border-primary-dark/70 hover:shadow-card" : "bg-white border-primary-dark/25"
                       }`}
                     >
-                      <div className="space-y-1.5 flex-1 pr-3 pl-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs text-primary-dark truncate max-w-[150px]">{item.name}</span>
-                          <span className="text-[9px] bg-primary-bg text-primary-dark px-1.5 py-0.5 rounded border border-primary font-mono font-bold">
-                            {t("matchPercent").replace("{score}", String(item.score))}
-                          </span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono font-bold ${
-                            item.reputationLevel === "high"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : item.reputationLevel === "low"
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}>
-                            {locale === "en" ? "Trust" : "Uy tín"} {item.rating || 0}/5
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 flex-1 max-w-[180px] bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${item.reputationLevel === "high" ? "bg-emerald-500" : item.reputationLevel === "low" ? "bg-rose-500" : "bg-amber-400"}`}
-                              style={{ width: `${Math.min(100, Math.round(((item.reputationScore || 0) / 90) * 100))}%` }}
-                            />
+                      <div className="p-3.5 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-bold text-[13px] text-primary-dark truncate">{item.name}</span>
+                              {item.rerankedBy === "llm" && <Sparkles className="w-3.5 h-3.5 text-accent-dark shrink-0" />}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.score)}%` }} />
+                              </div>
+                              <span className="text-[10px] text-primary-dark/55 font-bold">Khớp {item.score}%</span>
+                              <span className="text-primary-dark/20">•</span>
+                              <span
+                                className="flex items-center gap-0.5"
+                                title={`Uy tín ${item.rating || 0}/5`}
+                                aria-label={`Uy tín ${item.rating || 0} trên 5 sao`}
+                              >
+                                {[0, 1, 2, 3, 4].map(starIndex => {
+                                  const fillPercent = Math.max(0, Math.min(100, ((item.rating || 0) - starIndex) * 100));
+                                  return (
+                                    <span key={starIndex} className="relative block w-3.5 h-3.5 shrink-0">
+                                      <Star className="absolute inset-0 w-3.5 h-3.5 text-slate-300" />
+                                      <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercent}%` }}>
+                                        <Star className="w-3.5 h-3.5 text-accent-gold fill-accent-gold" />
+                                      </span>
+                                    </span>
+                                  );
+                                })}
+                                <span className="ml-1 text-[9px] font-bold text-primary-dark/55">{item.rating || 0}</span>
+                              </span>
+                            </div>
                           </div>
-                          <span className="text-[9px] text-slate-400 font-bold">{item.reputationScore || 0}/90</span>
-                        </div>
-                        <p className="text-[10px] text-primary-dark/50 font-bold font-mono">{item.email}</p>
-                        <div className="flex flex-wrap gap-1">
-                          {(item.tags || []).slice(0, 4).map(tag => (
-                            <span key={tag} className="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 rounded px-1.5 py-0.5 font-bold">
-                              {tag}
-                            </span>
-                          ))}
-                          {item.source && (
-                            <span className="text-[9px] bg-amber-50 text-accent-dark border border-amber-200 rounded px-1.5 py-0.5 font-bold">
-                              {item.source}
-                            </span>
-                          )}
-                          {item.rerankedBy === "llm" && (
-                            <span className="text-[9px] bg-primary-dark text-white border border-primary-dark rounded px-1.5 py-0.5 font-bold">
-                              AI rerank
-                            </span>
+                          {canEditSourcing && (
+                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition ${selectedSuppliers.includes(item.supplierId) ? "bg-primary border-primary-dark text-white" : "border-primary-dark/25 bg-white"}`}>
+                              {selectedSuppliers.includes(item.supplierId) && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
                           )}
                         </div>
-                        
-                        <div className="space-y-1 pt-1.5">
-                          {item.reasons.map((r, i) => (
-                            <p key={i} className="text-[10px] text-primary-dark/70 font-bold leading-normal flex items-start gap-1">
-                              <span className="text-primary font-bold">✔</span> {r}
-                            </p>
-                          ))}
-                          {item.riskFlags.map((risk) => (
-                            <p key={risk} className="text-[10px] text-coral-dark font-bold leading-normal flex items-start gap-1">
-                              <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" /> {risk}
-                            </p>
-                          ))}
+
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {(item.tags || []).slice(0, 2).map(tag => <span key={tag} className="max-w-[120px] truncate text-[9px] bg-slate-100 text-slate-600 border border-slate-200 rounded-md px-2 py-1 font-bold">{tag}</span>)}
+                          {(item.tags || []).length > 2 && <span className="text-[9px] text-slate-500 font-bold">+{(item.tags || []).length - 2}</span>}
+                          {item.source && <span className="ml-auto text-[9px] bg-amber-50 text-accent-dark border border-amber-200 rounded-md px-2 py-1 font-bold shrink-0">{item.source}</span>}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 border-t border-primary-dark/15 pt-2.5">
+                          <div className="min-w-0 flex-1">
+                            {item.riskFlags.length > 0 ? (
+                              <p className="text-[10px] text-coral-dark font-bold truncate flex items-center gap-1"><AlertTriangle className="w-3 h-3 shrink-0" /> {item.riskFlags[0]}</p>
+                            ) : (
+                              <p className="text-[10px] text-emerald-700 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Không có cảnh báo chính</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setExpandedSupplierIds(prev => prev.includes(item.supplierId) ? prev.filter(id => id !== item.supplierId) : [...prev, item.supplierId]);
+                            }}
+                            className="text-[10px] font-bold text-primary-dark/55 hover:text-primary-dark flex items-center gap-1 shrink-0"
+                            aria-expanded={expandedSupplierIds.includes(item.supplierId)}
+                          >
+                            {expandedSupplierIds.includes(item.supplierId) ? "Thu gọn" : "Chi tiết"}
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedSupplierIds.includes(item.supplierId) ? "rotate-180" : ""}`} />
+                          </button>
                         </div>
                       </div>
-                      
-                      {canEditSourcing && (
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                          selectedSuppliers.includes(item.supplierId) ? "bg-primary border-primary-dark text-white" : "border-primary-dark/30 bg-white"
-                        }`}>
-                          {selectedSuppliers.includes(item.supplierId) && <Check className="w-3 h-3 stroke-[3]" />}
+
+                      {expandedSupplierIds.includes(item.supplierId) && (
+                        <div onClick={event => event.stopPropagation()} className="bg-slate-50/80 border-t border-primary-dark/25 px-3.5 py-3 space-y-2.5 cursor-default">
+                          <p className="text-[10px] text-primary-dark/55 font-mono truncate">{item.email}</p>
+                          <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            <div className="bg-white border border-slate-200 rounded-lg p-2"><span className="text-slate-400 font-bold">Điểm uy tín</span><p className="font-bold text-primary-dark mt-0.5">{item.reputationScore || 0}/90</p></div>
+                            <div className="bg-white border border-slate-200 rounded-lg p-2"><span className="text-slate-400 font-bold">Nguồn xếp hạng</span><p className="font-bold text-primary-dark mt-0.5">{item.rerankedBy === "llm" ? "AI rerank" : "Rule score"}</p></div>
+                          </div>
+                          {item.reasons.length > 0 && <div className="space-y-1">{item.reasons.map((reason, index) => <p key={index} className="text-[10px] text-primary-dark/70 font-bold flex items-start gap-1.5"><Check className="w-3 h-3 text-emerald-600 mt-0.5 shrink-0" />{reason}</p>)}</div>}
+                          {item.riskFlags.length > 0 && <div className="space-y-1">{item.riskFlags.map(risk => <p key={risk} className="text-[10px] text-coral-dark font-bold flex items-start gap-1.5"><AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />{risk}</p>)}</div>}
                         </div>
                       )}
                     </div>

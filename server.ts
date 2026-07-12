@@ -19,7 +19,9 @@ dotenv.config();
 
 const app = express();
 app.set("trust proxy", 1);
-app.use(express.json());
+// Quote uploads are sent as base64 JSON so the same API works on the current
+// monolith and split Vercel/Render deployment without adding multipart state.
+app.use(express.json({ limit: "15mb" }));
 
 function enrichQuoteForOverview(quote: Quote) {
   const caseObj = dbState.procurement_cases.find(c => c.currentRfqId === quote.rfqCaseId && c.organizationId === quote.organizationId);

@@ -9,7 +9,6 @@ import {
   Building2, 
   TrendingUp, 
   Boxes, 
-  User as UserIcon, 
   HelpCircle,
   FolderLock,
   X,
@@ -66,8 +65,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
     {
       id: "requester" as UserRole,
       title: "Người Yêu Cầu",
-      name: "Trần Lý Bình",
-      dept: "Khối Vận hành Nhà Hàng",
+      dept: "",
       icon: Utensils,
       desc: "Chuyên trách quản lý nhu cầu vận hành, định hình định mức, tạo yêu cầu mua sắm thực vật tư khi có thâm hụt.",
       responsibilities: ["Đề xuất yêu cầu mua hàng", "Dùng AI trợ lý tạo dự thảo", "Theo dõi tồn khả dụng tối thiểu"],
@@ -75,8 +73,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
     {
       id: "procurement" as UserRole,
       title: "Trưởng Phòng Thu Mua",
-      name: "Phan Công Tâm",
-      dept: "Ban Procurement & Sourcing",
+      dept: "",
       icon: TrendingUp,
       desc: "Chuẩn hóa yêu cầu, kiểm soát danh sách nhà cung cấp, phát thầu RFQ và giữ audit trail cho từng quyết định mua hàng.",
       responsibilities: ["Gửi RFQ có kiểm duyệt", "So sánh báo giá có red-flag", "Chuyển duyệt kèm dấu vết quyết định"],
@@ -84,8 +81,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
     {
       id: "manager" as UserRole,
       title: "Giám Đốc Phê Duyệt",
-      name: "Nguyễn Thị Mai",
-      dept: "Ban Giám Đốc",
+      dept: "",
       icon: Building2,
       desc: "Phê duyệt PO dựa trên bảng đối chiếu, cảnh báo rủi ro trích xuất và lịch sử trao đổi rõ ràng từ phòng mua hàng.",
       responsibilities: ["Ký duyệt PO có kiểm soát", "Xem spend trong 30 giây", "Truy vết lý do chọn NCC"],
@@ -93,8 +89,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
     {
       id: "warehouse" as UserRole,
       title: "Thủ Kho Trưởng",
-      name: "Lý Văn Khoa",
-      dept: "Tổ Kho & Cung Ứng Vật Tư",
+      dept: "",
       icon: Boxes,
       desc: "Xác nhận nhận hàng thực tế dựa trên PO đã duyệt, kiểm kê hao hụt nguyên vật liệu định kỳ và kiểm duyệt nhật ký dòng kho.",
       responsibilities: ["Nhận hàng vật lý khớp PO", "Cân đối điều chỉnh tồn hao hụt", "Nhật ký lưu kho luồng nhập xuất"],
@@ -343,7 +338,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
                       </div>
                       <div className="overflow-hidden">
                         <p className="text-sm font-bold text-primary-dark">{r.title}</p>
-                        <p className="text-[11px] text-primary-dark/50 font-medium truncate">{r.name}</p>
+                        <p className="text-[11px] text-primary-dark/50 font-medium truncate">{r.dept}</p>
                       </div>
                     </div>
                     {isSelected && (
@@ -395,9 +390,9 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
 
                 <div className="bg-white/8 border border-white/10 p-5 rounded-3xl space-y-3">
                   <div className="flex items-center gap-2">
-                    <UserIcon className="w-4 h-4 text-accent-gold" />
-                    <span className="text-xs text-white/45 font-bold">Mã nhân sự:</span>
-                    <span className="text-xs font-mono font-bold text-white">{resolvedUser?.name || currentInfo.name}</span>
+                    <ShieldCheck className="w-4 h-4 text-accent-gold" />
+                    <span className="text-xs text-white/45 font-bold">Vai trò hệ thống:</span>
+                    <span className="text-xs font-bold text-white">{currentInfo.title}</span>
                   </div>
                   <p className="text-sm text-white/68 leading-relaxed font-medium">
                     {currentInfo.desc}
@@ -510,7 +505,7 @@ export default function LoginScreen({ onLogin, t, locale, setLocale }: LoginScre
                   Nếu chưa quen, hệ thống sẽ mở tour cầm tay chỉ việc theo đúng vai trò: chỉ từng tab, từng nút cần bấm và thứ tự xử lý case.
                 </p>
                 <span className="block mt-2 bg-cream px-2.5 py-1.5 border border-primary-dark/10 rounded-full text-[10px] text-primary-dark font-bold font-mono">
-                  BẮT ĐẦU: {currentInfo?.title} ({resolvedUser?.name || currentInfo?.name})
+                  BẮT ĐẦU: {currentInfo?.title}
                 </span>
               </div>
             </div>
